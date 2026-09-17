@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme {
+  --color-deep-indigo: #234386;
+  --color-honey-gold: #ffc400;
+  --color-burnt-orange: #ed7328;
+  --color-sky-blue: #6aa8dc;
+  --color-warm-sand: #d2b68c;
+  --color-mint-sage: #a2d3a6;
+  --color-ink-black: #000000;
+  --color-pure-white: #ffffff;
+  --color-cream-paper: #fbf9f6;
+  --color-soft-shadow: #d6d6d6;
+
+  /* Strict 3-family typography system with 100% native Vietnamese glyph support */
+  /* Canonical default: Tailwind `font-sans` resolves to Be Vietnam Pro */
+  --font-sans: "Be Vietnam Pro", sans-serif;
+  --font-body: "Be Vietnam Pro", sans-serif;
+  --font-heading: "Noto Serif", serif;
+  --font-script: "Dancing Script", cursive;
+
+  --shadow-xl: 0 20px 25px -5px rgba(35, 67, 134, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-xl-2: 0 25px 50px -12px rgba(35, 67, 134, 0.16);
+}
+
+:root {
+  --color-deep-indigo: #234386;
+  --color-honey-gold: #ffc400;
+  --color-burnt-orange: #ed7328;
+  --color-sky-blue: #6aa8dc;
+  --color-warm-sand: #d2b68c;
+  --color-mint-sage: #a2d3a6;
+  --color-ink-black: #000000;
+  --color-pure-white: #ffffff;
+  --color-cream-paper: #fbf9f6;
+  --color-soft-shadow: #d6d6d6;
+
+  --font-sans: "Be Vietnam Pro", sans-serif;
+  --font-body: "Be Vietnam Pro", sans-serif;
+  --font-heading: "Noto Serif", serif;
+  --font-script: "Dancing Script", cursive;
+
+  --shadow-xl: 0 20px 25px -5px rgba(35, 67, 134, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-xl-2: 0 25px 50px -12px rgba(35, 67, 134, 0.16);
+}
+
+body {
+  background-color: var(--color-cream-paper);
+  color: var(--color-ink-black);
+  font-family: "Be Vietnam Pro", sans-serif;
+  overflow-x: hidden;
+  /* Tactile artisanal paper grain effect */
+  background-image: radial-gradient(rgba(210, 182, 140, 0.22) 0.75px, transparent 0.75px);
+  background-size: 20px 20px;
+}
+
+.font-heading {
+  font-family: "Noto Serif", serif;
+}
+
+.font-body {
+  font-family: "Be Vietnam Pro", sans-serif;
+}
+
+.font-script {
+  font-family: "Dancing Script", cursive;
+}
+
+/* Custom organic cutout and artistic blob shapes */
+.organic-shape-hero {
+  border-radius: 60% 40% 50% 50% / 45% 55% 45% 55%;
+}
+
+.organic-shape-card {
+  border-radius: 36px 36px 18px 18px;
+}
+
+.organic-badge {
+  border-radius: 9999px;
+}
+
+/* Subtle organic paper texture feel */
+.bg-cream-paper {
+  background-color: #fbf9f6;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #fbf9f6;
+}
+::-webkit-scrollbar-thumb {
+  background: #d2b68c;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ed7328;
+}
