@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import type { FC } from 'react';
 import { 
   Utensils, 
@@ -18,25 +18,50 @@ import {
 import { MENU_ITEMS, type MenuItem } from '../data/restaurantData';
 import { BotanicalBranch, WavySectionDividerTop, WavySectionDividerBottom } from './BotanicalDecorations';
 
+export type MenuMode = 'dine-in' | 'delivery';
+
 interface MenuSectionProps {
   onAddToCart: (item: MenuItem) => void;
   onBookTableForDish?: (dishName: string) => void;
   addedItemId?: string | null;
+  onGoReservation?: () => void;
+  /** Controlled mode (e.g. from `?mode=` query). When provided, stays in sync. */
+  initialMode?: MenuMode;
+  onModeChange?: (mode: MenuMode) => void;
+  /** Set false when the parent page already offsets for the fixed header. */
+  pageOffset?: boolean;
 }
 
 export const MenuSection: FC<MenuSectionProps> = ({
   onAddToCart,
   onBookTableForDish,
   addedItemId,
+  onGoReservation,
+  initialMode,
+  onModeChange,
+  pageOffset = true,
 }) => {
   // Mode state: 'dine-in' | 'delivery'
-  const [activeMode, setActiveMode] = useState<'dine-in' | 'delivery'>('dine-in');
+  const [activeMode, setActiveMode] = useState<MenuMode>(initialMode ?? 'dine-in');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedDishDetail, setSelectedDishDetail] = useState<MenuItem | null>(null);
 
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+
+  // Keep in sync with controlled mode (e.g. `/menu?mode=delivery` links)
+  useEffect(() => {
+    if (initialMode && initialMode !== activeMode) {
+      setActiveMode(initialMode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMode]);
+
+  const setMode = (mode: MenuMode) => {
+    setActiveMode(mode);
+    onModeChange?.(mode);
+  };
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -96,10 +121,10 @@ export const MenuSection: FC<MenuSectionProps> = ({
       {/* ========================================================================= */}
       {/* PART 1: WAVY DEEP INDIGO EXPERIENCE DUAL-CARD SHELL (From Image C!) */}
       {/* ========================================================================= */}
-      <div className="relative pt-10">
+      <div className={`relative ${pageOffset ? 'pt-10' : ''}`}>
         <WavySectionDividerTop fill="#234386" className="relative z-10" />
 
-        <div className="bg-[#234386] text-white py-14 md:py-20 relative overflow-hidden -mt-1">
+        <div className="bg-[#234386] text-white py-10 sm:py-14 md:py-20 relative overflow-hidden -mt-1">
           {/* Subtle botanical line art watermark on left */}
           <div className="absolute -left-12 top-0 w-72 h-72 opacity-20 pointer-events-none">
             <BotanicalBranch className="w-full h-full rotate-12" color="#ffffff" />
@@ -118,28 +143,28 @@ export const MenuSection: FC<MenuSectionProps> = ({
                 </h2>
                 <p className="font-['Be_Vietnam_Pro',sans-serif] text-xs sm:text-sm text-white/85 leading-relaxed font-normal">
                   Cùng một chất lượng, hai trải nghiệm trọn vẹn. Dù là bữa ăn ấm cúng tại nhà hàng hay bữa ngon 
-                  ngay tại nhà, TIGER luôn sẵn sàng phục vụ bạn.
+                  ngay tại nhà, Tiger 345 luôn sẵn sàng phục vụ bạn.
                 </p>
               </div>
 
               {/* Right Column: Two White Experience Cards (Image C) */}
-              <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 
                 {/* Card 1: Thực đơn tại quán */}
                 <div 
                   onClick={() => {
-                    setActiveMode('dine-in');
+                    setMode('dine-in');
                     const el = document.getElementById('menu-browser');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className={`bg-white rounded-[24px] p-5 text-[#000000] shadow-lg flex flex-col justify-between border cursor-pointer transition-all duration-300 hover:-translate-y-1 ${
+                  className={`bg-white rounded-[20px] sm:rounded-[24px] p-4 sm:p-5 text-[#000000] shadow-lg flex flex-col justify-between border cursor-pointer transition-all duration-300 hover:-translate-y-1 ${
                     activeMode === 'dine-in' ? 'ring-4 ring-[#ffc400] border-transparent' : 'border-[#d2b68c]/30'
                   }`}
                 >
                   <div className="aspect-[16/10] rounded-[16px] overflow-hidden mb-4 bg-black/5 relative">
                     <img
                       src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80"
-                      alt="Không gian thưởng thức tại quán TIGER"
+                      alt="Không gian thưởng thức tại quán Tiger 345"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
@@ -173,18 +198,18 @@ export const MenuSection: FC<MenuSectionProps> = ({
                 {/* Card 2: Thực đơn giao tận nơi */}
                 <div 
                   onClick={() => {
-                    setActiveMode('delivery');
+                    setMode('delivery');
                     const el = document.getElementById('menu-browser');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
-                  className={`bg-white rounded-[24px] p-5 text-[#000000] shadow-lg flex flex-col justify-between border cursor-pointer transition-all duration-300 hover:-translate-y-1 ${
+                  className={`bg-white rounded-[20px] sm:rounded-[24px] p-4 sm:p-5 text-[#000000] shadow-lg flex flex-col justify-between border cursor-pointer transition-all duration-300 hover:-translate-y-1 ${
                     activeMode === 'delivery' ? 'ring-4 ring-[#ed7328] border-transparent' : 'border-[#d2b68c]/30'
                   }`}
                 >
                   <div className="aspect-[16/10] rounded-[16px] overflow-hidden mb-4 bg-black/5 relative">
                     <img
                       src="https://images.unsplash.com/photo-1526367790999-0150786686a2?auto=format&fit=crop&w=600&q=80"
-                      alt="Hộp giao món giữ nhiệt TIGER"
+                      alt="Hộp giao món giữ nhiệt Tiger 345"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
@@ -227,29 +252,30 @@ export const MenuSection: FC<MenuSectionProps> = ({
       {/* ========================================================================= */}
       {/* PART 2: INTERACTIVE MENU BROWSER (Matching Image B!) */}
       {/* ========================================================================= */}
-      <div id="menu-browser" className="pt-8 pb-24 scroll-mt-20">
+      <div id="menu-browser" className="pt-6 pb-16 md:pt-8 md:pb-24 scroll-mt-20">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
           
           {/* Header of Browser Area */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 sm:gap-6 mb-6 sm:mb-8">
             <div>
               <span className="font-['Be_Vietnam_Pro',sans-serif] text-[11px] font-semibold tracking-[0.18em] uppercase text-[#ed7328] block mb-2">
                 THỰC ĐƠN
               </span>
-              <h2 className="font-['Noto_Serif',serif] text-3xl sm:text-4xl font-bold text-[#234386] tracking-tight">
-                Khám phá món ngon của TIGER
+              <h2 className="font-['Noto_Serif',serif] text-2xl sm:text-3xl md:text-4xl font-bold text-[#234386] tracking-tight">
+                Khám phá món ngon của Tiger 345
               </h2>
               <p className="font-['Be_Vietnam_Pro',sans-serif] text-[#000000]/70 text-sm mt-1.5 font-normal">
                 Tinh hoa ẩm thực, phục vụ theo cách bạn thích.
               </p>
             </div>
 
-            {/* Mode Switcher Buttons (Image B: Tại quán vs Giao tận nơi) */}
-            <div className="flex items-center gap-2 p-1.5 rounded-full bg-white border border-[#d2b68c]/40 shadow-xs self-start md:self-end">
+            {/* Mode Switcher Buttons — sticky below header on mobile */}
+            <div className="max-md:sticky max-md:top-[58px] max-md:z-30 max-md:-mx-4 max-md:px-4 max-md:py-2 max-md:bg-[#fbf9f6]/95 max-md:backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-full bg-white border border-[#d2b68c]/40 shadow-xs w-full sm:w-auto">
               <button
                 type="button"
-                onClick={() => setActiveMode('dine-in')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                onClick={() => setMode('dine-in')}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${
                   activeMode === 'dine-in'
                     ? 'bg-[#234386] text-white shadow-xs'
                     : 'text-[#000000]/70 hover:text-[#234386]'
@@ -261,8 +287,8 @@ export const MenuSection: FC<MenuSectionProps> = ({
 
               <button
                 type="button"
-                onClick={() => setActiveMode('delivery')}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                onClick={() => setMode('delivery')}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${
                   activeMode === 'delivery'
                     ? 'bg-[#ed7328] text-white shadow-xs'
                     : 'text-[#000000]/70 hover:text-[#ed7328]'
@@ -271,6 +297,7 @@ export const MenuSection: FC<MenuSectionProps> = ({
                 <Bike size={14} />
                 <span>Giao tận nơi</span>
               </button>
+            </div>
             </div>
           </div>
 
@@ -290,7 +317,13 @@ export const MenuSection: FC<MenuSectionProps> = ({
                   </div>
                 </div>
                 <a
-                  href="#reservation"
+                  href="/reservation"
+                  onClick={(e) => {
+                    if (onGoReservation) {
+                      e.preventDefault();
+                      onGoReservation();
+                    }
+                  }}
                   className="hidden sm:inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#234386] text-white text-xs font-semibold shrink-0 hover:bg-[#1a3468]"
                 >
                   <Calendar size={13} />
@@ -319,10 +352,10 @@ export const MenuSection: FC<MenuSectionProps> = ({
           </div>
 
           {/* Category Chips Bar with Arrow Buttons (Image B exact layout) */}
-          <div className="flex items-center justify-between gap-4 mb-8 pb-3 border-b border-[#d2b68c]/30">
+          <div className="flex items-center justify-between gap-4 mb-6 sm:mb-8 pb-3 border-b border-[#d2b68c]/30">
             <div 
               ref={categoryScrollRef}
-              className="flex items-center gap-2.5 overflow-x-auto scrollbar-none py-1 scroll-smooth"
+              className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto scrollbar-none py-1 scroll-smooth touch-pan-x"
             >
               {categoriesList.map((cat) => {
                 const isActive = selectedCategory === cat.id;
@@ -366,7 +399,7 @@ export const MenuSection: FC<MenuSectionProps> = ({
           </div>
 
           {/* Quick Search bar */}
-          <div className="mb-8 max-w-sm">
+          <div className="mb-6 sm:mb-8 w-full max-w-sm">
             <div className="relative">
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#000000]/40" />
               <input
@@ -374,13 +407,13 @@ export const MenuSection: FC<MenuSectionProps> = ({
                 placeholder="Tìm món ngon theo tên hoặc nguyên liệu..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-full bg-white border border-[#d2b68c]/35 text-xs text-[#000000] focus:outline-none focus:border-[#234386]"
+                className="w-full pl-9 pr-4 py-2.5 sm:py-2 rounded-full bg-white border border-[#d2b68c]/35 text-sm sm:text-xs text-[#000000] focus:outline-none focus:border-[#234386]"
               />
             </div>
           </div>
 
           {/* Menu Cards Grid (Pure White Cards with rounded corners from Image B) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {filteredDishes.map((dish) => {
               const isJustAdded = addedItemId === dish.id;
               const isFav = !!favorites[dish.id];
@@ -388,7 +421,7 @@ export const MenuSection: FC<MenuSectionProps> = ({
               return (
                 <div
                   key={dish.id}
-                  className="group flex flex-col bg-white rounded-[22px] border border-[#d2b68c]/30 p-3 shadow-xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                  className="group flex flex-col bg-white rounded-[20px] sm:rounded-[22px] border border-[#d2b68c]/30 p-3 shadow-xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                 >
                   {/* Dish Image Container */}
                   <div className="relative aspect-[4/3] rounded-[16px] overflow-hidden bg-[#234386]/5">
@@ -507,8 +540,14 @@ export const MenuSection: FC<MenuSectionProps> = ({
 
       {/* Modal Detail for Dish */}
       {selectedDishDetail && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-[28px] max-w-md w-full overflow-hidden shadow-2xl border border-[#d2b68c]/40 animate-in fade-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setSelectedDishDetail(null)}
+        >
+          <div
+            className="bg-white rounded-[24px] sm:rounded-[28px] max-w-md w-full overflow-hidden shadow-2xl border border-[#d2b68c]/40 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="relative aspect-video">
               <img
                 src={selectedDishDetail.image}
@@ -544,25 +583,27 @@ export const MenuSection: FC<MenuSectionProps> = ({
               )}
 
               <div className="pt-3 border-t border-[#d2b68c]/25 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedDishDetail(null)}
-                  className="px-4 py-2 text-xs font-semibold text-[#000000]/60"
-                >
-                  Đóng
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const dish = selectedDishDetail;
-                    setSelectedDishDetail(null);
-                    if (onBookTableForDish) onBookTableForDish(dish.name);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#234386] text-white text-xs font-semibold shadow-xs hover:bg-[#1a3468]"
-                >
-                  <Calendar size={13} />
-                  <span>Đặt bàn thưởng thức món này</span>
-                </button>
+                <div className="w-full flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDishDetail(null)}
+                    className="px-4 py-2.5 text-xs font-semibold text-[#000000]/60 hover:text-[#000000] text-center"
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dish = selectedDishDetail;
+                      setSelectedDishDetail(null);
+                      if (onBookTableForDish) onBookTableForDish(dish.name);
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 px-5 py-3 sm:py-2.5 rounded-full bg-[#234386] text-white text-xs font-semibold shadow-xs hover:bg-[#1a3468] active:scale-95 transition-all"
+                  >
+                    <Calendar size={13} />
+                    <span>Đặt bàn thưởng thức món này</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

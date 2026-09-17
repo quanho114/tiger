@@ -60,7 +60,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
   };
 
   return (
-    <section id="reservation" className="py-20 md:py-24 bg-[#fbf9f6] relative scroll-mt-12 overflow-hidden">
+    <section id="reservation" className="py-12 md:py-24 bg-[#fbf9f6] relative scroll-mt-12 overflow-hidden">
       
       {/* Background Soft Blobs */}
       <div 
@@ -71,24 +71,24 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
         
         {/* Main Reservation Card (Directly inspired by Image B & C Split Card) */}
-        <div className="bg-white rounded-[32px] md:rounded-[40px] border border-[#d2b68c]/35 shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 items-stretch">
+        <div className="bg-white rounded-[24px] sm:rounded-[32px] md:rounded-[40px] border border-[#d2b68c]/35 shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 items-stretch">
           
           {/* Left Column: Atmospheric Warm Dining Photo (Image B) */}
-          <div className="lg:col-span-5 relative min-h-[320px] lg:min-h-[460px] overflow-hidden bg-[#234386]/10">
+          <div className="lg:col-span-5 relative min-h-[220px] sm:min-h-[320px] lg:min-h-[460px] overflow-hidden bg-[#234386]/10">
             <img
               src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=85"
-              alt="Bàn tiệc ấm cúng tại TIGER"
+              alt="Bàn tiệc ấm cúng tại Tiger 345"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
             
             {/* Script Watermark (From Image B: "More Good Meals Together") */}
-            <div className="absolute top-8 left-8 font-['Dancing_Script',cursive] text-2xl sm:text-3xl text-white/90 font-semibold leading-none -rotate-6 drop-shadow-sm">
+            <div className="absolute top-5 left-5 sm:top-8 sm:left-8 font-['Dancing_Script',cursive] text-xl sm:text-3xl text-white/90 font-semibold leading-none -rotate-6 drop-shadow-sm">
               More Good Meals<br />Together ♡
             </div>
 
             {/* Bottom Photo Caption */}
-            <div className="absolute bottom-6 left-6 right-6 text-white text-xs">
+            <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 text-white text-xs">
               <span className="font-['Be_Vietnam_Pro',sans-serif] inline-block px-3 py-1 rounded-full bg-[#ed7328] text-white font-semibold text-[10px] uppercase tracking-wider mb-2">
                 Không gian tinh tế
               </span>
@@ -99,7 +99,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
           </div>
 
           {/* Right Column: Headline, Copy & Booking Action (Image B & C) */}
-          <div className="lg:col-span-7 p-8 sm:p-12 lg:p-14 flex flex-col justify-between">
+          <div className="lg:col-span-7 p-5 sm:p-10 lg:p-14 flex flex-col justify-between">
             
             <div>
               {/* Eyebrow */}
@@ -124,11 +124,11 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
               </p>
 
               {/* Action Button & Hotline */}
-              <div className="flex flex-wrap items-center gap-4 mb-10">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-10">
                 <button
                   type="button"
                   onClick={() => setShowFormModal(true)}
-                  className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center gap-3 bg-[#234386] hover:bg-[#1a3468] text-white px-8 py-3.5 rounded-full font-semibold text-sm shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 group"
+                  className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-3 bg-[#234386] hover:bg-[#1a3468] text-white px-8 py-3.5 rounded-full font-semibold text-sm shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 group"
                 >
                   <span>Đặt bàn ngay</span>
                   <ArrowRight size={17} className="group-hover:translate-x-1 transition-transform" />
@@ -136,7 +136,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
 
                 <a
                   href="tel:0908123456"
-                  className="inline-flex items-center gap-2 text-xs font-semibold text-[#000000]/80 hover:text-[#ed7328] px-4 py-2 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 text-xs font-semibold text-[#000000]/80 hover:text-[#ed7328] px-4 py-2.5 transition-colors"
                 >
                   <Phone size={14} className="text-[#ed7328]" />
                   <span>Hotline: 0908 123 456</span>
@@ -145,7 +145,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
             </div>
 
             {/* Bottom Trust Indicators (Image B details) */}
-            <div className="pt-6 border-t border-[#d2b68c]/30 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#000000]/75">
+            <div className="pt-5 sm:pt-6 border-t border-[#d2b68c]/30 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs text-[#000000]/75">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-[#234386]/10 text-[#234386] flex items-center justify-center shrink-0">
                   <Users size={16} />
@@ -171,8 +171,14 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
       {/* INTERACTIVE BOOKING FORM MODAL */}
       {/* ========================================================================= */}
       {showFormModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#d2b68c]/40 p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
+          onClick={() => setShowFormModal(false)}
+        >
+          <div
+            className="bg-white rounded-[24px] sm:rounded-[32px] max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#d2b68c]/40 p-5 sm:p-8 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             {isSubmitted ? (
               /* Confirmation Ticket */
@@ -241,7 +247,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                       Đặt Bàn Trực Tuyến
                     </h3>
                     <p className="text-xs text-[#000000]/60">
-                      TIGER Contemporary Bistro · 48 Tràng Tiền
+                      Tiger 345 Contemporary Bistro · 48 Tràng Tiền
                     </p>
                   </div>
                   <button
@@ -264,7 +270,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                       placeholder="Nguyễn Văn A"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white"
+                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white max-md:min-h-[44px] max-md:text-sm"
                     />
                   </div>
                   <div>
@@ -277,7 +283,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                       placeholder="0908 123 456"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white"
+                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white max-md:min-h-[44px] max-md:text-sm"
                     />
                   </div>
                 </div>
@@ -293,7 +299,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                       required
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386]"
+                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] max-md:min-h-[44px] max-md:text-sm"
                     />
                   </div>
                   <div>
@@ -304,7 +310,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                     <select
                       value={guestCount}
                       onChange={(e) => setGuestCount(e.target.value)}
-                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386]"
+                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] max-md:min-h-[44px] max-md:text-sm"
                     >
                       <option value="2">2 khách (Bàn đôi)</option>
                       <option value="4">4 khách (Bàn tiêu chuẩn)</option>
@@ -323,7 +329,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                   <select
                     value={seatingArea}
                     onChange={(e) => setSeatingArea(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386]"
+                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] max-md:min-h-[44px] max-md:text-sm"
                   >
                     <option value="window">Bàn cửa sổ view phố Tràng Tiền</option>
                     <option value="indoor">Trong nhà ấm cúng & gần quầy bar</option>
@@ -338,13 +344,13 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                     <Clock size={13} className="text-[#ed7328]" />
                     <span>Khung giờ đến *</span>
                   </label>
-                  <div className="grid grid-cols-5 gap-1.5">
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
                     {timeSlots.map((slot) => (
                       <button
                         key={slot}
                         type="button"
                         onClick={() => setTimeSlot(slot)}
-                        className={`py-1.5 text-[11px] font-semibold rounded-lg transition-all border ${
+                        className={`py-2 sm:py-1.5 text-xs sm:text-[11px] font-semibold rounded-lg transition-all border active:scale-95 max-md:min-h-[44px] ${
                           timeSlot === slot
                             ? 'bg-[#234386] text-white border-[#234386]'
                             : 'bg-[#fbf9f6] text-[#000000]/75 border-[#d2b68c]/30 hover:border-[#ed7328]'
@@ -366,7 +372,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                     placeholder="Ví dụ: Kỷ niệm ngày cưới, cần góc yên tĩnh, dị ứng..."
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386]"
+                    className="w-full text-sm sm:text-xs px-3.5 py-2 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] max-md:min-h-[44px]"
                   />
                 </div>
 
@@ -374,7 +380,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="w-full py-3 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white font-semibold text-xs shadow-sm transition-all"
+                    className="w-full py-3.5 sm:py-3 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white font-semibold text-sm sm:text-xs shadow-sm active:scale-95 transition-all"
                   >
                     Xác nhận đặt bàn ngay
                   </button>

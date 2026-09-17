@@ -3,13 +3,13 @@ import { MapPin, Phone, Clock, Navigation, ExternalLink } from 'lucide-react';
 
 export const LocationSection: FC = () => {
   return (
-    <section id="location" className="py-20 md:py-24 bg-[#fbf9f6] relative scroll-mt-12 overflow-hidden border-t border-[#d2b68c]/30">
+    <section id="location" className="py-12 md:py-24 bg-[#fbf9f6] relative scroll-mt-12 overflow-hidden border-t border-[#d2b68c]/30">
       
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
           
           {/* Left Column: Address, Phone, Hours (Image C) */}
-          <div className="lg:col-span-6 space-y-6">
+          <div className="lg:col-span-6 space-y-5 sm:space-y-6">
             
             {/* Eyebrow */}
             <div className="flex items-center gap-3">
@@ -20,7 +20,7 @@ export const LocationSection: FC = () => {
             </div>
 
             {/* Headline (Image C exact text) */}
-            <h2 className="font-['Noto_Serif',serif] text-3xl sm:text-4xl lg:text-[42px] font-bold text-[#234386] tracking-tight leading-tight">
+            <h2 className="font-['Noto_Serif',serif] text-2xl sm:text-3xl lg:text-[42px] font-bold text-[#234386] tracking-tight leading-tight">
               Chúng tôi luôn ở đây,<br />chờ bạn ghé thăm
             </h2>
 
@@ -63,12 +63,12 @@ export const LocationSection: FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-3 flex flex-wrap items-center gap-4">
+            <div className="pt-2 sm:pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <a
                 href="https://maps.google.com/?q=48+Trang+Tien+Hoan+Kiem+Hanoi"
                 target="_blank"
                 rel="noreferrer"
-                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shadow-xs transition-all"
+                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
               >
                 <Navigation size={14} />
                 <span>Chỉ đường Google Maps</span>
@@ -77,10 +77,10 @@ export const LocationSection: FC = () => {
 
               <a
                 href="tel:0908123456"
-                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-[#d2b68c]/60 text-[#234386] hover:border-[#ed7328] hover:text-[#ed7328] text-xs font-semibold transition-all"
+                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white border border-[#d2b68c]/60 text-[#234386] hover:border-[#ed7328] hover:text-[#ed7328] text-xs font-semibold active:scale-95 transition-all"
               >
                 <Phone size={14} />
-                <span>Gọi trực tiếp</span>
+                <span>Gọi ngay</span>
               </a>
             </div>
 
@@ -90,14 +90,14 @@ export const LocationSection: FC = () => {
           <div className="lg:col-span-6 relative flex flex-col items-center">
             
             {/* Floating Handwritten Note (Image C) */}
-            <div className="self-end mr-4 mb-2 font-['Dancing_Script',cursive] text-xl sm:text-2xl text-[#ed7328] font-semibold leading-tight -rotate-3">
+            <div className="hidden sm:block self-end mr-4 mb-2 font-['Dancing_Script',cursive] text-xl sm:text-2xl text-[#ed7328] font-semibold leading-tight -rotate-3">
               Gặp nhau ở những điều tuyệt vời ♡
             </div>
 
             {/* Illustrated Storefront Sketch Card */}
-            <div className="w-full bg-white rounded-[28px] border border-[#d2b68c]/40 p-6 sm:p-8 shadow-sm relative overflow-hidden group">
+            <div className="w-full bg-white rounded-[20px] sm:rounded-[28px] border border-[#d2b68c]/40 p-4 sm:p-8 shadow-sm relative overflow-hidden group">
               
-              {/* Detailed Architectural Sketch of TIGER Bistro Storefront */}
+              {/* Detailed Architectural Sketch of Tiger 345 Bistro Storefront */}
               <svg 
                 viewBox="0 0 500 280" 
                 fill="none" 
@@ -116,8 +116,8 @@ export const LocationSection: FC = () => {
                 <path d="M65 95 L65 105 Q 250 120, 435 105 L435 95" stroke="#ffc400" strokeWidth="1.5" />
 
                 {/* Main Sign Board */}
-                <rect x="180" y="115" width="140" height="32" rx="4" fill="#fbf9f6" stroke="#ed7328" strokeWidth="1.5" />
-                <text x="250" y="136" textAnchor="middle" fill="#234386" fontSize="14" fontWeight="bold" fontFamily="'Noto Serif', serif">TIGER BISTRO</text>
+                <rect x="175" y="115" width="150" height="32" rx="4" fill="#fbf9f6" stroke="#ed7328" strokeWidth="1.5" />
+                <text x="250" y="136" textAnchor="middle" fill="#234386" fontSize="12" fontWeight="bold" fontFamily="'Noto Serif', serif">TIGER 345 BISTRO</text>
 
                 {/* Large Glass Windows */}
                 <rect x="90" y="160" width="100" height="90" rx="3" stroke="#234386" strokeWidth="1.5" fill="#fbf9f6" />

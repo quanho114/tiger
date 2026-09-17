@@ -44,11 +44,18 @@
   --shadow-xl-2: 0 25px 50px -12px rgba(35, 67, 134, 0.16);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background-color: var(--color-cream-paper);
   color: var(--color-ink-black);
   font-family: "Be Vietnam Pro", sans-serif;
+  /* clip (not hidden): prevents horizontal scroll without creating a
+     scroll container, so position:sticky keeps working on mobile */
   overflow-x: hidden;
+  overflow-x: clip;
   /* Tactile artisanal paper grain effect */
   background-image: radial-gradient(rgba(210, 182, 140, 0.22) 0.75px, transparent 0.75px);
   background-size: 20px 20px;
@@ -64,6 +71,36 @@ body {
 
 .font-script {
   font-family: "Dancing Script", cursive;
+}
+
+/* Calm route transition: small fade + slight rise (replays per route) */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-enter 220ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+}
+
+/* Hide scrollbars for horizontal chip rails while keeping touch scroll */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Custom organic cutout and artistic blob shapes */

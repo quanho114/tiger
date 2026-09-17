@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FC, FormEvent } from 'react';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, CheckCircle2, Bike } from 'lucide-react';
 import type { MenuItem } from '../data/restaurantData';
@@ -31,7 +31,33 @@ export const CartDrawer: FC<CartDrawerProps> = ({
   const [orderNote, setOrderNote] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const originalOverflow = document.body.style.overflow;
+    const originalPaddingRight = document.body.style.paddingRight;
+
+    document.body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      document.documentElement.style.setProperty('--scrollbar-compensation', `${scrollbarWidth}px`);
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.paddingRight = originalPaddingRight;
+      document.documentElement.style.removeProperty('--scrollbar-compensation');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.dish.price * item.quantity, 0);
   const freeshipThreshold = 300000;
@@ -54,8 +80,26 @@ export const CartDrawer: FC<CartDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-[#ffffff] h-full flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-300">
+    <div 
+      onClick={onClose}
+      className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end justify-center md:items-stretch md:justify-end transition-opacity duration-400 ease-in-out ${
+        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+      }`}
+      aria-hidden={!isOpen}
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Giỏ hàng giao tận nơi"
+        className={`w-full md:max-w-md bg-[#ffffff] h-[92dvh] md:h-full flex flex-col justify-between shadow-2xl rounded-t-[24px] md:rounded-none transform transition-transform duration-400 ease-out ${
+          isOpen ? 'translate-x-0 translate-y-0' : 'max-md:translate-y-full md:translate-x-full'
+        }`}
+      >
+        {/* Mobile grab handle */}
+        <div aria-hidden="true" className="md:hidden pt-2.5 pb-1 flex justify-center shrink-0">
+          <span className="w-10 h-1 rounded-full bg-[#000000]/15" />
+        </div>
         
         {/* Header */}
         <div className="p-5 border-b border-[#d2b68c]/30 flex items-center justify-between bg-[#fbf9f6]">
@@ -92,7 +136,7 @@ export const CartDrawer: FC<CartDrawerProps> = ({
                 Đặt Món Thành Công!
               </h4>
               <p className="text-sm text-[#000000]/70 max-w-xs mx-auto">
-                Bếp TIGER đã nhận đơn của bạn. Món ăn đang được nấu nóng hổi và sẽ giao tới{' '}
+                Bếp Tiger 345 đã nhận đơn của bạn. Món ăn đang được nấu nóng hổi và sẽ giao tới{' '}
                 <span className="font-semibold text-[#000000]">{deliveryAddress}</span> trong vòng 25-35 phút.
               </p>
               <div className="p-4 rounded-2xl bg-[#fbf9f6] border border-[#d2b68c]/30 text-xs text-left space-y-1">
@@ -160,11 +204,12 @@ export const CartDrawer: FC<CartDrawerProps> = ({
                     </div>
 
                     {/* Quantity controls */}
-                    <div className="flex items-center gap-1.5 bg-[#fbf9f6] border border-[#d2b68c]/40 rounded-full px-2 py-1">
+                    <div className="flex items-center gap-1 bg-[#fbf9f6] border border-[#d2b68c]/40 rounded-full px-1.5 py-0.5 sm:px-2 sm:py-1">
                       <button
                         type="button"
                         onClick={() => onUpdateQuantity(item.dish.id, -1)}
-                        className="p-0.5 hover:text-[#ed7328] transition-colors"
+                        className="w-7 h-7 flex items-center justify-center hover:text-[#ed7328] active:scale-90 transition-all text-[#000000]/70"
+                        aria-label="Giảm số lượng"
                       >
                         <Minus size={13} />
                       </button>
@@ -174,7 +219,8 @@ export const CartDrawer: FC<CartDrawerProps> = ({
                       <button
                         type="button"
                         onClick={() => onUpdateQuantity(item.dish.id, 1)}
-                        className="p-0.5 hover:text-[#ed7328] transition-colors"
+                        className="w-7 h-7 flex items-center justify-center hover:text-[#ed7328] active:scale-90 transition-all text-[#000000]/70"
+                        aria-label="Tăng số lượng"
                       >
                         <Plus size={13} />
                       </button>
@@ -183,8 +229,9 @@ export const CartDrawer: FC<CartDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => onRemoveItem(item.dish.id)}
-                      className="text-black/30 hover:text-red-500 transition-colors p-1"
+                      className="w-8 h-8 flex items-center justify-center text-black/30 hover:text-red-500 transition-colors p-1 active:scale-90"
                       title="Xóa món"
+                      aria-label="Xóa món khỏi giỏ"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -204,7 +251,7 @@ export const CartDrawer: FC<CartDrawerProps> = ({
                     placeholder="Họ và tên của bạn *"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
+                    className="w-full text-sm sm:text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
                   />
                 </div>
                 <div>
@@ -214,7 +261,7 @@ export const CartDrawer: FC<CartDrawerProps> = ({
                     placeholder="Số điện thoại nhận hàng *"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
+                    className="w-full text-sm sm:text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
                   />
                 </div>
                 <div>
@@ -224,7 +271,7 @@ export const CartDrawer: FC<CartDrawerProps> = ({
                     placeholder="Địa chỉ giao hàng chi tiết (Số nhà, đường, phường/quận) *"
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
+                    className="w-full text-sm sm:text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
                   />
                 </div>
                 <div>
@@ -233,7 +280,7 @@ export const CartDrawer: FC<CartDrawerProps> = ({
                     placeholder="Ghi chú cho bếp (Ít cay, lấy thêm nước chấm, v.v.)"
                     value={orderNote}
                     onChange={(e) => setOrderNote(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
+                    className="w-full text-sm sm:text-xs px-3.5 py-2 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
                   />
                 </div>
               </form>
@@ -243,7 +290,9 @@ export const CartDrawer: FC<CartDrawerProps> = ({
 
         {/* Footer Summary & Submit */}
         {!isOrderPlaced && cartItems.length > 0 && (
-          <div className="p-5 border-t border-[#d2b68c]/30 bg-[#fbf9f6] space-y-3">
+          <div
+            className="p-5 border-t border-[#d2b68c]/30 bg-[#fbf9f6] space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          >
             <div className="space-y-1.5 text-xs text-[#000000]/80">
               <div className="flex justify-between">
                 <span>Tiền món ({cartItems.length}):</span>

@@ -23,7 +23,7 @@ export const FeaturedDishesSection: FC<FeaturedDishesSectionProps> = ({
   };
 
   return (
-    <section className="py-20 md:py-24 bg-[#fbf9f6] relative overflow-hidden">
+    <section className="py-12 md:py-24 bg-[#fbf9f6] relative overflow-hidden">
       
       {/* Background Soft Blob Accent */}
       <div 
@@ -34,7 +34,7 @@ export const FeaturedDishesSection: FC<FeaturedDishesSectionProps> = ({
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
         
         {/* Section Header (Matching Image A & C) */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-8 md:mb-12">
           <div className="max-w-2xl">
             <div className="flex items-center gap-3 mb-3">
               <span className="font-['Be_Vietnam_Pro',sans-serif] text-[12px] font-semibold tracking-[0.18em] uppercase text-[#000000]/60">
@@ -42,11 +42,11 @@ export const FeaturedDishesSection: FC<FeaturedDishesSectionProps> = ({
               </span>
               <span className="w-10 h-[1.5px] bg-[#d2b68c]" />
             </div>
-            <h2 className="font-['Noto_Serif',serif] text-3xl sm:text-4xl lg:text-[44px] font-bold text-[#234386] tracking-tight leading-tight">
+            <h2 className="font-['Noto_Serif',serif] text-2xl sm:text-3xl lg:text-[44px] font-bold text-[#234386] tracking-tight leading-tight">
               Tinh hoa ẩm thực Việt trong từng món ăn
             </h2>
             <p className="font-['Be_Vietnam_Pro',sans-serif] text-[#000000]/70 text-sm sm:text-base mt-2.5 font-normal leading-relaxed">
-              Những món ăn được yêu thích nhất tại TIGER – sự hòa quyện giữa hương vị truyền thống và cảm hứng đương đại.
+              Những món ăn được yêu thích nhất tại Tiger 345 – sự hòa quyện giữa hương vị truyền thống và cảm hứng đương đại.
             </p>
           </div>
 
@@ -89,7 +89,7 @@ export const FeaturedDishesSection: FC<FeaturedDishesSectionProps> = ({
         </div>
 
         {/* Featured Dish Cards Grid (Matching Image B & C) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {FEATURED_DISHES.map((dish) => {
             const isJustAdded = addedItemId === dish.id;
             const isFav = !!favorites[dish.id];
@@ -97,7 +97,7 @@ export const FeaturedDishesSection: FC<FeaturedDishesSectionProps> = ({
             return (
               <div
                 key={dish.id}
-                className="group flex flex-col bg-[#ffffff] rounded-[24px] border border-[#d2b68c]/35 p-3.5 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                className="group flex flex-col bg-[#ffffff] rounded-[20px] sm:rounded-[24px] border border-[#d2b68c]/35 p-3 sm:p-3.5 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
               >
                 {/* Image Container with Soft Rounded Frame */}
                 <div className="relative aspect-[4/3] rounded-[18px] overflow-hidden bg-[#234386]/5">
@@ -119,7 +119,7 @@ export const FeaturedDishesSection: FC<FeaturedDishesSectionProps> = ({
                   <button
                     type="button"
                     onClick={(e) => toggleFavorite(dish.id, e)}
-                    className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/80 backdrop-blur-xs text-[#000000]/60 hover:text-red-500 flex items-center justify-center transition-colors shadow-2xs"
+                    className="absolute top-2.5 right-2.5 w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-white/85 backdrop-blur-xs text-[#000000]/60 hover:text-red-500 flex items-center justify-center transition-colors shadow-2xs active:scale-95"
                     aria-label="Yêu thích món ăn"
                   >
                     <Heart
@@ -149,7 +149,7 @@ export const FeaturedDishesSection: FC<FeaturedDishesSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => onAddToCart(dish)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                      className={`w-9 h-9 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
                         isJustAdded
                           ? 'bg-[#3d5a45] text-white'
                           : 'bg-[#fbf9f6] border border-[#d2b68c]/50 text-[#234386] hover:bg-[#234386] hover:text-white group-hover:border-[#234386]'
