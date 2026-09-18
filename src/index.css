@@ -135,3 +135,80 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #ed7328;
 }
+
+/* ------------------------------------------------------------- */
+/* AI Native Floating Assistant Button Animations                */
+/* ------------------------------------------------------------- */
+@keyframes ai-fab-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ai-status-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  60% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes ai-thinking-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ai-fab-entrance {
+  animation: ai-fab-entrance 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.ai-status-pulse {
+  animation: ai-status-pulse 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.ai-thinking-orbit {
+  animation: ai-thinking-spin 3s linear infinite;
+}
+
+/* ------------------------------------------------------------- */
+/* Tiger 345 Concierge Card Popover Animations                  */
+/* ------------------------------------------------------------- */
+@keyframes concierge-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.concierge-card-enter {
+  animation: concierge-card-enter 200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-fab-entrance,
+  .ai-status-pulse,
+  .ai-thinking-orbit,
+  .concierge-card-enter {
+    animation: none !important;
+  }
+}

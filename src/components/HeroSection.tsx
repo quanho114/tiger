@@ -26,8 +26,8 @@ export const HeroSection: FC<HeroSectionProps> = ({ onExploreMenu, onBookTable }
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
           
           {/* Left Column: Expressive Typography & CTAs (Exact Image A layout) */}
-          <div className="lg:col-span-6 flex flex-col items-start text-left">
-            
+          <div className="lg:col-span-7 flex flex-col items-start text-left">
+
             {/* Eyebrow: Be Vietnam Pro 12px / 600 uppercase letter-spacing: 0.18em */}
             <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
               <span className="font-['Be_Vietnam_Pro',sans-serif] text-[11px] sm:text-[12px] font-semibold tracking-[0.16em] sm:tracking-[0.18em] uppercase text-[#000000]/65">
@@ -36,8 +36,8 @@ export const HeroSection: FC<HeroSectionProps> = ({ onExploreMenu, onBookTable }
               <span className="w-8 sm:w-12 h-[1.5px] bg-[#d2b68c]" />
             </div>
 
-            {/* Main Headline: Noto Serif 72px desktop 700–800 line-height: 0.96 letter-spacing: -0.025em Deep Indigo #234386 */}
-            <h1 className="font-['Noto_Serif',serif] text-[#234386] text-[42px] leading-[0.98] sm:text-5xl lg:text-[72px] font-bold lg:font-extrabold sm:leading-[1.0] lg:leading-[0.96] tracking-[-0.025em] uppercase mb-3 sm:mb-4">
+            {/* Main Headline: Noto Serif bold editorial serif with calibrated line-height preventing Vietnamese diacritic collisions */}
+            <h1 className="font-['Noto_Serif',serif] text-[#234386] text-[36px] xs:text-[38px] sm:text-[50px] lg:text-[60px] xl:text-[66px] font-bold lg:font-extrabold leading-[1.18] sm:leading-[1.18] lg:leading-[1.18] tracking-[-0.025em] uppercase mb-3 sm:mb-4">
               MÓN VIỆT.<br />
               ĐẬM VỊ.<br />
               ĐẦY CẢM HỨNG.
@@ -82,7 +82,7 @@ export const HeroSection: FC<HeroSectionProps> = ({ onExploreMenu, onBookTable }
           </div>
 
           {/* Right Column: Hero Food Cutout Plate with Organic Blobs (Image A & C) */}
-          <div className="lg:col-span-6 relative flex justify-center items-center py-4 sm:py-6 lg:py-0">
+          <div className="lg:col-span-5 relative flex justify-center items-center py-4 sm:py-6 lg:py-0">
             
             {/* Background Organic Paint Blobs (Sky Blue + Honey Gold) */}
             <div 

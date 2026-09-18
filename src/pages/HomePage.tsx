@@ -231,7 +231,7 @@ export const HomePage: FC = () => {
               Ánh sáng êm dịu, âm nhạc tinh tế & khoảnh khắc sum vầy
             </h2>
             <p className="font-['Be_Vietnam_Pro',sans-serif] text-sm text-[#000000]/70 leading-relaxed font-normal">
-              Tại 48 Tràng Tiền, từng góc bàn được thiết kế để mang đến sự riêng tư, ấm áp và thư thái tối đa cho mọi bữa ăn.
+              Tại Tiger 345 Vĩnh An, từng góc bàn được thiết kế để mang đến sự riêng tư, ấm áp và thư thái tối đa cho mọi bữa ăn.
             </p>
           </div>
 
@@ -247,7 +247,7 @@ export const HomePage: FC = () => {
               </div>
               <div className="p-5 space-y-1.5">
                 <span className="text-[10px] font-semibold tracking-wider text-[#ed7328] uppercase">Khu vực cửa sổ</span>
-                <h4 className="font-['Noto_Serif',serif] font-bold text-base text-[#234386]">View phố Tràng Tiền thanh lịch</h4>
+                <h4 className="font-['Noto_Serif',serif] font-bold text-base text-[#234386]">View sân vườn thoáng đãng</h4>
                 <p className="text-xs text-[#000000]/70 leading-relaxed">
                   Ngắm nhìn dòng người qua lại dưới ánh đèn vàng ấm áp và những giai điệu acoustic êm dịu.
                 </p>
@@ -332,7 +332,7 @@ export const HomePage: FC = () => {
                     Thực đơn tại quán
                   </h3>
                   <p className="text-xs text-[#000000]/70 leading-relaxed mb-4">
-                    Thưởng thức trọn vẹn hương vị trong không gian ấm áp tại 48 Tràng Tiền.
+                    Thưởng thức trọn vẹn hương vị trong không gian ấm áp tại Tiger 345 Vĩnh An.
                   </p>
                 </div>
                 <div className="pt-3 border-t border-[#d2b68c]/25 flex items-center justify-between text-xs font-semibold text-[#234386] group-hover:text-[#ed7328] transition-colors">
@@ -414,7 +414,7 @@ export const HomePage: FC = () => {
               <div className="aspect-[16/10] overflow-hidden bg-black/5 relative">
                 <img
                   src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80"
-                  alt="Địa chỉ nhà hàng 48 Tràng Tiền"
+                  alt="Địa chỉ nhà hàng Tiger 345 Vĩnh An"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
                 />
@@ -428,7 +428,7 @@ export const HomePage: FC = () => {
                     Ghé thăm Tiger 345
                   </h3>
                   <p className="text-xs text-[#000000]/70 leading-relaxed mb-4">
-                    48 Tràng Tiền, Quận Hoàn Kiếm, Hà Nội. Có bãi đỗ xe ô tô & xe máy thuận tiện.
+                    17 Đường Số 1, Vĩnh An, Vĩnh Cửu, Đồng Nai. Có bãi đỗ xe ô tô & xe máy thuận tiện.
                   </p>
                 </div>
                 <div className="pt-3 border-t border-[#d2b68c]/25 flex items-center justify-between text-xs font-semibold text-[#234386] group-hover:text-[#ed7328] transition-colors">

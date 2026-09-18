@@ -31,7 +31,7 @@ export const LocationPage: FC = () => {
             Chúng tôi luôn ở đây, chờ bạn ghé thăm
           </h1>
           <p className="font-['Be_Vietnam_Pro',sans-serif] text-[#000000]/70 text-sm sm:text-base mt-2.5 font-normal leading-relaxed">
-            Tọa lạc tại góc phố Tràng Tiền thanh lịch giữa lòng Hà Nội, Tiger 345 sẵn sàng chào đón bạn với không gian ấm cúng và những bữa ăn ngon lành.
+            Tọa lạc tại thị trấn Vĩnh An, huyện Vĩnh Cửu, Tiger 345 sẵn sàng chào đón bạn với không gian ấm cúng và những bữa ăn ngon lành.
           </p>
         </div>
 
@@ -56,10 +56,10 @@ export const LocationPage: FC = () => {
                 </div>
                 <div>
                   <strong className="block text-sm sm:text-base text-[#000000]">
-                    48 Tràng Tiền, Quận Hoàn Kiếm, Hà Nội
+                    17, Đường Số 1, Tổ 6, Khu Phố 2, Thị Trấn Vĩnh An, Huyện Vĩnh Cửu, Đồng Nai
                   </strong>
                   <span className="text-xs text-[#000000]/65 mt-0.5 block">
-                    Cách Nhà Hát Lớn 150m · Cách Hồ Hoàn Kiếm 300m
+                    Mặt tiền đường lớn, dễ tìm · Có chỗ đỗ xe
                   </span>
                 </div>
               </div>
@@ -88,8 +88,8 @@ export const LocationPage: FC = () => {
                   <strong className="block text-sm sm:text-base text-[#000000]">
                     Điện thoại liên hệ & Đặt bàn
                   </strong>
-                  <a href="tel:0908123456" className="text-base font-bold text-[#234386] hover:text-[#ed7328] transition-colors block mt-0.5">
-                    0908 123 456
+                  <a href="tel:0902809929" className="text-base font-bold text-[#234386] hover:text-[#ed7328] transition-colors block mt-0.5">
+                    090 280 99 29
                   </a>
                 </div>
               </div>
@@ -124,7 +124,7 @@ export const LocationPage: FC = () => {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
               <a
-                href="https://maps.google.com/?q=48+Trang+Tien+Hoan+Kiem+Hanoi"
+                href="https://maps.google.com/?q=Tiger+345+Duong+So+1+Vinh+An+Vinh+Cuu+Dong+Nai"
                 target="_blank"
                 rel="noreferrer"
                 className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs sm:text-sm font-semibold shadow-xs active:scale-95 transition-all"
@@ -135,11 +135,11 @@ export const LocationPage: FC = () => {
               </a>
 
               <a
-                href="tel:0908123456"
+                href="tel:0902809929"
                 className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-white border border-[#d2b68c]/60 text-[#234386] hover:border-[#ed7328] hover:text-[#ed7328] text-xs sm:text-sm font-semibold active:scale-95 transition-all"
               >
                 <Phone size={15} />
-                <span>Gọi ngay 0908 123 456</span>
+                <span>Gọi ngay 090 280 99 29</span>
               </a>
 
               <Link
@@ -162,7 +162,7 @@ export const LocationPage: FC = () => {
                 <div className="flex items-center gap-2">
                   <Compass size={16} className="text-[#ed7328]" />
                   <span className="font-['Be_Vietnam_Pro',sans-serif] text-xs font-semibold uppercase tracking-wider text-[#234386]">
-                    Kiến trúc Tiger 345 Tràng Tiền
+                    Kiến trúc Tiger 345 Vĩnh An
                   </span>
                 </div>
                 <span className="font-['Dancing_Script',cursive] text-lg text-[#ed7328] font-semibold">
@@ -224,7 +224,7 @@ export const LocationPage: FC = () => {
 
               <div className="mt-3 flex items-center justify-between text-[11px] text-[#000000]/60 pt-2 border-t border-[#d2b68c]/20">
                 <span>Không gian mở hiện đại & tinh tế</span>
-                <span className="font-semibold text-[#234386]">48 Tràng Tiền, Hoàn Kiếm, Hà Nội</span>
+                <span className="font-semibold text-[#234386]">17 Đường Số 1, Vĩnh An, Đồng Nai</span>
               </div>
             </div>
 
@@ -238,7 +238,7 @@ export const LocationPage: FC = () => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-6 right-6 text-white text-xs">
-                <span className="font-semibold">Vị trí đắc địa ngay trung tâm phố cổ</span>
+                <span className="font-semibold">Vị trí thuận tiện ngay trung tâm thị trấn Vĩnh An</span>
               </div>
             </div>
 

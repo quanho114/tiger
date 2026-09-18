@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { CartDrawer } from './components/CartDrawer';
 import { StickyCartBar } from './components/StickyCartBar';
+import { ContactHub } from './components/ContactHub';
 import { CartProvider } from './store/CartProvider';
 import { useCart } from './store/cart';
 import { HomePage } from './pages/HomePage';
@@ -63,6 +64,7 @@ const Shell: FC = () => {
       />
 
       <StickyCartBar />
+      <ContactHub />
     </div>
   );
 };

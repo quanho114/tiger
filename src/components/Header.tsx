@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { FC } from 'react';
 import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, ShoppingBag, Menu, X, Phone, Clock, MapPin, Search } from 'lucide-react';
+import { Calendar, ShoppingBag, Menu, X, Phone, Clock, MapPin } from 'lucide-react';
 import { BotanicalSprig } from './BotanicalDecorations';
 import { useCart } from '../store/cart';
 
@@ -77,6 +77,20 @@ export const Header: FC = () => {
   });
   const [hasMounted, setHasMounted] = useState(false);
 
+  const handleLogoClick = () => {
+    if (location.pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleNavLinkClick = (to: string) => {
+    if (location.pathname === to) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const updateIndicator = useCallback(() => {
     const activeEl = itemsRef.current[activeSection];
     const container = navRef.current;
@@ -133,8 +147,8 @@ export const Header: FC = () => {
             {/* Brand Logo — compact on mobile */}
             <button
               type="button"
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 sm:gap-3 group focus:outline-none shrink-0 min-w-0"
+              onClick={handleLogoClick}
+              className="flex items-center gap-2 sm:gap-3 group focus:outline-none shrink-0 min-w-0 cursor-pointer"
               aria-label="Tiger 345 — Trang chủ"
             >
               <img
@@ -163,6 +177,7 @@ export const Header: FC = () => {
                       itemsRef.current[link.id] = el;
                     }}
                     to={link.to}
+                    onClick={() => handleNavLinkClick(link.to)}
                     className={`relative py-1 font-['Be_Vietnam_Pro',sans-serif] text-[14px] font-semibold transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#234386]/40 focus-visible:rounded-sm ${isActive
                         ? 'text-[#234386]'
                         : 'text-[#000000]/70 hover:text-[#234386]'
@@ -191,20 +206,8 @@ export const Header: FC = () => {
             {/* Right Action Controls */}
             <div className="flex items-center gap-1 sm:gap-2 md:gap-3.5 shrink-0">
 
-              {/* Utility Icon Actions (Search & Cart) */}
+              {/* Delivery Cart Trigger — desktop always; mobile only on /menu delivery mode */}
               <div className="flex items-center gap-0.5 sm:gap-1">
-                {/* Search / Discovery Icon — desktop only */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/menu')}
-                  className="hidden lg:flex items-center justify-center w-9 h-9 text-[#234386]/75 hover:text-[#234386] hover:bg-[#234386]/8 rounded-full transition-colors"
-                  title="Tìm món ăn trong thực đơn"
-                  aria-label="Tìm kiếm món ăn trong thực đơn"
-                >
-                  <Search size={18} />
-                </button>
-
-                {/* Delivery Cart Trigger — desktop always; mobile only on /menu delivery mode */}
                 <button
                   type="button"
                   onClick={() => setCartOpen(true)}
@@ -283,7 +286,10 @@ export const Header: FC = () => {
               <div className="flex items-center justify-between pb-5 border-b border-[#d2b68c]/30">
                 <button
                   type="button"
-                  onClick={() => navigate('/')}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogoClick();
+                  }}
                   className="flex items-center gap-2.5 focus:outline-none cursor-pointer"
                   aria-label="Tiger 345 — Trang chủ"
                 >
@@ -312,6 +318,10 @@ export const Header: FC = () => {
                   <NavLink
                     key={link.id}
                     to={link.to}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleNavLinkClick(link.to);
+                    }}
                     className={({ isActive }) =>
                       `px-4 py-3.5 rounded-xl text-[15px] font-semibold transition-colors ${isActive
                         ? 'bg-[#234386] text-white'
@@ -345,9 +355,9 @@ export const Header: FC = () => {
             </div>
 
             <div className="text-xs text-[#000000]/60 space-y-2 pt-4 mt-6 border-t border-[#d2b68c]/25">
-              <a href="tel:0908123456" className="flex items-center gap-2">
+              <a href="tel:0902809929" className="flex items-center gap-2">
                 <Phone size={13} className="text-[#ed7328] shrink-0" />
-                <span>Hotline: 0908 123 456</span>
+                <span>Hotline: 090 280 99 29</span>
               </a>
               <div className="flex items-center gap-2">
                 <Clock size={13} className="text-[#ed7328] shrink-0" />
@@ -355,7 +365,7 @@ export const Header: FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <MapPin size={13} className="text-[#ed7328] shrink-0" />
-                <span>48 Tràng Tiền, Hoàn Kiếm, Hà Nội</span>
+                <span>17 Đường Số 1, Vĩnh An, Vĩnh Cửu, Đồng Nai</span>
               </div>
             </div>
           </div>

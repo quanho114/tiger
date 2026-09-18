@@ -135,11 +135,11 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                 </button>
 
                 <a
-                  href="tel:0908123456"
+                  href="tel:0902809929"
                   className="inline-flex items-center justify-center gap-2 text-xs font-semibold text-[#000000]/80 hover:text-[#ed7328] px-4 py-2.5 transition-colors"
                 >
                   <Phone size={14} className="text-[#ed7328]" />
-                  <span>Hotline: 0908 123 456</span>
+                  <span>Hotline: 090 280 99 29</span>
                 </a>
               </div>
             </div>
@@ -247,7 +247,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                       Đặt Bàn Trực Tuyến
                     </h3>
                     <p className="text-xs text-[#000000]/60">
-                      Tiger 345 Contemporary Bistro · 48 Tràng Tiền
+                      Tiger 345 Contemporary Bistro · Vĩnh An, Đồng Nai
                     </p>
                   </div>
                   <button
@@ -280,7 +280,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                     <input
                       type="tel"
                       required
-                      placeholder="0908 123 456"
+                      placeholder="090 280 99 29"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white max-md:min-h-[44px] max-md:text-sm"
@@ -331,7 +331,7 @@ export const ReservationSection: FC<ReservationSectionProps> = ({ prefilledNote 
                     onChange={(e) => setSeatingArea(e.target.value)}
                     className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/40 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] max-md:min-h-[44px] max-md:text-sm"
                   >
-                    <option value="window">Bàn cửa sổ view phố Tràng Tiền</option>
+                    <option value="window">Bàn cửa sổ thoáng đãng</option>
                     <option value="indoor">Trong nhà ấm cúng & gần quầy bar</option>
                     <option value="balcony">Ban công sân vườn thoáng mát</option>
                     <option value="vip">Phòng tiệc riêng tư (VIP)</option>

@@ -25,7 +25,7 @@ export const LocationSection: FC = () => {
             </h2>
 
             <p className="font-['Be_Vietnam_Pro',sans-serif] text-sm text-[#000000]/75 leading-relaxed font-normal max-w-md">
-              Tọa lạc tại góc phố Tràng Tiền thanh lịch, sẵn sàng phục vụ những bữa ăn ngon lành 
+              Tọa lạc tại thị trấn Vĩnh An, huyện Vĩnh Cửu — sẵn sàng phục vụ những bữa ăn ngon lành 
               và những cuộc hẹn đáng nhớ nhất.
             </p>
 
@@ -36,7 +36,7 @@ export const LocationSection: FC = () => {
                   <MapPin size={15} />
                 </div>
                 <div>
-                  <strong className="block text-[#000000]">48 Tràng Tiền, Quận Hoàn Kiếm, Hà Nội</strong>
+                  <strong className="block text-[#000000]">17 Đường Số 1, Vĩnh An, Vĩnh Cửu, Đồng Nai</strong>
                   <span className="text-xs text-[#000000]/60">(Có bãi đỗ ô tô và xe máy miễn phí)</span>
                 </div>
               </div>
@@ -46,8 +46,8 @@ export const LocationSection: FC = () => {
                   <Phone size={15} />
                 </div>
                 <div>
-                  <a href="tel:0908123456" className="font-semibold text-[#234386] hover:text-[#ed7328] transition-colors">
-                    0908 123 456
+                  <a href="tel:0902809929" className="font-semibold text-[#234386] hover:text-[#ed7328] transition-colors">
+                    090 280 99 29
                   </a>
                 </div>
               </div>
@@ -65,7 +65,7 @@ export const LocationSection: FC = () => {
             {/* Action Buttons */}
             <div className="pt-2 sm:pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <a
-                href="https://maps.google.com/?q=48+Trang+Tien+Hoan+Kiem+Hanoi"
+                href="https://maps.google.com/?q=Tiger+345+Duong+So+1+Vinh+An+Vinh+Cuu+Dong+Nai"
                 target="_blank"
                 rel="noreferrer"
                 className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
@@ -76,7 +76,7 @@ export const LocationSection: FC = () => {
               </a>
 
               <a
-                href="tel:0908123456"
+                href="tel:0902809929"
                 className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white border border-[#d2b68c]/60 text-[#234386] hover:border-[#ed7328] hover:text-[#ed7328] text-xs font-semibold active:scale-95 transition-all"
               >
                 <Phone size={14} />
@@ -151,7 +151,7 @@ export const LocationSection: FC = () => {
 
               <div className="mt-3 flex items-center justify-between text-[11px] text-[#000000]/60 pt-2 border-t border-[#d2b68c]/20">
                 <span>Kiến trúc không gian mở hiện đại</span>
-                <span className="font-semibold text-[#234386]">48 Tràng Tiền, Hà Nội</span>
+                <span className="font-semibold text-[#234386]">17 Đường Số 1, Vĩnh An, Đồng Nai</span>
               </div>
             </div>
 

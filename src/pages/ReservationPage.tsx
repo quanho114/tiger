@@ -139,8 +139,8 @@ export const ReservationPage: FC = () => {
                 </div>
                 <div>
                   <strong className="block text-[#000000]">Hotline hỗ trợ tức thì</strong>
-                  <a href="tel:0908123456" className="font-semibold text-[#234386] hover:text-[#ed7328] transition-colors">
-                    0908 123 456
+                  <a href="tel:0902809929" className="font-semibold text-[#234386] hover:text-[#ed7328] transition-colors">
+                    090 280 99 29
                   </a>
                   <span className="block text-xs text-[#000000]/60">(Hỗ trợ đặt bàn tiệc đông người hoặc yêu cầu gấp)</span>
                 </div>
@@ -224,7 +224,7 @@ export const ReservationPage: FC = () => {
                       <span className="text-[#000000]/60">Khu vực bàn:</span>
                       <strong className="text-[#234386]">
                         {seatingArea === 'window'
-                          ? 'Cửa sổ view phố Tràng Tiền'
+                          ? 'Cửa sổ thoáng đãng'
                           : seatingArea === 'indoor'
                           ? 'Trong nhà ấm cúng & gần quầy bar'
                           : seatingArea === 'balcony'
@@ -296,7 +296,7 @@ export const ReservationPage: FC = () => {
                       <input
                         type="tel"
                         required
-                        placeholder="Ví dụ: 0908 123 456"
+                        placeholder="Ví dụ: 090 280 99 29"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         className="w-full text-sm sm:text-xs px-4 py-3 rounded-xl border border-[#d2b68c]/50 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white transition-colors"
@@ -349,7 +349,7 @@ export const ReservationPage: FC = () => {
                       onChange={(e) => setSeatingArea(e.target.value)}
                       className="w-full text-sm sm:text-xs px-4 py-3 rounded-xl border border-[#d2b68c]/50 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white transition-colors"
                     >
-                      <option value="window">Bàn bên ô cửa sổ nhìn ra phố Tràng Tiền</option>
+                        <option value="window">Bàn bên ô cửa sổ thoáng đãng</option>
                       <option value="indoor">Không gian trong nhà ấm áp, ánh sáng êm dịu</option>
                       <option value="balcony">Ban công thoáng mát nhiều mảng xanh</option>
                       <option value="vip">Phòng tiệc riêng tư cho gia đình/đối tác (VIP)</option>

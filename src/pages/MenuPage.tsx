@@ -109,7 +109,7 @@ export const MenuPage: FC = () => {
               Hương vị đương đại, trải nghiệm trọn vẹn
             </h1>
             <p className="font-['Be_Vietnam_Pro',sans-serif] text-[#000000]/70 text-sm sm:text-base mt-2 font-normal max-w-xl leading-relaxed">
-              Thưởng thức món ăn trong không gian ấm cúng tại 48 Tràng Tiền hoặc đặt món giao tận nơi nóng sốt giữ trọn hương vị.
+              Thưởng thức món ăn trong không gian ấm cúng tại Vĩnh An, Vĩnh Cửu hoặc đặt món giao tận nơi nóng sốt giữ trọn hương vị.
             </p>
           </div>
 

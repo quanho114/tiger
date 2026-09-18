@@ -62,7 +62,7 @@ const ACTIONS = [
     icon: MapPin,
     tint: 'bg-[#3d5a45]/15 text-[#3d5a45]',
     title: 'Địa chỉ',
-    desc: '48 Tràng Tiền, Hoàn Kiếm, Hà Nội',
+    desc: '17 Đường Số 1, Vĩnh An, Vĩnh Cửu, Đồng Nai',
   },
 ];
 
@@ -156,10 +156,10 @@ export const MobileFinalCtaSection: FC = () => (
         <ArrowRight size={16} />
       </Link>
       <a
-        href="tel:0908123456"
+        href="tel:0902809929"
         className="relative block mt-3 text-xs font-semibold text-white/80"
       >
-        Hoặc gọi Hotline: 0908 123 456
+        Hoặc gọi Hotline: 090 280 99 29
       </a>
     </div>
   </section>
