@@ -1,18 +1,23 @@
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  MapPin, 
-  Phone, 
-  Clock, 
-  Navigation, 
-  ExternalLink, 
-  Car, 
+import {
+  MapPin,
+  Phone,
+  Clock,
+  Navigation,
+  ExternalLink,
+  Car,
   Calendar,
   Mail,
   Compass
 } from 'lucide-react';
+import { useCatalog } from '@/features/catalog';
+import { getSiteInfo } from '@/data/site';
 
 export const LocationPage: FC = () => {
+  const { settings } = useCatalog();
+  const site = getSiteInfo(settings);
+
   return (
     <div className="pt-24 pb-20 md:pt-32 md:pb-28 bg-[#fbf9f6] min-h-screen">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
@@ -56,7 +61,7 @@ export const LocationPage: FC = () => {
                 </div>
                 <div>
                   <strong className="block text-sm sm:text-base text-[#000000]">
-                    17, Đường Số 1, Tổ 6, Khu Phố 2, Thị Trấn Vĩnh An, Huyện Vĩnh Cửu, Đồng Nai
+                    {site.addressFull}
                   </strong>
                   <span className="text-xs text-[#000000]/65 mt-0.5 block">
                     Mặt tiền đường lớn, dễ tìm · Có chỗ đỗ xe
@@ -71,7 +76,7 @@ export const LocationPage: FC = () => {
                 </div>
                 <div>
                   <strong className="block text-sm sm:text-base text-[#000000]">
-                    10:00 – 22:30 (Thứ 2 – Chủ Nhật)
+                    {site.hours} ({site.hoursNote})
                   </strong>
                   <span className="text-xs text-[#000000]/65 mt-0.5 block">
                     Bếp phục vụ liên tục buổi trưa và tối · Không nghỉ lễ
@@ -88,8 +93,8 @@ export const LocationPage: FC = () => {
                   <strong className="block text-sm sm:text-base text-[#000000]">
                     Điện thoại liên hệ & Đặt bàn
                   </strong>
-                  <a href="tel:0902809929" className="text-base font-bold text-[#234386] hover:text-[#ed7328] transition-colors block mt-0.5">
-                    090 280 99 29
+                  <a href={site.phoneHref} className="text-base font-bold text-[#234386] hover:text-[#ed7328] transition-colors block mt-0.5">
+                    {site.phoneDisplay}
                   </a>
                 </div>
               </div>
@@ -122,31 +127,31 @@ export const LocationPage: FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2">
               <a
-                href="https://maps.google.com/?q=Tiger+345+Duong+So+1+Vinh+An+Vinh+Cuu+Dong+Nai"
+                href={site.mapsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs sm:text-sm font-semibold shadow-xs active:scale-95 transition-all"
+                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
               >
-                <Navigation size={15} />
+                <Navigation size={14} />
                 <span>Chỉ đường Google Maps</span>
-                <ExternalLink size={13} className="opacity-70" />
+                <ExternalLink size={12} className="opacity-70" />
               </a>
 
               <a
-                href="tel:0902809929"
-                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-white border border-[#d2b68c]/60 text-[#234386] hover:border-[#ed7328] hover:text-[#ed7328] text-xs sm:text-sm font-semibold active:scale-95 transition-all"
+                href={site.phoneHref}
+                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#d2b68c]/60 text-[#234386] hover:border-[#ed7328] hover:text-[#ed7328] text-xs font-semibold active:scale-95 transition-all"
               >
-                <Phone size={15} />
-                <span>Gọi ngay 090 280 99 29</span>
+                <Phone size={14} />
+                <span>Gọi ngay {site.phoneDisplay}</span>
               </a>
 
               <Link
                 to="/reservation"
-                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white text-xs sm:text-sm font-semibold shadow-xs active:scale-95 transition-all"
+                className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
               >
-                <Calendar size={15} />
+                <Calendar size={14} />
                 <span>Đặt bàn trước</span>
               </Link>
             </div>
@@ -224,7 +229,7 @@ export const LocationPage: FC = () => {
 
               <div className="mt-3 flex items-center justify-between text-[11px] text-[#000000]/60 pt-2 border-t border-[#d2b68c]/20">
                 <span>Không gian mở hiện đại & tinh tế</span>
-                <span className="font-semibold text-[#234386]">17 Đường Số 1, Vĩnh An, Đồng Nai</span>
+                <span className="font-semibold text-[#234386]">{site.addressShort}</span>
               </div>
             </div>
 

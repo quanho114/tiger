@@ -1,6 +1,8 @@
+import type { RestaurantSettings } from '../features/catalog/types';
+
 /**
  * Single source of truth for Tiger 345 public contact info.
- * Update here — every page, drawer, footer and chatbot reply follows.
+ * Static fallback is preserved strictly for offline phone/address lookup when API is unavailable.
  */
 export const SITE = {
   name: 'Tiger 345',
@@ -16,3 +18,34 @@ export const SITE = {
   hours: '10:00 – 22:30',
   hoursNote: 'Thứ 2 – Chủ Nhật',
 } as const;
+
+export function formatPhoneDisplay(phone?: string): string {
+  if (!phone) return SITE.phoneDisplay;
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+  return phone;
+}
+
+export function getSiteInfo(settings?: RestaurantSettings | null) {
+  if (!settings) {
+    return SITE;
+  }
+
+  const phone = settings.phone || SITE.phoneDisplay;
+  const phoneClean = phone.replace(/\s+/g, '');
+
+  return {
+    name: settings.name || SITE.name,
+    phoneDisplay: formatPhoneDisplay(phone),
+    phoneHref: `tel:${phoneClean}`,
+    zalo: settings.zalo || SITE.zalo,
+    facebook: settings.facebook || SITE.facebook,
+    addressShort: settings.address || SITE.addressShort,
+    addressFull: settings.address || SITE.addressFull,
+    mapsUrl: settings.maps_url || SITE.mapsUrl,
+    hours: '10:00 – 22:30',
+    hoursNote: 'Thứ 2 – Chủ Nhật',
+  };
+}

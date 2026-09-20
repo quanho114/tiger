@@ -1,36 +1,126 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import type { FC } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  Utensils, 
-  Bike, 
-  Search, 
-  Plus, 
-  Heart, 
-  Clock, 
-  Check, 
-  ChevronLeft, 
+import {
+  Utensils,
+  Bike,
+  Search,
+  Plus,
+  Heart,
+  Clock,
+  Check,
+  ChevronLeft,
   ChevronRight,
   Wine,
   Calendar,
   Sparkles,
   ShieldCheck,
-  ShoppingBag
+  ShoppingBag,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
-import { MENU_ITEMS, CATEGORIES, type MenuItem } from '../data/restaurantData';
+import { toLegacyMenuItem, type MenuItem } from '../data/restaurantData';
+import { useCatalog } from '@/features/catalog';
 import { useCart } from '../store/cart';
+import { useTableSession } from '@/features/table-session';
+import { Dialog } from '@/components/ui/Dialog';
+import { useAuth } from '@/features/auth';
+import {
+  fetchCustomerFavorites,
+  addCustomerFavorite,
+  removeCustomerFavorite,
+} from '@/features/account/api';
 
 export const MenuPage: FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { add, addedId, setCartOpen } = useCart();
+  const {
+    items: catalogItems,
+    categories: catalogCategories,
+    isLoading,
+    isError,
+    error,
+    refreshMenu,
+  } = useCatalog();
+  const {
+    add,
+    addedId,
+    setCartOpen,
+    cartItems,
+    clear: clearCart,
+    setContext: setCartContext,
+    context: cartContext,
+  } = useCart();
+  const { session } = useTableSession();
+  const { role } = useAuth();
 
   // Mode from URL query: ?mode=dine-in or ?mode=delivery
   const modeParam = searchParams.get('mode');
   const activeMode: 'dine-in' | 'delivery' = modeParam === 'delivery' ? 'delivery' : 'dine-in';
 
-  const setActiveMode = (mode: 'dine-in' | 'delivery') => {
-    setSearchParams(mode === 'delivery' ? { mode: 'delivery' } : {}, { replace: true });
+  const [pendingModeChange, setPendingModeChange] = useState<'dine-in' | 'delivery' | null>(null);
+
+  // Auto-sync table session to cart context if in dine-in mode and table details are missing
+  useEffect(() => {
+    if (activeMode === 'dine-in' && session) {
+      if (cartContext.mode !== 'dine-in' || cartContext.tableId !== session.tableId) {
+        setCartContext({
+          mode: 'dine-in',
+          tableId: session.tableId,
+          tableCode: session.tableCode,
+          tableName: session.tableName,
+          visitId: session.visitId,
+        });
+      }
+    }
+  }, [activeMode, session, cartContext, setCartContext]);
+
+  const handleModeSelect = (targetMode: 'dine-in' | 'delivery') => {
+    if (targetMode === activeMode) return;
+
+    // Check if cart has items from different mode
+    const hasCartItems = cartItems.length > 0;
+    const isDifferentMode = cartContext.mode !== targetMode;
+
+    if (hasCartItems && isDifferentMode) {
+      setPendingModeChange(targetMode);
+      return;
+    }
+
+    applyModeChange(targetMode);
+  };
+
+  const applyModeChange = (targetMode: 'dine-in' | 'delivery') => {
+    if (targetMode === 'delivery') {
+      setCartContext({ mode: 'delivery' });
+      setSearchParams({ mode: 'delivery' }, { replace: true });
+    } else {
+      if (session) {
+        setCartContext({
+          mode: 'dine-in',
+          tableId: session.tableId,
+          tableCode: session.tableCode,
+          tableName: session.tableName,
+          visitId: session.visitId,
+        });
+      } else {
+        setCartContext({
+          mode: 'dine-in',
+          tableId: '',
+          tableCode: '',
+          tableName: '',
+          visitId: '',
+        });
+      }
+      setSearchParams({}, { replace: true });
+    }
+  };
+
+  const confirmModeChange = () => {
+    if (!pendingModeChange) return;
+    clearCart();
+    applyModeChange(pendingModeChange);
+    setPendingModeChange(null);
   };
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -38,11 +128,43 @@ export const MenuPage: FC = () => {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [selectedDishDetail, setSelectedDishDetail] = useState<MenuItem | null>(null);
 
+  useEffect(() => {
+    if (role === 'customer') {
+      let isMounted = true;
+      fetchCustomerFavorites()
+        .then((favs) => {
+          if (!isMounted) return;
+          const map: Record<string, boolean> = {};
+          favs.forEach((f) => {
+            map[f.menu_item_id] = true;
+          });
+          setFavorites(map);
+        })
+        .catch(() => {});
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [role]);
+
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
-  const toggleFavorite = (id: string, e: React.MouseEvent) => {
+  const toggleFavorite = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+    const willBeFav = !favorites[id];
+    setFavorites((prev) => ({ ...prev, [id]: willBeFav }));
+
+    if (role === 'customer') {
+      try {
+        if (willBeFav) {
+          await addCustomerFavorite(id);
+        } else {
+          await removeCustomerFavorite(id);
+        }
+      } catch {
+        setFavorites((prev) => ({ ...prev, [id]: !willBeFav }));
+      }
+    }
   };
 
   const scrollCategories = (direction: 'left' | 'right') => {
@@ -52,15 +174,38 @@ export const MenuPage: FC = () => {
     }
   };
 
+  const displayCategories = useMemo(() => {
+    const allCat = { id: 'all', name: 'Tất cả món' };
+    if (!catalogCategories || catalogCategories.length === 0) {
+      return [allCat];
+    }
+    return [
+      allCat,
+      ...catalogCategories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+      })),
+    ];
+  }, [catalogCategories]);
+
+  const dishes = useMemo(() => {
+    return catalogItems.map(toLegacyMenuItem);
+  }, [catalogItems]);
+
   // Filtered dishes
   const filteredDishes = useMemo(() => {
-    return MENU_ITEMS.filter((dish) => {
+    return dishes.filter((dish) => {
       // Mode filtering
       if (!dish.modes.includes(activeMode)) {
         return false;
       }
       // Category filtering
-      if (selectedCategory !== 'all' && dish.category !== selectedCategory) {
+      if (
+        selectedCategory !== 'all' &&
+        dish.category !== selectedCategory &&
+        dish.category_id !== selectedCategory
+      ) {
         return false;
       }
       // Search query filtering
@@ -73,7 +218,7 @@ export const MenuPage: FC = () => {
       }
       return true;
     });
-  }, [activeMode, selectedCategory, searchQuery]);
+  }, [dishes, activeMode, selectedCategory, searchQuery]);
 
   const handleBookTableForDish = (dishName: string) => {
     navigate('/reservation', { state: { dishName } });
@@ -113,65 +258,89 @@ export const MenuPage: FC = () => {
             </p>
           </div>
 
-          {/* Mode Switcher Buttons — desktop (mobile uses the sticky copy below) */}
-          <div className="hidden md:flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-full bg-white border border-[#d2b68c]/40 shadow-xs self-start md:self-end w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => setActiveMode('dine-in')}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 ${
-                activeMode === 'dine-in'
-                  ? 'bg-[#234386] text-white shadow-xs'
-                  : 'text-[#000000]/70 hover:text-[#234386]'
-              }`}
-            >
-              <Utensils size={15} />
-              <span>Tại quán</span>
-            </button>
+          {/* Mode segmented control — compact mode selector, intentionally subordinate to heading + CTA */}
+          <div
+            role="tablist"
+            aria-label="Chọn hình thức thưởng thức"
+            className="hidden md:block p-[4px] rounded-full bg-[#fffefb] border border-[#e3d6bd] shadow-[0_1px_2px_rgba(35,67,134,0.08)] w-[264px] h-[50px] shrink-0 self-start md:self-end"
+          >
+            <div className="relative flex w-full h-full">
+              {/* Sliding active pill — glides between segments */}
+              <span
+                aria-hidden="true"
+                className={`absolute inset-y-0 left-0 w-1/2 rounded-full bg-[#234386] transition-transform duration-[170ms] ease-out motion-reduce:transition-none ${
+                  activeMode === 'delivery' ? 'translate-x-full' : 'translate-x-0'
+                }`}
+              />
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeMode === 'dine-in'}
+                onClick={() => handleModeSelect('dine-in')}
+                className={`relative flex-1 min-w-0 h-full flex items-center justify-center gap-[6px] px-2 rounded-full text-[14px] font-semibold leading-none whitespace-nowrap transition-colors duration-[170ms] ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#234386] ${
+                  activeMode === 'dine-in' ? 'text-white' : 'text-[#000000]/60 hover:text-[#234386]'
+                }`}
+              >
+                <Utensils size={16} className="shrink-0" aria-hidden="true" />
+                <span className="whitespace-nowrap">Tại quán</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveMode('delivery')}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-95 ${
-                activeMode === 'delivery'
-                  ? 'bg-[#ed7328] text-white shadow-xs'
-                  : 'text-[#000000]/70 hover:text-[#ed7328]'
-              }`}
-            >
-              <Bike size={15} />
-              <span>Giao tận nơi</span>
-            </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeMode === 'delivery'}
+                onClick={() => handleModeSelect('delivery')}
+                className={`relative flex-1 min-w-0 h-full flex items-center justify-center gap-[6px] px-2 rounded-full text-[14px] font-semibold leading-none whitespace-nowrap transition-colors duration-[170ms] ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#234386] ${
+                  activeMode === 'delivery' ? 'text-white' : 'text-[#000000]/60 hover:text-[#234386]'
+                }`}
+              >
+                <Bike size={16} className="shrink-0" aria-hidden="true" />
+                <span className="whitespace-nowrap">Giao tận nơi</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Mobile-only sticky mode switch — direct child of the tall container so it can stick */}
+        {/* Mobile-only sticky mode switch — compact, same hierarchy as desktop */}
         <div className="md:hidden sticky top-[58px] z-30 -mx-4 px-4 py-2 bg-[#fbf9f6]/95 backdrop-blur-sm">
-          <div className="flex items-center gap-1.5 p-1 rounded-full bg-white border border-[#d2b68c]/40 shadow-xs w-full">
-            <button
-              type="button"
-              onClick={() => setActiveMode('dine-in')}
-              aria-pressed={activeMode === 'dine-in'}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${
-                activeMode === 'dine-in'
-                  ? 'bg-[#234386] text-white shadow-xs'
-                  : 'text-[#000000]/70'
-              }`}
-            >
-              <Utensils size={15} />
-              <span>Tại quán</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveMode('delivery')}
-              aria-pressed={activeMode === 'delivery'}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${
-                activeMode === 'delivery'
-                  ? 'bg-[#ed7328] text-white shadow-xs'
-                  : 'text-[#000000]/70'
-              }`}
-            >
-              <Bike size={15} />
-              <span>Giao tận nơi</span>
-            </button>
+          <div
+            role="tablist"
+            aria-label="Chọn hình thức thưởng thức"
+            className="p-[4px] rounded-full bg-[#fffefb] border border-[#e3d6bd] shadow-[0_1px_2px_rgba(35,67,134,0.08)] w-full max-w-[340px] h-[48px] mx-auto"
+          >
+            <div className="relative flex w-full h-full">
+              {/* Sliding active pill — glides between segments */}
+              <span
+                aria-hidden="true"
+                className={`absolute inset-y-0 left-0 w-1/2 rounded-full bg-[#234386] transition-transform duration-[170ms] ease-out motion-reduce:transition-none ${
+                  activeMode === 'delivery' ? 'translate-x-full' : 'translate-x-0'
+                }`}
+              />
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeMode === 'dine-in'}
+                onClick={() => handleModeSelect('dine-in')}
+                className={`relative flex-1 min-w-0 h-full flex items-center justify-center gap-[6px] px-2 rounded-full text-[13px] font-semibold leading-none whitespace-nowrap transition-colors duration-[170ms] ease-out ${
+                  activeMode === 'dine-in' ? 'text-white' : 'text-[#000000]/60'
+                }`}
+              >
+                <Utensils size={16} className="shrink-0" aria-hidden="true" />
+                <span className="whitespace-nowrap">Tại quán</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeMode === 'delivery'}
+                onClick={() => handleModeSelect('delivery')}
+                className={`relative flex-1 min-w-0 h-full flex items-center justify-center gap-[6px] px-2 rounded-full text-[13px] font-semibold leading-none whitespace-nowrap transition-colors duration-[170ms] ease-out ${
+                  activeMode === 'delivery' ? 'text-white' : 'text-[#000000]/60'
+                }`}
+              >
+                <Bike size={16} className="shrink-0" aria-hidden="true" />
+                <span className="whitespace-nowrap">Giao tận nơi</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -180,27 +349,53 @@ export const MenuPage: FC = () => {
         {/* ========================================================================= */}
         <div className="mb-8">
           {activeMode === 'dine-in' ? (
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#234386]/10 via-[#6aa8dc]/10 to-white border border-[#234386]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#234386] text-[#ffc400] flex items-center justify-center shrink-0">
-                  <Sparkles size={18} />
+            session ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#ed7328]/10 via-[#ffc400]/15 to-white border border-[#ed7328]/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#ed7328] text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Utensils size={18} />
+                  </div>
+                  <div className="text-xs sm:text-sm">
+                    <span className="font-semibold text-[#ed7328] block sm:inline">
+                      Đang dùng bữa tại {session.tableName}:
+                    </span>{' '}
+                    <span className="text-[#000000]/75">
+                      Món ăn bạn chọn sẽ được gửi trực tiếp đến Bếp Tiger 345 và phục vụ tận bàn.
+                    </span>
+                  </div>
                 </div>
-                <div className="text-xs sm:text-sm">
-                  <span className="font-semibold text-[#234386] block sm:inline">Ưu đãi dùng bữa tại quán:</span>{' '}
-                  <span className="text-[#000000]/75">
-                    Tặng kèm món tráng miệng đặc sản của Bếp trưởng cho bàn đặt trước 17:00 các ngày trong tuần.
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setCartOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white text-xs font-semibold shrink-0 shadow-xs active:scale-95 transition-all"
+                >
+                  <ShoppingBag size={13} />
+                  <span>Xem thực đơn đã chọn ({cartItems.length})</span>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate('/reservation')}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shrink-0 shadow-xs active:scale-95 transition-all"
-              >
-                <Calendar size={13} />
-                <span>Đặt bàn trực tuyến</span>
-              </button>
-            </div>
+            ) : (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#234386]/10 via-[#6aa8dc]/10 to-white border border-[#234386]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#234386] text-[#ffc400] flex items-center justify-center shrink-0">
+                    <Sparkles size={18} />
+                  </div>
+                  <div className="text-xs sm:text-sm">
+                    <span className="font-semibold text-[#234386] block sm:inline">Thực đơn tại nhà hàng:</span>{' '}
+                    <span className="text-[#000000]/75">
+                      Quét mã QR đặt trên bàn ăn của bạn để gọi món ngay trên điện thoại hoặc đặt bàn trước để giữ chỗ.
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/reservation')}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shrink-0 shadow-xs active:scale-95 transition-all"
+                >
+                  <Calendar size={13} />
+                  <span>Đặt bàn trực tuyến</span>
+                </button>
+              </div>
+            )
           ) : (
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#ed7328]/10 via-[#ffc400]/15 to-white border border-[#ed7328]/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -238,11 +433,11 @@ export const MenuPage: FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-4 border-b border-[#d2b68c]/30">
           {/* Scrollable Categories */}
           <div className="flex items-center gap-2 overflow-hidden flex-grow">
-            <div 
+            <div
               ref={categoryScrollRef}
               className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto scrollbar-none py-1 scroll-smooth touch-pan-x"
             >
-              {CATEGORIES.map((cat) => {
+              {displayCategories.map((cat) => {
                 const isActive = selectedCategory === cat.id;
                 return (
                   <button
@@ -300,7 +495,47 @@ export const MenuPage: FC = () => {
         {/* ========================================================================= */}
         {/* DISH CARDS GRID */}
         {/* ========================================================================= */}
-        {filteredDishes.length === 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <div
+                key={`menu-skeleton-${idx}`}
+                className="animate-pulse flex flex-col bg-white rounded-[22px] border border-[#d2b68c]/30 p-3.5 shadow-xs"
+              >
+                <div className="aspect-[4/3] rounded-[16px] bg-[#234386]/10 mb-3" />
+                <div className="space-y-2.5 p-2">
+                  <div className="h-4 bg-[#234386]/10 rounded-sm w-3/4" />
+                  <div className="h-3 bg-[#234386]/10 rounded-sm w-full" />
+                  <div className="h-3 bg-[#234386]/10 rounded-sm w-2/3" />
+                  <div className="pt-3 border-t border-[#d2b68c]/20 flex justify-between items-center">
+                    <div className="h-4 bg-[#ed7328]/20 rounded-sm w-1/3" />
+                    <div className="h-7 bg-[#234386]/10 rounded-full w-20" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : isError ? (
+          <div role="alert" className="py-16 text-center space-y-4 bg-white rounded-3xl border border-red-200 p-8 shadow-xs max-w-lg mx-auto">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <AlertCircle size={24} />
+            </div>
+            <h3 className="font-['Noto_Serif',serif] text-lg font-bold text-[#000000]">
+              Không thể tải danh mục món ăn
+            </h3>
+            <p className="text-xs text-[#000000]/65 max-w-sm mx-auto">
+              {error?.message || 'Đã có lỗi kết nối tới máy chủ. Vui lòng kiểm tra đường truyền và thử lại.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => refreshMenu()}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
+            >
+              <RefreshCw size={13} />
+              <span>Thử tải lại</span>
+            </button>
+          </div>
+        ) : filteredDishes.length === 0 ? (
           <div className="py-20 text-center space-y-3 bg-white rounded-3xl border border-[#d2b68c]/30 p-8">
             <div className="w-14 h-14 rounded-full bg-[#fbf9f6] text-[#000000]/40 flex items-center justify-center mx-auto">
               <Search size={24} />
@@ -327,21 +562,29 @@ export const MenuPage: FC = () => {
             {filteredDishes.map((dish) => {
               const isJustAdded = addedId === dish.id;
               const isFav = !!favorites[dish.id];
+              const isAvailable = dish.available !== false;
 
               return (
-                <div
+                <article
                   key={dish.id}
-                  className="group flex flex-col bg-white rounded-[22px] border border-[#d2b68c]/30 p-3.5 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                  data-dish-id={dish.id}
+                  className={`group flex flex-col bg-white rounded-[22px] border border-[#d2b68c]/30 p-3.5 shadow-xs transition-all duration-300 ${
+                    isAvailable
+                      ? 'hover:shadow-xl hover:-translate-y-1'
+                      : 'opacity-75 bg-[#fbf9f6]'
+                  }`}
                 >
                   {/* Dish Image */}
-                  <div 
+                  <div
                     onClick={() => setSelectedDishDetail(dish)}
                     className="relative aspect-[4/3] rounded-[16px] overflow-hidden bg-[#234386]/5 cursor-pointer"
                   >
                     <img
                       src={dish.image}
                       alt={dish.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className={`w-full h-full object-cover transition-transform duration-500 ${
+                        isAvailable ? 'group-hover:scale-105' : 'grayscale-[40%]'
+                      }`}
                       loading="lazy"
                     />
 
@@ -351,6 +594,15 @@ export const MenuPage: FC = () => {
                         {dish.isSignature ? '★ Signature' : 'Bếp trưởng chọn'}
                       </span>
                     </div>
+
+                    {/* Badge: Tạm hết (khi available = false) */}
+                    {!isAvailable && (
+                      <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center">
+                        <span className="bg-black/80 text-white font-medium text-xs px-3 py-1 rounded-full border border-white/20">
+                          Tạm hết
+                        </span>
+                      </div>
+                    )}
 
                     {/* Favorite Heart Icon */}
                     <button
@@ -377,7 +629,7 @@ export const MenuPage: FC = () => {
                   {/* Content */}
                   <div className="p-2.5 pt-3.5 flex flex-col flex-grow justify-between">
                     <div>
-                      <h3 
+                      <h3
                         onClick={() => setSelectedDishDetail(dish)}
                         className="font-['Noto_Serif',serif] text-base font-bold text-[#000000] group-hover:text-[#234386] transition-colors line-clamp-1 mb-1 cursor-pointer"
                       >
@@ -405,14 +657,19 @@ export const MenuPage: FC = () => {
                       {activeMode === 'delivery' ? (
                         <button
                           type="button"
-                          onClick={() => add(dish)}
-                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 ${
-                            isJustAdded
-                              ? 'bg-[#3d5a45] text-white'
-                              : 'bg-[#234386] hover:bg-[#ed7328] text-white shadow-2xs'
+                          disabled={!isAvailable}
+                          onClick={() => isAvailable && add(dish)}
+                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                            !isAvailable
+                              ? 'bg-[#000000]/15 text-[#000000]/40 cursor-not-allowed'
+                              : isJustAdded
+                              ? 'bg-[#3d5a45] text-white active:scale-95'
+                              : 'bg-[#234386] hover:bg-[#ed7328] text-white shadow-2xs active:scale-95'
                           }`}
                         >
-                          {isJustAdded ? (
+                          {!isAvailable ? (
+                            <span>Tạm hết</span>
+                          ) : isJustAdded ? (
                             <>
                               <Check size={13} className="stroke-[3]" />
                               <span>Đã thêm</span>
@@ -420,7 +677,35 @@ export const MenuPage: FC = () => {
                           ) : (
                             <>
                               <Plus size={13} />
-                              <span>Đặt giao</span>
+                              <span>Thêm vào giỏ</span>
+                              <span className="sr-only">Đặt giao</span>
+                            </>
+                          )}
+                        </button>
+                      ) : session ? (
+                        <button
+                          type="button"
+                          disabled={!isAvailable}
+                          onClick={() => isAvailable && add(dish)}
+                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                            !isAvailable
+                              ? 'bg-[#000000]/15 text-[#000000]/40 cursor-not-allowed'
+                              : isJustAdded
+                              ? 'bg-[#3d5a45] text-white active:scale-95'
+                              : 'bg-[#ed7328] hover:bg-[#d86218] text-white shadow-2xs active:scale-95'
+                          }`}
+                        >
+                          {!isAvailable ? (
+                            <span>Tạm hết</span>
+                          ) : isJustAdded ? (
+                            <>
+                              <Check size={13} className="stroke-[3]" />
+                              <span>Đã thêm</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus size={13} />
+                              <span>Gọi món</span>
                             </>
                           )}
                         </button>
@@ -446,7 +731,7 @@ export const MenuPage: FC = () => {
                     </div>
 
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
@@ -457,15 +742,15 @@ export const MenuPage: FC = () => {
       {/* ========================================================================= */}
       {/* DISH DETAIL MODAL */}
       {/* ========================================================================= */}
-      {selectedDishDetail && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setSelectedDishDetail(null)}
-        >
-          <div 
-            className="bg-white rounded-[24px] sm:rounded-[28px] max-w-lg w-full overflow-hidden shadow-2xl border border-[#d2b68c]/40 animate-in fade-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Dialog
+        isOpen={Boolean(selectedDishDetail)}
+        onClose={() => setSelectedDishDetail(null)}
+        title={selectedDishDetail?.name}
+        description={selectedDishDetail?.description}
+        className="rounded-[24px] sm:rounded-[28px]"
+      >
+        {selectedDishDetail && (
+          <div>
             <div className="relative aspect-video">
               <img
                 src={selectedDishDetail.image}
@@ -475,12 +760,13 @@ export const MenuPage: FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedDishDetail(null)}
-                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-xs"
+                aria-label="Đóng chi tiết món ăn"
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors text-xs cursor-pointer"
               >
                 ✕
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -511,22 +797,38 @@ export const MenuPage: FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedDishDetail(null)}
-                  className="px-4 py-2.5 text-xs font-semibold text-[#000000]/60 hover:text-[#000000] text-center"
+                  className="px-4 py-2.5 text-xs font-semibold text-[#000000]/60 hover:text-[#000000] text-center cursor-pointer"
                 >
                   Đóng
                 </button>
 
-                {activeMode === 'delivery' ? (
+                {activeMode === 'delivery' || session ? (
                   <button
                     type="button"
+                    disabled={selectedDishDetail.available === false}
                     onClick={() => {
+                      if (selectedDishDetail.available === false) return;
                       add(selectedDishDetail);
                       setSelectedDishDetail(null);
                     }}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
+                    className={`inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold shadow-xs transition-all ${
+                      selectedDishDetail.available === false
+                        ? 'bg-[#000000]/15 text-[#000000]/40 cursor-not-allowed'
+                        : 'bg-[#ed7328] hover:bg-[#d86218] text-white active:scale-95 cursor-pointer'
+                    }`}
                   >
-                    <Plus size={14} />
-                    <span>Thêm vào giỏ giao hàng</span>
+                    {selectedDishDetail.available === false ? (
+                      <span>Món này hiện đang tạm hết</span>
+                    ) : (
+                      <>
+                        <Plus size={14} />
+                        <span>
+                          {session
+                            ? `Thêm vào bàn (${session.tableName})`
+                            : 'Thêm vào giỏ giao hàng'}
+                        </span>
+                      </>
+                    )}
                   </button>
                 ) : (
                   <button
@@ -536,7 +838,7 @@ export const MenuPage: FC = () => {
                       setSelectedDishDetail(null);
                       handleBookTableForDish(dish.name);
                     }}
-                    className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full bg-[#234386] text-white text-xs font-semibold shadow-xs hover:bg-[#1a3468] active:scale-95 transition-all"
+                    className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full bg-[#234386] text-white text-xs font-semibold shadow-xs hover:bg-[#1a3468] active:scale-95 transition-all cursor-pointer"
                   >
                     <Calendar size={14} />
                     <span>Đặt bàn thưởng thức món này</span>
@@ -545,8 +847,49 @@ export const MenuPage: FC = () => {
               </div>
             </div>
           </div>
+        )}
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* MODE CHANGE CONFIRMATION DIALOG */}
+      {/* ========================================================================= */}
+      <Dialog
+        isOpen={Boolean(pendingModeChange)}
+        onClose={() => setPendingModeChange(null)}
+        title="Thay Đổi Hình Thức Phục Vụ?"
+        description="Xác nhận đổi chế độ phục vụ"
+      >
+        <div className="p-6 text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-[#ed7328]/15 text-[#ed7328] flex items-center justify-center mx-auto">
+            <Utensils size={28} />
+          </div>
+          <h3 className="font-['Noto_Serif',serif] text-lg font-bold text-[#234386]">
+            Thay Đổi Hình Thức Phục Vụ?
+          </h3>
+          <p className="text-sm text-black/70 leading-relaxed">
+            Bạn đang có <strong className="text-[#ed7328]">{cartItems.length} món</strong> trong giỏ hàng
+            thuộc hình thức <strong>{cartContext.mode === 'dine-in' ? (cartContext.tableName ? `Bàn ${cartContext.tableName}` : 'Tại quán') : 'Giao tận nơi'}</strong>.
+            <br />
+            Bạn có muốn chuyển sang hình thức <strong>{pendingModeChange === 'delivery' ? 'Giao tận nơi' : 'Tại quán'}</strong> và làm mới giỏ hàng không?
+          </p>
+          <div className="pt-2 space-y-2.5">
+            <button
+              type="button"
+              onClick={confirmModeChange}
+              className="w-full py-3 px-4 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+            >
+              Đồng ý chuyển & làm mới giỏ hàng
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingModeChange(null)}
+              className="w-full py-2.5 px-4 rounded-full border border-black/15 text-black/70 hover:bg-black/5 font-medium text-xs transition-colors cursor-pointer"
+            >
+              Giữ giỏ hàng hiện tại
+            </button>
+          </div>
         </div>
-      )}
+      </Dialog>
 
     </div>
   );

@@ -1,73 +1,130 @@
-import { useState, type FC, type FormEvent } from 'react';
+import { useState, useId, type FC, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Calendar, 
-  Clock, 
-  Users, 
-  CheckCircle, 
-  Phone, 
+import {
+  Clock,
+  Users,
+  Phone,
   ArrowRight,
   HeartHandshake,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  AlertCircle,
+  CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
+import { getVietnamNow, validatePhoneNumber, validateReservationDateTime } from '@/lib/validation';
+import { Field } from '@/components/ui/Field';
+import { useCatalog } from '@/features/catalog';
+import { submitReservation, type ReservationReceipt } from '@/features/reservations';
 
 export const ReservationPage: FC = () => {
   const location = useLocation();
   const dishNameFromState = (location.state as { dishName?: string } | null)?.dishName;
   const initialNote = dishNameFromState ? `Thực khách mong muốn thưởng thức món: ${dishNameFromState}` : '';
 
+  const { settings } = useCatalog();
+  const seatingAreas = settings?.seating_areas || [];
+
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => getVietnamNow().isoDate);
   const [timeSlot, setTimeSlot] = useState('18:30');
   const [guestCount, setGuestCount] = useState('4');
-  const [seatingArea, setSeatingArea] = useState('window');
+  const [seatingAreaId, setSeatingAreaId] = useState<string>('');
   const [note, setNote] = useState(initialNote);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [bookingCode, setBookingCode] = useState('');
+
+  const [receipt, setReceipt] = useState<ReservationReceipt | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Stable idempotency key for retries on identical input
+  const defaultKeyId = useId();
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() => `idemp-resv-${Date.now()}-${defaultKeyId.replace(/[^a-zA-Z0-9]/g, '')}`);
 
   const timeSlots = [
-    '11:30', '12:00', '12:30', '13:00',
-    '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30'
+    '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
+    '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'
   ];
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setValidationError(null);
+    setApiError(null);
 
-    if (!fullName.trim()) {
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
       setValidationError('Vui lòng nhập họ và tên của quý khách.');
       return;
     }
-    if (!phone.trim() || phone.trim().length < 9) {
-      setValidationError('Vui lòng nhập số điện thoại liên hệ hợp lệ (tối thiểu 9 số).');
-      return;
-    }
-    if (!date) {
-      setValidationError('Vui lòng chọn ngày dùng bữa.');
+
+    const phoneValidation = validatePhoneNumber(phone);
+    if (!phoneValidation.isValid) {
+      setValidationError(phoneValidation.error || 'Số điện thoại liên hệ không hợp lệ.');
       return;
     }
 
-    const code = 'TG-' + Math.floor(100000 + Math.random() * 900000);
-    setBookingCode(code);
-    setIsSubmitted(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const dateTimeValidation = validateReservationDateTime(date, timeSlot);
+    if (!dateTimeValidation.isValid) {
+      setValidationError(dateTimeValidation.error || 'Thời gian đặt bàn không hợp lệ.');
+      return;
+    }
+
+    const guests = parseInt(guestCount, 10);
+    if (isNaN(guests) || guests < 1 || guests > 30) {
+      setValidationError('Số lượng khách đặt bàn phải từ 1 đến 30 người.');
+      return;
+    }
+
+    // Convert local VN datetime (UTC+7) to ISO 8601 UTC string
+    const startsAtIso = new Date(`${date}T${timeSlot}:00+07:00`).toISOString();
+
+    try {
+      setIsSubmitting(true);
+      const res = await submitReservation(
+        {
+          customer_name: trimmedName,
+          customer_phone: phoneValidation.normalized || phone.trim(),
+          starts_at: startsAtIso,
+          guest_count: guests,
+          seating_area_id: seatingAreaId || null,
+          note: note.trim() || undefined,
+        },
+        idempotencyKey
+      );
+
+      setReceipt(res);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể gửi yêu cầu đặt bàn';
+      if (msg.includes('RESERVATION_NOTICE_TOO_SHORT')) {
+        setApiError('Quán cần tối thiểu 30 phút để chuẩn bị. Vui lòng chọn giờ hẹn muộn hơn.');
+      } else if (msg.includes('RESERVATION_TOO_FAR_AHEAD')) {
+        setApiError('Quán chỉ nhận đặt bàn trước tối đa 30 ngày.');
+      } else if (msg.includes('SERVICE_CLOSED')) {
+        setApiError('Nhà hàng đóng cửa trong ngày hoặc khung giờ này. Vui lòng chọn ngày khác.');
+      } else if (msg.includes('OUTSIDE_RESERVATION_HOURS')) {
+        setApiError('Khung giờ nhận đặt bàn là từ 10:30 đến 21:00.');
+      } else {
+        setApiError(msg);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
-    setIsSubmitted(false);
-    setFullName('');
-    setPhone('');
-    setNote('');
+    setReceipt(null);
     setValidationError(null);
+    setApiError(null);
+    // Refresh idempotency key for new reservation
+    setIdempotencyKey(`idemp-resv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   };
 
   return (
     <div className="pt-24 pb-20 md:pt-32 md:pb-28 bg-[#fbf9f6] min-h-screen">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
-        
+
         {/* ========================================================================= */}
         {/* PAGE HEADER */}
         {/* ========================================================================= */}
@@ -90,10 +147,10 @@ export const ReservationPage: FC = () => {
         {/* MAIN SPLIT COMPOSITION: EDITORIAL LEFT + INTERACTIVE FORM RIGHT */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
-          
+
           {/* Left Column: Atmospheric Dining Photo & Practical Info */}
           <div className="lg:col-span-5 space-y-6">
-            
+
             {/* Visual Photo Card */}
             <div className="relative rounded-[28px] sm:rounded-[36px] overflow-hidden shadow-xl border border-[#d2b68c]/35 aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/5] bg-[#234386]/10">
               <img
@@ -102,7 +159,7 @@ export const ReservationPage: FC = () => {
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
-              
+
               <div className="absolute top-6 left-6 font-['Dancing_Script',cursive] text-2xl sm:text-3xl text-white font-semibold leading-none drop-shadow-md">
                 More Good Meals<br />Together ♡
               </div>
@@ -181,23 +238,23 @@ export const ReservationPage: FC = () => {
           {/* Right Column: Interactive Booking Form */}
           <div className="lg:col-span-7">
             <div className="bg-white rounded-[28px] sm:rounded-[36px] border border-[#d2b68c]/35 shadow-xl p-6 sm:p-10">
-              
-              {isSubmitted ? (
-                /* Confirmation Ticket View */
-                <div className="py-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="w-16 h-16 rounded-full bg-[#a2d3a6]/30 text-[#234386] flex items-center justify-center mx-auto">
-                    <CheckCircle size={44} className="text-[#234386]" />
+
+              {receipt ? (
+                /* Honest Receipt & Pending Status Display */
+                <div className="py-6 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="w-16 h-16 rounded-full bg-amber-500/15 text-amber-600 flex items-center justify-center mx-auto">
+                    <CheckCircle2 size={36} className="text-amber-600" />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <span className="font-['Be_Vietnam_Pro',sans-serif] text-xs font-semibold text-[#ed7328] uppercase tracking-widest">
-                      XÁC NHẬN GIỮ CHỖ THÀNH CÔNG
+                  <div className="space-y-2">
+                    <span className="font-['Be_Vietnam_Pro',sans-serif] text-xs font-semibold text-amber-600 uppercase tracking-widest">
+                      ĐÃ TIẾP NHẬN YÊU CẦU ĐẶT BÀN
                     </span>
                     <h3 className="font-['Noto_Serif',serif] text-2xl sm:text-3xl font-bold text-[#234386]">
-                      Hẹn gặp bạn, {fullName}!
+                      Cảm ơn quý khách, {receipt.customer_name}!
                     </h3>
-                    <p className="text-xs sm:text-sm text-[#000000]/70 max-w-sm mx-auto leading-relaxed">
-                      Mã xác nhận đặt bàn đã được ghi nhận. Nhà hàng sẽ liên hệ xác nhận qua số điện thoại <strong className="text-black">{phone}</strong>.
+                    <p className="text-xs sm:text-sm text-[#000000]/75 max-w-md mx-auto leading-relaxed">
+                      Yêu cầu của bạn đang ở trạng thái <strong className="text-amber-700">Chờ nhà hàng xác nhận</strong>. Nhà hàng sẽ liên hệ qua số điện thoại của bạn để chốt bàn trước giờ hẹn.
                     </p>
                   </div>
 
@@ -205,54 +262,60 @@ export const ReservationPage: FC = () => {
                   <div className="p-5 sm:p-6 rounded-2xl bg-[#fbf9f6] border border-[#d2b68c]/40 text-xs sm:text-sm text-left space-y-3 max-w-md mx-auto">
                     <div className="flex justify-between items-center pb-3 border-b border-[#d2b68c]/25">
                       <span className="text-[#000000]/60">Mã đặt bàn:</span>
-                      <span className="font-['Be_Vietnam_Pro',sans-serif] font-bold text-[#234386] text-base tracking-wider tabular-nums">
-                        {bookingCode}
-                      </span>
+                      <strong className="text-[#ed7328] font-mono text-base font-bold">{receipt.code}</strong>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-[#000000]/60">Khách hàng:</span>
+                      <strong className="text-[#234386] font-semibold">{receipt.customer_name} · {receipt.customer_phone}</strong>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-[#000000]/60">Thời gian dùng bữa:</span>
-                      <strong className="text-[#000000]">{timeSlot} · {date}</strong>
+                      <strong className="text-[#000000]">
+                        {new Date(receipt.starts_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })} · {new Date(receipt.starts_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
+                      </strong>
                     </div>
 
                     <div className="flex justify-between">
                       <span className="text-[#000000]/60">Số lượng khách:</span>
-                      <strong className="text-[#000000]">{guestCount} người</strong>
+                      <strong className="text-[#000000]">{receipt.guest_count} người</strong>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-[#000000]/60">Khu vực bàn:</span>
+                      <span className="text-[#000000]/60">Khu vực ưu tiên:</span>
                       <strong className="text-[#234386]">
-                        {seatingArea === 'window'
-                          ? 'Cửa sổ thoáng đãng'
-                          : seatingArea === 'indoor'
-                          ? 'Trong nhà ấm cúng & gần quầy bar'
-                          : seatingArea === 'balcony'
-                          ? 'Ban công sân vườn thoáng mát'
-                          : 'Phòng tiệc riêng tư (VIP)'}
+                        {receipt.area_name_snapshot || 'Tùy chọn quán'}
                       </strong>
                     </div>
 
-                    {note && (
+                    {receipt.note && (
                       <div className="pt-2.5 border-t border-[#d2b68c]/20 text-xs text-[#000000]/70">
-                        <strong>Ghi chú:</strong> {note}
+                        <strong>Ghi chú:</strong> {receipt.note}
                       </div>
                     )}
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                    <a
+                      href="tel:0902809929"
+                      className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white text-xs font-semibold shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Phone size={14} />
+                      <span>Hotline: 090 280 99 29</span>
+                    </a>
                     <button
                       type="button"
                       onClick={handleReset}
-                      className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
+                      className="w-full sm:w-auto px-6 py-3 rounded-full border border-[#d2b68c] hover:border-[#234386] text-[#234386] text-xs font-semibold active:scale-95 transition-all cursor-pointer"
                     >
                       Đặt thêm bàn khác
                     </button>
                     <Link
                       to="/menu"
-                      className="w-full sm:w-auto px-8 py-3 rounded-full border border-[#d2b68c] hover:border-[#ed7328] text-[#234386] hover:text-[#ed7328] text-xs font-semibold active:scale-95 transition-all"
+                      className="w-full sm:w-auto px-6 py-3 rounded-full border border-[#d2b68c] hover:border-[#ed7328] text-[#234386] hover:text-[#ed7328] text-xs font-semibold active:scale-95 transition-all text-center"
                     >
-                      Xem trước thực đơn món
+                      Xem thực đơn
                     </Link>
                   </div>
                 </div>
@@ -269,16 +332,21 @@ export const ReservationPage: FC = () => {
                   </div>
 
                   {validationError && (
-                    <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600 animate-in fade-in duration-150">
-                      {validationError}
+                    <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600 flex items-center gap-2 animate-in fade-in duration-150">
+                      <AlertCircle size={15} className="shrink-0" />
+                      <span>{validationError}</span>
+                    </div>
+                  )}
+
+                  {apiError && (
+                    <div role="alert" className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-xs font-semibold text-amber-800 flex items-center gap-2 animate-in fade-in duration-150">
+                      <AlertCircle size={15} className="shrink-0" />
+                      <span>{apiError}</span>
                     </div>
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#000000]/80 mb-1.5">
-                        Họ và tên quý khách *
-                      </label>
+                    <Field label="Họ và tên quý khách" required>
                       <input
                         type="text"
                         required
@@ -287,12 +355,9 @@ export const ReservationPage: FC = () => {
                         onChange={(e) => setFullName(e.target.value)}
                         className="w-full text-sm sm:text-xs px-4 py-3 rounded-xl border border-[#d2b68c]/50 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white transition-colors"
                       />
-                    </div>
+                    </Field>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-[#000000]/80 mb-1.5">
-                        Số điện thoại liên hệ *
-                      </label>
+                    <Field label="Số điện thoại liên hệ" required hint="Số di động 10 chữ số tại Việt Nam">
                       <input
                         type="tel"
                         required
@@ -301,15 +366,11 @@ export const ReservationPage: FC = () => {
                         onChange={(e) => setPhone(e.target.value)}
                         className="w-full text-sm sm:text-xs px-4 py-3 rounded-xl border border-[#d2b68c]/50 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white transition-colors"
                       />
-                    </div>
+                    </Field>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-[#000000]/80 mb-1.5 flex items-center gap-1">
-                        <Calendar size={13} className="text-[#ed7328]" />
-                        <span>Ngày dùng bữa *</span>
-                      </label>
+                    <Field label="Ngày dùng bữa" required>
                       <input
                         type="date"
                         required
@@ -317,44 +378,38 @@ export const ReservationPage: FC = () => {
                         onChange={(e) => setDate(e.target.value)}
                         className="w-full text-sm sm:text-xs px-4 py-3 rounded-xl border border-[#d2b68c]/50 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white transition-colors"
                       />
-                    </div>
+                    </Field>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-[#000000]/80 mb-1.5 flex items-center gap-1">
-                        <Users size={13} className="text-[#ed7328]" />
-                        <span>Số lượng khách *</span>
-                      </label>
+                    <Field label="Số lượng khách (1 – 30 khách)" required>
                       <select
                         value={guestCount}
                         onChange={(e) => setGuestCount(e.target.value)}
                         className="w-full text-sm sm:text-xs px-4 py-3 rounded-xl border border-[#d2b68c]/50 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white transition-colors"
                       >
-                        <option value="2">2 khách (Bàn đôi thân mật)</option>
-                        <option value="4">4 khách (Bàn tiêu chuẩn)</option>
-                        <option value="6">6 khách (Nhóm gia đình nhỏ)</option>
-                        <option value="8">8 khách (Gia đình hoặc bạn bè)</option>
-                        <option value="10">10-12 khách (Tiệc đông)</option>
-                        <option value="15">Trên 15 khách (Sự kiện riêng)</option>
+                        {[...Array(30)].map((_, i) => (
+                          <option key={i + 1} value={String(i + 1)}>
+                            {i + 1} khách {i === 1 ? '(Bàn đôi)' : i === 3 ? '(Bàn tiêu chuẩn)' : i >= 9 ? '(Tiệc đông)' : ''}
+                          </option>
+                        ))}
                       </select>
-                    </div>
+                    </Field>
                   </div>
 
                   {/* Seating Preference Selector */}
-                  <div>
-                    <label className="block text-xs font-semibold text-[#000000]/80 mb-1.5">
-                      Khu vực ngồi ưu tiên
-                    </label>
+                  <Field label="Khu vực ngồi ưu tiên">
                     <select
-                      value={seatingArea}
-                      onChange={(e) => setSeatingArea(e.target.value)}
+                      value={seatingAreaId}
+                      onChange={(e) => setSeatingAreaId(e.target.value)}
                       className="w-full text-sm sm:text-xs px-4 py-3 rounded-xl border border-[#d2b68c]/50 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white transition-colors"
                     >
-                        <option value="window">Bàn bên ô cửa sổ thoáng đãng</option>
-                      <option value="indoor">Không gian trong nhà ấm áp, ánh sáng êm dịu</option>
-                      <option value="balcony">Ban công thoáng mát nhiều mảng xanh</option>
-                      <option value="vip">Phòng tiệc riêng tư cho gia đình/đối tác (VIP)</option>
+                      <option value="">Tùy chọn quán sắp xếp bàn thuận tiện nhất</option>
+                      {seatingAreas.map((area) => (
+                        <option key={area.id} value={area.id}>
+                          {area.name}
+                        </option>
+                      ))}
                     </select>
-                  </div>
+                  </Field>
 
                   {/* Time Slot Picker */}
                   <div>
@@ -362,13 +417,13 @@ export const ReservationPage: FC = () => {
                       <Clock size={13} className="text-[#ed7328]" />
                       <span>Chọn khung giờ đến *</span>
                     </label>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                       {timeSlots.map((slot) => (
                         <button
                           key={slot}
                           type="button"
                           onClick={() => setTimeSlot(slot)}
-                          className={`py-2 text-xs font-semibold rounded-xl transition-all border active:scale-95 ${
+                          className={`py-2 text-xs font-semibold rounded-xl transition-all border active:scale-95 cursor-pointer ${
                             timeSlot === slot
                               ? 'bg-[#234386] text-white border-[#234386] shadow-xs'
                               : 'bg-[#fbf9f6] text-[#000000]/75 border-[#d2b68c]/35 hover:border-[#ed7328]'
@@ -381,10 +436,7 @@ export const ReservationPage: FC = () => {
                   </div>
 
                   {/* Special Requests */}
-                  <div>
-                    <label className="block text-xs font-semibold text-[#000000]/80 mb-1.5">
-                      Ghi chú hoặc mong muốn đặc biệt (món ăn ưa thích, dịp kỷ niệm, dị ứng...)
-                    </label>
+                  <Field label="Ghi chú hoặc mong muốn đặc biệt (món ăn ưa thích, dịp kỷ niệm, dị ứng...)">
                     <textarea
                       rows={3}
                       placeholder="Ví dụ: Kỷ niệm ngày cưới cần hoa tươi, có trẻ em cần ghế dặm, ăn ít cay..."
@@ -392,15 +444,25 @@ export const ReservationPage: FC = () => {
                       onChange={(e) => setNote(e.target.value)}
                       className="w-full text-sm sm:text-xs px-4 py-3 rounded-xl border border-[#d2b68c]/50 bg-[#fbf9f6] focus:outline-none focus:border-[#234386] focus:bg-white transition-colors"
                     />
-                  </div>
+                  </Field>
 
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    className="w-full py-4 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white font-semibold text-sm sm:text-base shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2"
+                    disabled={isSubmitting}
+                    className="w-full py-4 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white font-semibold text-sm sm:text-base shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                   >
-                    <span>Xác nhận đặt bàn trực tuyến</span>
-                    <ArrowRight size={17} />
+                    {isSubmitting ? (
+                      <>
+                        <RefreshCw size={17} className="animate-spin" />
+                        <span>Đang gửi yêu cầu đặt bàn...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Gửi yêu cầu đặt bàn</span>
+                        <ArrowRight size={17} />
+                      </>
+                    )}
                   </button>
 
                   <div className="flex items-center justify-center gap-1.5 text-xs text-[#000000]/55 pt-1">

@@ -1,28 +1,101 @@
+import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  ArrowRight, 
-  Utensils, 
-  Bike, 
-  Calendar, 
-  MapPin, 
-  Sparkles, 
+import {
+  ArrowRight,
+  Utensils,
+  Bike,
+  Calendar,
+  MapPin,
+  Sparkles,
   Heart,
-  Award
+  Award,
+  User,
+  ShoppingBag,
+  CalendarCheck
 } from 'lucide-react';
 import { HeroSection } from '../components/HeroSection';
 import { HighlightStrip } from '../components/HighlightStrip';
 import { BotanicalBranch, BotanicalSprig } from '../components/BotanicalDecorations';
-import { FEATURED_DISHES } from '../data/restaurantData';
+import { useCatalog } from '@/features/catalog';
+import { useAuth } from '@/features/auth';
+import { fetchCustomerHome } from '@/features/account/api';
+import type { CustomerHomeSummary } from '@/features/account/types';
 
 export const HomePage: FC = () => {
   const navigate = useNavigate();
+  const { featuredItems, items, isLoading } = useCatalog();
+  const { role, user } = useAuth();
+  const [customerHome, setCustomerHome] = useState<CustomerHomeSummary | null>(null);
+
+  useEffect(() => {
+    if (role === 'customer') {
+      fetchCustomerHome().then(setCustomerHome).catch(() => {});
+    }
+  }, [role]);
+
   // 4 signature teaser dishes for landing page showcase
-  const teaserDishes = FEATURED_DISHES.slice(0, 4);
+  const teaserDishes = featuredItems.length > 0 ? featuredItems.slice(0, 4) : items.slice(0, 4);
 
   return (
     <div className="space-y-0">
-      
+      {/* Personalized Customer Welcome Banner (when authenticated as customer) */}
+      {role === 'customer' && (
+        <section className="bg-gradient-to-r from-[#234386] via-[#1a3366] to-[#234386] text-white py-4 px-4 sm:px-6 lg:px-10 border-b border-[#ffc400]/30 shadow-inner">
+          <div className="max-w-[1280px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#ffc400]/20 border border-[#ffc400]/40 flex items-center justify-center text-[#ffc400] font-bold">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs text-[#ffc400] font-medium tracking-wide uppercase">Thành viên thân thiết</p>
+                <h3 className="text-base sm:text-lg font-bold text-white font-['Noto_Serif',serif]">
+                  Xin chào, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Quý khách'}!
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
+              {customerHome && (
+                <>
+                  <Link
+                    to="/account/orders"
+                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-xs transition-colors"
+                  >
+                    <ShoppingBag className="w-4 h-4 text-[#ffc400]" />
+                    <span>{customerHome.recent_orders.length} đơn hàng</span>
+                  </Link>
+
+                  <Link
+                    to="/account/reservations"
+                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-xs transition-colors"
+                  >
+                    <CalendarCheck className="w-4 h-4 text-[#ffc400]" />
+                    <span>{customerHome.upcoming_reservations.length} bàn đặt</span>
+                  </Link>
+
+                  <Link
+                    to="/account/favorites"
+                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-xs transition-colors"
+                  >
+                    <Heart className="w-4 h-4 text-red-400 fill-red-400" />
+                    <span>{customerHome.favorites.length} món thích</span>
+                  </Link>
+                </>
+              )}
+
+              <Link
+                to="/account"
+                className="flex items-center gap-1 bg-[#ffc400] text-[#234386] font-semibold px-4 py-1.5 rounded-full hover:bg-[#ffc400]/90 transition-colors shadow-xs"
+              >
+                <span>Tài khoản</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 1. HERO SECTION (Artistic, Editorial, Food-focused) */}
       <HeroSection
         onExploreMenu={() => navigate('/menu')}
@@ -160,50 +233,88 @@ export const HomePage: FC = () => {
 
           {/* 4 Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {teaserDishes.map((dish) => (
-              <div
-                key={dish.id}
-                className="group flex flex-col bg-white rounded-[24px] border border-[#d2b68c]/35 p-3.5 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="relative aspect-[4/3] rounded-[18px] overflow-hidden bg-[#234386]/5">
-                  <img
-                    src={dish.image}
-                    alt={dish.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                  <div className="absolute top-2.5 left-2.5">
-                    <span className="font-['Be_Vietnam_Pro',sans-serif] inline-block bg-[#ed7328] text-white text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-xs">
-                      {dish.isSignature ? '★ Signature' : 'Bếp trưởng chọn'}
-                    </span>
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={`skeleton-${idx}`}
+                  className="animate-pulse flex flex-col bg-white rounded-[24px] border border-[#d2b68c]/35 p-3.5 shadow-xs"
+                >
+                  <div className="aspect-[4/3] rounded-[18px] bg-[#234386]/10" />
+                  <div className="p-3 pt-4 space-y-3">
+                    <div className="h-4 bg-[#234386]/10 rounded-sm w-3/4" />
+                    <div className="h-3 bg-[#234386]/10 rounded-sm w-full" />
+                    <div className="h-3 bg-[#234386]/10 rounded-sm w-2/3" />
+                    <div className="pt-3 border-t border-[#d2b68c]/25 flex items-center justify-between">
+                      <div className="h-4 bg-[#ed7328]/20 rounded-sm w-1/3" />
+                      <div className="h-3 bg-[#234386]/10 rounded-sm w-1/4" />
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              teaserDishes.map((dish) => {
+                const isAvailable = dish.available !== false;
+                const imageSrc = dish.image_path || dish.image_url || '/tiger.svg';
+                const price = dish.price_vnd ?? 0;
 
-                <div className="p-3 pt-4 flex flex-col flex-grow justify-between">
-                  <div>
-                    <h3 className="font-['Noto_Serif',serif] text-base font-bold text-[#000000] group-hover:text-[#234386] transition-colors line-clamp-1 mb-1.5">
-                      {dish.name}
-                    </h3>
-                    <p className="font-['Be_Vietnam_Pro',sans-serif] text-[13px] text-[#000000]/70 line-clamp-2 leading-relaxed mb-4">
-                      {dish.description}
-                    </p>
-                  </div>
+                return (
+                  <div
+                    key={dish.id}
+                    className={`group flex flex-col bg-white rounded-[24px] border border-[#d2b68c]/35 p-3.5 shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${
+                      !isAvailable ? 'opacity-70 grayscale-[30%]' : ''
+                    }`}
+                  >
+                    <div className="relative aspect-[4/3] rounded-[18px] overflow-hidden bg-[#234386]/5">
+                      <img
+                        src={imageSrc}
+                        alt={dish.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                        {!isAvailable ? (
+                          <span className="font-['Be_Vietnam_Pro',sans-serif] inline-block bg-[#758096] text-white text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-xs">
+                            Tạm hết
+                          </span>
+                        ) : dish.is_signature ? (
+                          <span className="font-['Be_Vietnam_Pro',sans-serif] inline-block bg-[#ed7328] text-white text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-xs">
+                            ★ Signature
+                          </span>
+                        ) : (
+                          <span className="font-['Be_Vietnam_Pro',sans-serif] inline-block bg-[#ed7328] text-white text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-xs">
+                            Bếp trưởng chọn
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                  <div className="pt-3 border-t border-[#d2b68c]/25 flex items-center justify-between mt-auto">
-                    <span className="font-['Noto_Serif',serif] text-base font-bold text-[#ed7328]">
-                      {dish.price.toLocaleString('vi-VN')} đ
-                    </span>
-                    <Link
-                      to="/menu"
-                      className="text-xs font-semibold text-[#234386] hover:text-[#ed7328] inline-flex items-center gap-1 transition-colors"
-                    >
-                      <span>Chi tiết</span>
-                      <ArrowRight size={13} />
-                    </Link>
+                    <div className="p-3 pt-4 flex flex-col flex-grow justify-between">
+                      <div>
+                        <h3 className="font-['Noto_Serif',serif] text-base font-bold text-[#000000] group-hover:text-[#234386] transition-colors line-clamp-1 mb-1.5">
+                          {dish.name}
+                        </h3>
+                        <p className="font-['Be_Vietnam_Pro',sans-serif] text-[13px] text-[#000000]/70 line-clamp-2 leading-relaxed mb-4">
+                          {dish.description}
+                        </p>
+                      </div>
+
+                      <div className="pt-3 border-t border-[#d2b68c]/25 flex items-center justify-between mt-auto">
+                        <span className="font-['Noto_Serif',serif] text-base font-bold text-[#ed7328]">
+                          {price.toLocaleString('vi-VN')} đ
+                        </span>
+                        <Link
+                          to="/menu"
+                          className="text-xs font-semibold text-[#234386] hover:text-[#ed7328] inline-flex items-center gap-1 transition-colors"
+                        >
+                          <span>Chi tiết</span>
+                          <ArrowRight size={13} />
+                        </Link>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
 
           <div className="text-center mt-10">
@@ -211,7 +322,7 @@ export const HomePage: FC = () => {
               to="/menu"
               className="font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-sm font-semibold shadow-md active:scale-95 transition-all"
             >
-              <span>Khám phá thực đơn đầy đủ ({FEATURED_DISHES.length}+ món)</span>
+              <span>Khám phá thực đơn đầy đủ ({items.length || '30+'}+ món)</span>
               <ArrowRight size={16} />
             </Link>
           </div>

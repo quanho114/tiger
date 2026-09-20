@@ -7,6 +7,12 @@
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
+    "strict": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@contracts/*": ["./supabase/functions/_shared/contracts/*"],
+      "@contracts": ["./supabase/functions/_shared/contracts/index.ts"]
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",

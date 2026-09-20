@@ -1,25 +1,18 @@
-import { useState } from 'react';
-import type { FC, FormEvent } from 'react';
+import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  MapPin, 
-  Phone, 
-  ArrowUp, 
-  Check, 
-  Send
+import {
+  MapPin,
+  Phone,
+  ArrowUp
 } from 'lucide-react';
 import { FacebookMark } from './FacebookMark';
 import { BotanicalBranch } from './BotanicalDecorations';
+import { useCatalog } from '@/features/catalog';
+import { getSiteInfo } from '@/data/site';
 
 export const Footer: FC = () => {
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [isSubscribed, setIsSubscribed] = useState(false);
-
-  const handleSubscribe = (e: FormEvent) => {
-    e.preventDefault();
-    if (!newsletterEmail) return;
-    setIsSubscribed(true);
-  };
+  const { settings } = useCatalog();
+  const site = getSiteInfo(settings);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -103,52 +96,27 @@ export const Footer: FC = () => {
             </ul>
           </div>
 
-          {/* Newsletter + liên hệ */}
+          {/* Thông tin liên hệ & phục vụ */}
           <div className="lg:col-span-4 space-y-3">
             <h4 className="font-['Be_Vietnam_Pro',sans-serif] text-xs font-semibold text-[#234386] tracking-[0.16em] uppercase">
-              Nhận Ưu Đãi Món Mới
+              Liên Hệ & Đặt Bàn Trực Tiếp
             </h4>
             <p className="text-xs text-[#000000]/65 leading-relaxed">
-              Đăng ký để nhận voucher ưu đãi 10% cho lần ghé thăm đầu tiên và thông báo các món theo mùa.
+              Quý khách vui lòng liên hệ trực tiếp hotline để được tư vấn thực đơn, đặt bàn tiệc hoặc yêu cầu hỗ trợ nhanh nhất.
             </p>
 
-            {isSubscribed ? (
-              <div className="p-3 rounded-xl bg-[#4a6741]/10 border border-[#4a6741]/25 text-xs text-[#355231] flex items-center gap-2">
-                <Check size={14} className="shrink-0 text-[#355231]" />
-                <span>Cảm ơn bạn! Ưu đãi đã được gửi tới email của bạn.</span>
-              </div>
-            ) : (
-              <form onSubmit={handleSubscribe} className="flex items-center gap-2">
-                <input
-                  type="email"
-                  required
-                  placeholder="Nhập email của bạn..."
-                  value={newsletterEmail}
-                  onChange={(e) => setNewsletterEmail(e.target.value)}
-                  className="px-3.5 py-2.5 sm:py-2 rounded-full bg-white border border-[#d2b68c]/60 text-sm sm:text-xs text-[#000000] placeholder:text-[#000000]/40 focus:outline-none focus:border-[#234386] shadow-2xs flex-grow"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2.5 sm:py-2 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white font-semibold text-xs active:scale-95 transition-all flex items-center gap-1 shrink-0 shadow-2xs cursor-pointer"
-                >
-                  <span>Gửi</span>
-                  <Send size={11} />
-                </button>
-              </form>
-            )}
-
             <div className="pt-2 text-xs text-[#000000]/65 space-y-1.5">
-              <a href="tel:0902809929" className="flex items-center gap-2 hover:text-[#ed7328] transition-colors">
+              <a href={site.phoneHref} className="flex items-center gap-2 hover:text-[#ed7328] transition-colors">
                 <Phone size={12} className="text-[#ed7328] shrink-0" />
-                <span>Hotline: 090 280 99 29</span>
+                <span>Hotline: {site.phoneDisplay}</span>
               </a>
               <div className="flex items-center gap-2">
                 <MapPin size={12} className="text-[#ed7328] shrink-0" />
-                <span>17 Đường Số 1, Vĩnh An, Vĩnh Cửu, Đồng Nai</span>
+                <span>{site.addressShort}</span>
               </div>
               <div className="flex items-center gap-2">
                 <FacebookMark size={12} className="text-[#ed7328] shrink-0" />
-                <a href="https://www.facebook.com/Tiger345HT/" target="_blank" rel="noopener noreferrer" className="hover:text-[#ed7328] transition-colors">
+                <a href={site.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[#ed7328] transition-colors">
                   Facebook: Tiger 345
                 </a>
               </div>
@@ -166,6 +134,11 @@ export const Footer: FC = () => {
           <div className="flex items-center gap-6">
             <Link to="/" className="hover:text-[#234386] transition-colors">Điều khoản</Link>
             <Link to="/" className="hover:text-[#234386] transition-colors">Chính sách</Link>
+            {import.meta.env.DEV && (
+              <Link to="/admin" className="text-amber-700 hover:text-amber-800 font-semibold transition-colors">
+                Quản trị (Dev)
+              </Link>
+            )}
             <button
               type="button"
               onClick={scrollToTop}

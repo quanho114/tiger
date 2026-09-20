@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   validate:
-    name: Validate Codebase
+    name: Lint, Typecheck & Frontend Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -37,8 +37,72 @@ jobs:
       - name: Run TypeScript typecheck
         run: npm run typecheck
 
-      - name: Run linter
+      - name: Run server TypeScript typecheck
+        run: npm run typecheck:server
+
+      - name: Run linter (oxlint)
         run: npm run lint
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run server logic tests
+        run: npm run test:server
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright Mock E2E tests
+        run: npm run test:e2e:mock
 
       - name: Run production build
         run: npm run build
+
+      - name: Audit dist bundle for secrets (Invariant V25)
+        run: |
+          if grep -rnE "SUPABASE_SERVICE_ROLE_KEY|service_role" dist/assets/; then
+            echo "ERROR: Leaked server role key or private secret in client dist bundle!"
+            exit 1
+          fi
+          echo "PASS: No server secrets detected in client dist bundle."
+
+  database:
+    name: Database Policies & Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies (frozen)
+        run: npm ci
+
+      - name: Start Supabase Local Stack
+        run: npx supabase start -x realtime,storage-api,imgproxy
+
+      - name: Reset & seed test database
+        run: npm run db:reset:test
+
+      - name: Run RLS & RPC Security Policy Tests (Invariant V04)
+        run: npm run test:policies
+
+      - name: Run Integration Tests (Invariants V03, V07, V08, V09, V10, V11, V14, V15, V18, V22, V23)
+        run: npm run test:integration
+
+      - name: Start Supabase Functions & Run Real E2E tests
+        run: |
+          npx supabase functions serve --no-verify-jwt &
+          timeout 30 bash -c 'until curl -s http://127.0.0.1:54321/functions/v1/public-api/health | grep -q "ok"; do sleep 1; done'
+          npx playwright install --with-deps chromium
+          npm run test:e2e:real
+
+      - name: Stop Supabase Stack
+        if: always()
+        run: npx supabase stop
