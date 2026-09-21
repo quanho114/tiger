@@ -1165,7 +1165,11 @@ export async function handleContentRoutes(
       if (err instanceof DOMException && err.name === 'AbortError') {
         throw AppError.validation('Hết thời gian chờ (12s) — kiểm tra lại URL')
       }
-      throw err
+      if (err instanceof AppError) throw err
+      // Connection refused / DNS / TLS failures: surface a friendly message, not a 500.
+      throw AppError.validation(
+        'Không kết nối được tới API URL — kiểm tra URL có truy cập được từ internet không (localhost chỉ chạy trên máy bạn, server không với tới)'
+      )
     } finally {
       clearTimeout(timer)
     }
