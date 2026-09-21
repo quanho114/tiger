@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -9,93 +8,22 @@ import {
   MapPin,
   Sparkles,
   Heart,
-  Award,
-  User,
-  ShoppingBag,
-  CalendarCheck
+  Award
 } from 'lucide-react';
 import { HeroSection } from '../components/HeroSection';
 import { HighlightStrip } from '../components/HighlightStrip';
 import { BotanicalBranch, BotanicalSprig } from '../components/BotanicalDecorations';
 import { useCatalog } from '@/features/catalog';
-import { useAuth } from '@/features/auth';
-import { fetchCustomerHome } from '@/features/account/api';
-import type { CustomerHomeSummary } from '@/features/account/types';
 
 export const HomePage: FC = () => {
   const navigate = useNavigate();
   const { featuredItems, items, isLoading } = useCatalog();
-  const { role, user } = useAuth();
-  const [customerHome, setCustomerHome] = useState<CustomerHomeSummary | null>(null);
-
-  useEffect(() => {
-    if (role === 'customer') {
-      fetchCustomerHome().then(setCustomerHome).catch(() => {});
-    }
-  }, [role]);
 
   // 4 signature teaser dishes for landing page showcase
   const teaserDishes = featuredItems.length > 0 ? featuredItems.slice(0, 4) : items.slice(0, 4);
 
   return (
     <div className="space-y-0">
-      {/* Personalized Customer Welcome Banner (when authenticated as customer) */}
-      {role === 'customer' && (
-        <section className="bg-gradient-to-r from-[#234386] via-[#1a3366] to-[#234386] text-white py-4 px-4 sm:px-6 lg:px-10 border-b border-[#ffc400]/30 shadow-inner">
-          <div className="max-w-[1280px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#ffc400]/20 border border-[#ffc400]/40 flex items-center justify-center text-[#ffc400] font-bold">
-                <User className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs text-[#ffc400] font-medium tracking-wide uppercase">Thành viên thân thiết</p>
-                <h3 className="text-base sm:text-lg font-bold text-white font-['Noto_Serif',serif]">
-                  Xin chào, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Quý khách'}!
-                </h3>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
-              {customerHome && (
-                <>
-                  <Link
-                    to="/account/orders"
-                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-xs transition-colors"
-                  >
-                    <ShoppingBag className="w-4 h-4 text-[#ffc400]" />
-                    <span>{customerHome.recent_orders.length} đơn hàng</span>
-                  </Link>
-
-                  <Link
-                    to="/account/reservations"
-                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-xs transition-colors"
-                  >
-                    <CalendarCheck className="w-4 h-4 text-[#ffc400]" />
-                    <span>{customerHome.upcoming_reservations.length} bàn đặt</span>
-                  </Link>
-
-                  <Link
-                    to="/account/favorites"
-                    className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-xs transition-colors"
-                  >
-                    <Heart className="w-4 h-4 text-red-400 fill-red-400" />
-                    <span>{customerHome.favorites.length} món thích</span>
-                  </Link>
-                </>
-              )}
-
-              <Link
-                to="/account"
-                className="flex items-center gap-1 bg-[#ffc400] text-[#234386] font-semibold px-4 py-1.5 rounded-full hover:bg-[#ffc400]/90 transition-colors shadow-xs"
-              >
-                <span>Tài khoản</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* 1. HERO SECTION (Artistic, Editorial, Food-focused) */}
       <HeroSection
         onExploreMenu={() => navigate('/menu')}

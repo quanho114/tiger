@@ -5,7 +5,7 @@ import type { OrderQuoteCardData } from '../types'
 
 interface OrderQuoteCardProps {
   quote: OrderQuoteCardData
-  onConfirmQuote: (quoteToken: string) => void | Promise<void>
+  onConfirmQuote: (quoteToken: string) => void | boolean | Promise<void | boolean>
   disabled?: boolean
 }
 
@@ -20,12 +20,17 @@ export const OrderQuoteCard: FC<OrderQuoteCardProps> = ({
     return Math.max(0, Math.floor((exp - now) / 1000))
   })
   const [isConfirming, setIsConfirming] = useState<boolean>(false)
+  const [confirmationFailed, setConfirmationFailed] = useState(false)
 
   const handleConfirm = async () => {
     if (disabled || isExpired || isConfirming) return
     setIsConfirming(true)
+    setConfirmationFailed(false)
     try {
-      await onConfirmQuote(quote.quote_token)
+      const outcome = await onConfirmQuote(quote.quote_token)
+      setConfirmationFailed(outcome === false)
+    } catch {
+      setConfirmationFailed(true)
     } finally {
       setIsConfirming(false)
     }
@@ -59,7 +64,7 @@ export const OrderQuoteCard: FC<OrderQuoteCardProps> = ({
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-blue-700" />
           <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">
-            Báo giá có chữ ký xác thực (HMAC)
+            Kiểm tra đơn trước khi xác nhận
           </span>
         </div>
         <div
@@ -112,10 +117,11 @@ export const OrderQuoteCard: FC<OrderQuoteCardProps> = ({
         </div>
 
         <p className="text-[10px] text-stone-600 truncate pt-1">
-          Token: <code className="bg-stone-100 px-1 py-0.5 rounded">{quote.quote_token.slice(0, 16)}...</code>
+          Vui lòng kiểm tra món ăn, số lượng và tổng tiền trước khi đặt đơn.
         </p>
       </div>
 
+      {confirmationFailed && <p role="alert" className="px-4 py-2 text-xs text-rose-800">Chưa thể xác nhận. Vui lòng kiểm tra thông báo và thử lại.</p>}
       {/* Action */}
       <div className="p-3 bg-stone-50 border-t border-stone-100 flex justify-end">
         <button

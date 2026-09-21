@@ -1,4 +1,16 @@
 import { useState, useEffect, useCallback, type FC } from 'react'
+import {
+  X,
+  CheckCircle2,
+  ChefHat,
+  Armchair,
+  Truck,
+  Ban,
+  XCircle,
+  Banknote,
+  AlertCircle,
+  RotateCcw,
+} from 'lucide-react'
 import { adminApi } from '../../../lib/api/client'
 import { ApiError } from '../../../lib/api/types'
 import type { AdminOrderDetail, OrderStatus, PaymentMethod } from '../types'
@@ -161,7 +173,7 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
       detail.order.payment_status === 'paid'
     ) {
       setErrorMessage(
-        '❌ Không thể hủy/từ chối đơn đã thanh toán: Cần thực hiện "Hoàn tiền (Refund)" trước khi hủy đơn (theo Invariant V18).'
+        '❌ Không thể hủy/từ chối đơn đã thanh toán: Cần thực hiện "Hoàn tiền (Refund)" trước khi hủy đơn.'
       )
       return
     }
@@ -185,12 +197,12 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.code === 'VERSION_CONFLICT') {
-          setErrorMessage('⚠️ Xung đột phiên bản (Concurrency Conflict): Đơn này vừa được cập nhật bởi một người khác. Vui lòng kiểm tra lại trạng thái mới nhất.')
+          setErrorMessage('⚠️ Xung đột phiên bản: Đơn này vừa được cập nhật bởi một người khác. Vui lòng kiểm tra lại trạng thái mới nhất.')
           await loadOrderDetail()
         } else if (err.code === 'PAYMENT_REQUIRED') {
-          setErrorMessage('❌ Không thể hoàn thành đơn: Đơn hàng chưa thanh toán (Payment Status phải là "paid").')
+          setErrorMessage('❌ Không thể hoàn thành đơn: Đơn hàng chưa thanh toán.')
         } else if (err.code === 'PAID_ORDER_NOT_REFUNDED') {
-          setErrorMessage('❌ Đơn đã thanh toán: Cần ghi nhận Hoàn tiền (Refund) trước khi hủy hoặc từ chối.')
+          setErrorMessage('❌ Đơn đã thanh toán: Cần ghi nhận Hoàn tiền trước khi hủy hoặc từ chối.')
         } else if (err.code === 'INVALID_STATE_TRANSITION') {
           setErrorMessage(`❌ Chuyển trạng thái không hợp lệ: Không thể chuyển từ "${detail.order.status}" sang "${targetStatus}".`)
         } else {
@@ -210,7 +222,7 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
 
     if (status === 'completed' || status === 'cancelled' || status === 'rejected') {
       return (
-        <div className="p-3 bg-stone-950/60 rounded-lg border border-stone-800 text-stone-400 text-xs text-center font-medium">
+        <div className="p-3 bg-[#f6f5f3] rounded-xl border border-[#e2e3e3] text-[#787979] text-xs text-center font-medium">
           Đơn hàng đã ở trạng thái kết thúc ({status}). Không thể thay đổi thêm.
         </div>
       )
@@ -224,9 +236,10 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
               type="button"
               onClick={() => handleExecuteTransition('confirmed')}
               disabled={isSubmitting}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition shadow-sm disabled:opacity-50"
+              className="elera-btn-accent shadow-xs disabled:opacity-50"
             >
-              ✓ Tiếp nhận đơn (Confirm)
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Tiếp nhận đơn</span>
             </button>
             <button
               type="button"
@@ -237,9 +250,10 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                 })
               }
               disabled={isSubmitting}
-              className="px-4 py-2 bg-rose-800 hover:bg-rose-700 text-white font-semibold text-xs rounded-lg transition disabled:opacity-50"
+              className="elera-btn-secondary text-rose-700 hover:text-rose-800 hover:bg-rose-50 border-rose-200 shadow-2xs"
             >
-              ✕ Từ chối đơn
+              <XCircle className="w-4 h-4" />
+              <span>Từ chối đơn</span>
             </button>
           </>
         )}
@@ -250,31 +264,31 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
               type="button"
               onClick={() => handleExecuteTransition('preparing')}
               disabled={isSubmitting}
-              className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-lg transition shadow-sm disabled:opacity-50"
+              className="elera-btn-primary shadow-xs disabled:opacity-50"
             >
-              🍳 Chuyển bếp chế biến
+              <ChefHat className="w-4 h-4" />
+              <span>Chuyển bếp chế biến</span>
             </button>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  setReasonModal({
-                    targetStatus: 'cancelled',
-                    title: 'Hủy đơn hàng',
-                  })
-                }
-                disabled={isSubmitting || payment_status === 'paid'}
-                className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-rose-300 border border-stone-700 font-semibold text-xs rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                title={payment_status === 'paid' ? 'Đơn đã thanh toán, phải hoàn tiền trước khi hủy/từ chối' : undefined}
-              >
-                Hủy đơn
-              </button>
-              {payment_status === 'paid' && (
-                <span className="text-[11px] text-rose-400 font-medium">
-                  Đơn đã thanh toán, phải hoàn tiền trước khi hủy/từ chối
-                </span>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setReasonModal({
+                  targetStatus: 'cancelled',
+                  title: 'Hủy đơn hàng',
+                })
+              }
+              disabled={isSubmitting || payment_status === 'paid'}
+              className="elera-btn-secondary text-rose-700 hover:text-rose-800 hover:bg-rose-50 border-rose-200 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+              title={payment_status === 'paid' ? 'Đơn đã thanh toán, phải hoàn tiền trước khi hủy' : undefined}
+            >
+              <Ban className="w-3.5 h-3.5" />
+              <span>Hủy đơn</span>
+            </button>
+            {payment_status === 'paid' && (
+              <span className="text-[11px] text-rose-600 font-medium">
+                Đơn đã thanh toán, phải hoàn tiền trước khi hủy
+              </span>
+            )}
           </>
         )}
 
@@ -285,18 +299,20 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                 type="button"
                 onClick={() => handleExecuteTransition('served')}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-lg transition shadow-sm disabled:opacity-50"
+                className="elera-btn-accent shadow-xs disabled:opacity-50"
               >
-                🍽️ Đã phục vụ ra bàn
+                <Armchair className="w-4 h-4" />
+                <span>Đã phục vụ ra bàn</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => handleExecuteTransition('delivering')}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-lg transition shadow-sm disabled:opacity-50"
+                className="elera-btn-primary shadow-xs disabled:opacity-50"
               >
-                🛵 Bắt đầu giao hàng (Shipper)
+                <Truck className="w-4 h-4" />
+                <span>Bắt đầu giao hàng (Shipper)</span>
               </button>
             )}
           </>
@@ -305,8 +321,9 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
         {(status === 'served' || status === 'delivering') && (
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             {payment_status !== 'paid' ? (
-              <div className="flex items-center space-x-2 text-xs text-amber-400 bg-amber-950/50 border border-amber-800/80 px-3 py-1.5 rounded-lg">
-                <span>⚠️ Chưa thanh toán: Phải thanh toán đơn trước khi Hoàn thành.</span>
+              <div className="flex items-center space-x-1.5 text-xs text-[#b57a0b] bg-[#faf1dc] border border-[#f2deae] px-3 py-1.5 rounded-lg font-medium">
+                <AlertCircle className="w-4 h-4 text-[#b57a0b] shrink-0" />
+                <span>Chưa thanh toán: Cần ghi nhận thanh toán trước khi hoàn thành đơn.</span>
               </div>
             ) : null}
 
@@ -314,10 +331,11 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
               type="button"
               onClick={() => handleExecuteTransition('completed')}
               disabled={isSubmitting || payment_status !== 'paid'}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              className="elera-btn-accent shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
               title={payment_status !== 'paid' ? 'Chưa thanh toán' : 'Hoàn thành đơn hàng'}
             >
-              ★ Hoàn thành đơn hàng
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Hoàn thành đơn hàng</span>
             </button>
           </div>
         )}
@@ -341,9 +359,10 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
               })
             }
             disabled={isSubmitting || isProcessingPayment}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+            className="elera-btn-accent shadow-xs disabled:opacity-50"
           >
-            <span>💰 Ghi nhận thanh toán</span>
+            <Banknote className="w-4 h-4" />
+            <span>Ghi nhận thanh toán</span>
           </button>
         )}
 
@@ -358,9 +377,10 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                 })
               }
               disabled={isSubmitting || isProcessingPayment}
-              className="px-4 py-2 bg-rose-900/80 hover:bg-rose-800 text-rose-100 border border-rose-700 font-bold text-xs rounded-lg transition disabled:opacity-50 flex items-center gap-1.5"
+              className="elera-btn-secondary text-rose-700 hover:text-rose-800 hover:bg-rose-50 border-rose-200 shadow-2xs disabled:opacity-50"
             >
-              <span>↩️ Hoàn tiền (Refund)</span>
+              <RotateCcw className="w-4 h-4" />
+              <span>Hoàn tiền (Refund)</span>
             </button>
 
             {!['completed', 'cancelled', 'rejected'].includes(status) && (
@@ -373,10 +393,10 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                   })
                 }
                 disabled={isSubmitting || isProcessingPayment}
-                className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-amber-300 border border-stone-700 font-semibold text-xs rounded-lg transition disabled:opacity-50 flex items-center gap-1.5"
+                className="elera-btn-secondary shadow-2xs disabled:opacity-50"
                 title="Sửa nhầm lẫn khi lỡ bấm thanh toán"
               >
-                <span>✏️ Điều chỉnh nhầm (về Unpaid)</span>
+                <span>Điều chỉnh về Chưa thanh toán</span>
               </button>
             )}
           </>
@@ -386,16 +406,16 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 font-sans">
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 font-sans">
+      <div className="bg-white border border-[#e2e3e3] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden elera-animate-modal">
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-stone-900 border-b border-stone-800 flex items-center justify-between">
+        <div className="px-6 py-4 bg-[#faf9f7] border-b border-[#e2e3e3] flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <h2 className="text-xl font-mono font-black text-amber-400">
+            <h2 className="text-lg font-bold text-[#171a17]">
               {`Chi tiết đơn hàng ${detail ? detail.order.code : 'Đang tải...'}`}
             </h2>
             {detail && (
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-stone-800 text-stone-300 border border-stone-700">
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full font-mono bg-[#edece9] text-[#5c5e63] font-semibold">
                 v{detail.order.version}
               </span>
             )}
@@ -403,29 +423,29 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-stone-800 transition"
+            className="elera-icon-btn w-8 h-8 rounded-lg"
           >
-            ✕
+            <X className="w-4 h-4 text-[#787979]" />
           </button>
         </div>
 
         {/* Modal Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {isLoading && !detail && (
-            <div className="py-20 flex flex-col items-center justify-center">
-              <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mb-3" />
-              <p className="text-xs text-stone-400">Đang tải chi tiết đơn hàng...</p>
+            <div className="py-20 flex flex-col items-center justify-center text-[#787979]">
+              <div className="w-8 h-8 border-2 border-[#7cd56e] border-t-transparent rounded-full animate-spin mb-3" />
+              <p className="text-xs">Đang tải chi tiết đơn hàng...</p>
             </div>
           )}
 
           {errorMessage && (
-            <div className="p-3.5 bg-rose-950/70 border border-rose-800 rounded-xl text-xs text-rose-200">
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
               {errorMessage}
             </div>
           )}
 
           {successMessage && (
-            <div className="p-3.5 bg-emerald-950/70 border border-emerald-800 rounded-xl text-xs text-emerald-200">
+            <div className="p-3.5 bg-[#e4f7c6] border border-[#c4e899] rounded-xl text-xs text-[#3e6300] font-medium">
               {successMessage}
             </div>
           )}
@@ -433,22 +453,22 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
           {detail && (
             <>
               {/* Order State & Summary Banner */}
-              <div className="bg-stone-950 p-4 rounded-xl border border-stone-800 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div className="bg-[#faf9f7] p-4 rounded-xl border border-[#e2e3e3] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                 <div>
-                  <span className="text-stone-400 block font-medium">Trạng thái đơn</span>
-                  <span className="text-sm font-bold text-stone-100 uppercase mt-0.5 block">
+                  <span className="text-[#787979] block font-medium">Trạng thái đơn</span>
+                  <span className="text-sm font-bold text-[#171a17] uppercase mt-0.5 block">
                     {detail.order.status}
                   </span>
                 </div>
                 <div>
-                  <span className="text-stone-400 block font-medium">Thanh toán</span>
+                  <span className="text-[#787979] block font-medium">Thanh toán</span>
                   <span
-                    className={`inline-block text-xs font-bold px-2 py-0.5 rounded mt-0.5 ${
+                    className={`inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full mt-0.5 ${
                       detail.order.payment_status === 'paid'
-                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                        ? 'bg-[#e4f7c6] text-[#3e6300] border border-[#c4e899]'
                         : detail.order.payment_status === 'refunded'
-                        ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                        : 'bg-amber-950 text-amber-300 border border-amber-800'
+                        ? 'bg-[#fceae6] text-[#d93826] border border-[#f5c6c0]'
+                        : 'bg-[#faf1dc] text-[#a06b00] border border-[#f2deae]'
                     }`}
                   >
                     {detail.order.payment_status === 'paid'
@@ -459,71 +479,71 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                   </span>
                 </div>
                 <div>
-                  <span className="text-stone-400 block font-medium">Loại đơn</span>
-                  <span className="text-sm font-bold text-stone-200 mt-0.5 block">
+                  <span className="text-[#787979] block font-medium">Loại đơn</span>
+                  <span className="text-sm font-bold text-[#171a17] mt-0.5 block">
                     {detail.order.order_type === 'dine_in' ? 'Tại bàn (Dine-in)' : 'Giao hàng (Delivery)'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-stone-400 block font-medium">Tổng thanh toán</span>
-                  <span className="text-base font-black font-mono text-amber-400 mt-0.5 block">
+                  <span className="text-[#787979] block font-medium">Tổng thanh toán</span>
+                  <span className="text-base font-bold font-mono text-[#171a17] mt-0.5 block">
                     {detail.order.total_vnd.toLocaleString('vi-VN')}đ
                   </span>
                 </div>
               </div>
 
               {/* Action Bar */}
-              <div className="p-4 bg-stone-900 border border-stone-800 rounded-xl space-y-4">
+              <div className="p-4 bg-[#faf9f7] border border-[#e2e3e3] rounded-xl space-y-4">
                 <div>
-                  <h4 className="text-xs font-semibold text-stone-300 uppercase tracking-wider mb-2.5">
+                  <h4 className="text-xs font-bold text-[#787979] uppercase tracking-wider mb-2.5">
                     Thao tác trạng thái
                   </h4>
                   {renderTransitionButtons()}
                 </div>
 
-                <div className="pt-3 border-t border-stone-800/80">
-                  <h4 className="text-xs font-semibold text-stone-300 uppercase tracking-wider mb-2.5">
+                <div className="pt-3 border-t border-[#e2e3e3]">
+                  <h4 className="text-xs font-bold text-[#787979] uppercase tracking-wider mb-2.5">
                     Thao tác thanh toán
                   </h4>
                   {renderPaymentButtons()}
                 </div>
               </div>
 
-              {/* Customer / Dine-in Info */}
+              {/* Customer / Dine-in Info & Internal Staff Note */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div className="bg-stone-950/70 p-4 rounded-xl border border-stone-800 space-y-2">
-                  <h4 className="font-semibold text-stone-300 uppercase tracking-wider">
+                <div className="bg-white p-4 rounded-xl border border-[#e2e3e3] shadow-xs space-y-2">
+                  <h4 className="font-bold text-[#787979] text-[11px] uppercase tracking-wider">
                     Thông tin phục vụ
                   </h4>
                   {detail.order.order_type === 'dine_in' ? (
-                    <div>
-                      <p className="text-stone-400">
+                    <div className="space-y-1">
+                      <p className="text-[#5c5e63]">
                         Bàn phục vụ:{' '}
-                        <strong className="text-stone-200">
+                        <strong className="text-[#171a17]">
                           {detail.order.table_name_snapshot || 'Bàn không tên'}
                         </strong>
                       </p>
-                      <p className="text-stone-400 mt-1 font-mono text-[11px]">
+                      <p className="text-[#787979] font-mono text-[11px]">
                         Mã phiên (visit): {detail.order.table_visit_id || 'N/A'}
                       </p>
                     </div>
                   ) : (
-                    <div>
-                      <p className="text-stone-400">
+                    <div className="space-y-1">
+                      <p className="text-[#5c5e63]">
                         Người nhận:{' '}
-                        <strong className="text-stone-200">
+                        <strong className="text-[#171a17]">
                           {detail.order.customer_name || 'Khách vãng lai'}
                         </strong>
                       </p>
-                      <p className="text-stone-400 mt-1">
+                      <p className="text-[#5c5e63]">
                         SĐT liên hệ:{' '}
-                        <strong className="text-stone-200 font-mono">
+                        <strong className="text-[#171a17] font-mono">
                           {detail.order.customer_phone || 'Chưa cung cấp'}
                         </strong>
                       </p>
-                      <p className="text-stone-400 mt-1">
+                      <p className="text-[#5c5e63]">
                         Địa chỉ nhận món:{' '}
-                        <span className="text-stone-200">
+                        <span className="text-[#171a17]">
                           {detail.order.address_snapshot || 'Không có địa chỉ'}
                         </span>
                       </p>
@@ -531,20 +551,20 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                   )}
 
                   {detail.order.note && (
-                    <div className="mt-3 pt-3 border-t border-stone-800">
-                      <span className="text-amber-400 font-semibold block">Ghi chú từ khách:</span>
-                      <p className="text-stone-300 italic mt-0.5">{detail.order.note}</p>
+                    <div className="mt-3 pt-3 border-t border-[#e2e3e3]">
+                      <span className="text-[#a06b00] font-semibold block">Ghi chú từ khách:</span>
+                      <p className="text-[#5c5e63] italic mt-0.5">{detail.order.note}</p>
                     </div>
                   )}
                 </div>
 
                 {/* Internal Staff Note */}
-                <div className="bg-stone-950/70 p-4 rounded-xl border border-stone-800 space-y-2 flex flex-col justify-between">
+                <div className="bg-white p-4 rounded-xl border border-[#e2e3e3] shadow-xs space-y-2 flex flex-col justify-between">
                   <div>
-                    <h4 className="font-semibold text-stone-300 uppercase tracking-wider">
-                      Ghi chú nội bộ (Bếp & Quản lý)
+                    <h4 className="font-bold text-[#787979] text-[11px] uppercase tracking-wider">
+                      Ghi chú nội bộ (Bếp &amp; Quản lý)
                     </h4>
-                    <p className="text-[11px] text-stone-400 mt-0.5">
+                    <p className="text-[11px] text-[#787979] mt-0.5">
                       Khách không nhìn thấy ghi chú này. Có kiểm tra phiên bản concurrency.
                     </p>
                     <textarea
@@ -552,7 +572,7 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                       value={internalNote}
                       onChange={(e) => setInternalNote(e.target.value)}
                       placeholder="VD: Khách dặn làm ít cay, đã xin lỗi vì bàn chờ lâu..."
-                      className="mt-2 w-full p-2.5 bg-stone-900 border border-stone-700 rounded-lg text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      className="mt-2 w-full p-2.5 bg-[#faf9f7] border border-[#d2d2d2] rounded-xl text-xs text-[#171a17] placeholder-[#787979] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 focus:border-[#7cd56e]"
                     />
                   </div>
                   <div className="flex justify-end pt-2">
@@ -560,7 +580,7 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                       type="button"
                       onClick={handleSaveInternalNote}
                       disabled={isSavingNote}
-                      className="px-3.5 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 font-medium rounded-lg text-xs border border-stone-700 transition disabled:opacity-50"
+                      className="elera-btn-secondary text-xs"
                     >
                       {isSavingNote ? 'Đang lưu...' : 'Lưu ghi chú'}
                     </button>
@@ -569,16 +589,16 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
               </div>
 
               {/* Items List */}
-              <div className="bg-stone-950/70 rounded-xl border border-stone-800 overflow-hidden">
-                <div className="px-4 py-3 border-b border-stone-800 flex justify-between items-center">
-                  <h4 className="text-xs font-semibold text-stone-300 uppercase tracking-wider">
+              <div className="bg-white rounded-xl border border-[#e2e3e3] shadow-xs overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#e2e3e3] bg-[#faf9f7] flex justify-between items-center">
+                  <h4 className="text-xs font-bold text-[#787979] uppercase tracking-wider">
                     Danh sách món gọi ({detail.items?.length || 0})
                   </h4>
-                  <span className="text-xs text-stone-400">
-                    Tạm tính: {detail.order.subtotal_vnd.toLocaleString('vi-VN')}đ
+                  <span className="text-xs font-medium text-[#787979]">
+                    Tạm tính: <strong className="text-[#171a17]">{detail.order.subtotal_vnd.toLocaleString('vi-VN')}đ</strong>
                   </span>
                 </div>
-                <div className="divide-y divide-stone-800">
+                <div className="divide-y divide-[#e2e3e3]">
                   {(detail.items || []).map((item) => {
                     const itemName = (item as unknown as { item_name?: string; item_name_snapshot?: string }).item_name || (item as unknown as { item_name?: string; item_name_snapshot?: string }).item_name_snapshot || item.name_snapshot
                     const unitPrice = (item as unknown as { unit_price_vnd?: number }).unit_price_vnd ?? item.price_vnd ?? 0
@@ -586,21 +606,21 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                     const itemNote = (item as unknown as { customer_note?: string }).customer_note || item.note
 
                     return (
-                      <div key={item.id} className="p-3.5 flex items-center justify-between text-xs">
+                      <div key={item.id} className="p-3.5 flex items-center justify-between text-xs hover:bg-[#faf9f7] transition">
                         <div className="space-y-0.5">
-                          <span className="font-bold text-stone-200 text-sm">
+                          <span className="font-bold text-[#171a17] text-sm">
                             {itemName}
                           </span>
                           {itemNote && (
-                            <p className="text-[11px] text-amber-400/90 italic">
+                            <p className="text-[11px] text-[#b57a0b] italic">
                               Yêu cầu: {itemNote}
                             </p>
                           )}
-                          <p className="text-stone-400 text-[11px] font-mono">
+                          <p className="text-[#787979] text-[11px] font-mono">
                             {unitPrice.toLocaleString('vi-VN')}đ x {item.quantity}
                           </p>
                         </div>
-                        <div className="text-right font-mono font-bold text-stone-100">
+                        <div className="text-right font-mono font-bold text-[#171a17]">
                           {lineTotal.toLocaleString('vi-VN')}đ
                         </div>
                       </div>
@@ -610,27 +630,27 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
               </div>
 
               {/* Status History Timeline */}
-              <div className="bg-stone-950/70 p-4 rounded-xl border border-stone-800 space-y-3">
-                <h4 className="text-xs font-semibold text-stone-300 uppercase tracking-wider">
+              <div className="bg-white p-4 rounded-xl border border-[#e2e3e3] shadow-xs space-y-3">
+                <h4 className="text-xs font-bold text-[#787979] uppercase tracking-wider">
                   Lịch sử thay đổi trạng thái (Audit Timeline)
                 </h4>
                 <div className="space-y-2">
                   {(detail.status_history || (detail as unknown as { timeline?: typeof detail.status_history }).timeline || []).map((hist) => (
                     <div
                       key={hist.id}
-                      className="text-xs flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded bg-stone-900/60 border border-stone-800/80 gap-1"
+                      className="text-xs flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl bg-[#faf9f7] border border-[#e2e3e3] gap-1"
                     >
                       <div className="flex items-center space-x-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-500" />
-                        <span className="font-mono text-stone-400">
+                        <span className="w-2 h-2 rounded-full bg-[#7cd56e]" />
+                        <span className="font-mono text-[#5c5e63]">
                           {hist.from_status ? `${hist.from_status} → ` : 'Khởi tạo → '}
-                          <strong className="text-stone-200">{hist.to_status}</strong>
+                          <strong className="text-[#171a17]">{hist.to_status}</strong>
                         </span>
                         {hist.reason && (
-                          <span className="text-rose-400 italic">({hist.reason})</span>
+                          <span className="text-rose-600 italic">({hist.reason})</span>
                         )}
                       </div>
-                      <div className="text-stone-400 font-mono text-[11px] flex items-center space-x-2">
+                      <div className="text-[#787979] font-mono text-[11px] flex items-center space-x-2">
                         <span>bởi {hist.actor_name || 'Hệ thống'}</span>
                         <span>•</span>
                         <span>{new Date(hist.created_at).toLocaleString('vi-VN')}</span>
@@ -642,27 +662,27 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
 
               {/* Payment Events Audit Timeline */}
               {detail.payment_events && detail.payment_events.length > 0 && (
-                <div className="bg-stone-950/70 p-4 rounded-xl border border-stone-800 space-y-3">
-                  <h4 className="text-xs font-semibold text-stone-300 uppercase tracking-wider">
-                    Lịch sử thanh toán & sự kiện tiền tệ
+                <div className="bg-white p-4 rounded-xl border border-[#e2e3e3] shadow-xs space-y-3">
+                  <h4 className="text-xs font-bold text-[#787979] uppercase tracking-wider">
+                    Lịch sử thanh toán &amp; sự kiện tiền tệ
                   </h4>
                   <div className="space-y-2">
                     {detail.payment_events.map((evt) => (
                       <div
                         key={evt.id}
-                        className="text-xs flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded bg-stone-900/60 border border-stone-800/80 gap-1.5"
+                        className="text-xs flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl bg-[#faf9f7] border border-[#e2e3e3] gap-1.5"
                       >
                         <div className="flex items-center space-x-2">
                           <span
                             className={`w-2 h-2 rounded-full ${
                               evt.event === 'paid'
-                                ? 'bg-emerald-400'
+                                ? 'bg-[#7cd56e]'
                                 : evt.event === 'refunded'
-                                ? 'bg-rose-400'
-                                : 'bg-amber-400'
+                                ? 'bg-rose-500'
+                                : 'bg-[#b57a0b]'
                             }`}
                           />
-                          <span className="font-mono font-bold text-stone-200">
+                          <span className="font-mono font-bold text-[#171a17]">
                             {evt.event === 'paid'
                               ? evt.method === 'cash'
                                 ? `Thu tiền mặt: +${evt.amount_vnd.toLocaleString('vi-VN')} đ`
@@ -672,10 +692,10 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                               : `Điều chỉnh: ${evt.amount_vnd.toLocaleString('vi-VN')} đ`}
                           </span>
                           {evt.reason && (
-                            <span className="text-amber-300/90 italic">({evt.reason})</span>
+                            <span className="text-[#a06b00] italic">({evt.reason})</span>
                           )}
                         </div>
-                        <div className="text-stone-400 font-mono text-[11px] flex items-center space-x-2">
+                        <div className="text-[#787979] font-mono text-[11px] flex items-center space-x-2">
                           <span>bởi {evt.actor_admin_name || 'Admin'}</span>
                           <span>•</span>
                           <span>{new Date(evt.created_at).toLocaleString('vi-VN')}</span>
@@ -690,11 +710,11 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 bg-stone-900 border-t border-stone-800 flex justify-end">
+        <div className="px-6 py-3.5 bg-[#faf9f7] border-t border-[#e2e3e3] flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 font-semibold text-xs rounded-lg border border-stone-700 transition"
+            className="elera-btn-secondary h-9 px-4 font-semibold text-xs"
           >
             Đóng
           </button>
@@ -703,23 +723,23 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
 
       {/* Payment Dialog Modal */}
       {paymentModal && (
-        <div className="fixed inset-0 z-60 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-xl p-5 w-full max-w-md shadow-2xl space-y-4">
-            <h3 className="text-sm font-bold text-stone-100 uppercase">{paymentModal.title}</h3>
+        <div className="fixed inset-0 z-60 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#e2e3e3] rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 elera-animate-modal">
+            <h3 className="text-sm font-bold text-[#171a17] uppercase">{paymentModal.title}</h3>
 
             {paymentModal.event === 'paid' && (
               <div>
-                <label className="text-xs text-stone-300 block font-medium mb-1.5">
+                <label className="text-xs text-[#5c5e63] block font-medium mb-1.5">
                   Phương thức thanh toán:
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('cash')}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition ${
+                    className={`py-2 px-3 text-xs font-semibold rounded-xl border text-center transition ${
                       paymentMethod === 'cash'
-                        ? 'bg-amber-500 text-stone-950 border-amber-400'
-                        : 'bg-stone-950 text-stone-300 border-stone-700 hover:border-stone-600'
+                        ? 'bg-[#2b2e2c] text-white border-[#2b2e2c] shadow-xs'
+                        : 'bg-white text-[#5c5e63] border-[#dedfdb] hover:bg-[#faf9f7]'
                     }`}
                   >
                     💵 Tiền mặt (Cash)
@@ -727,10 +747,10 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('bank_transfer')}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition ${
+                    className={`py-2 px-3 text-xs font-semibold rounded-xl border text-center transition ${
                       paymentMethod === 'bank_transfer'
-                        ? 'bg-amber-500 text-stone-950 border-amber-400'
-                        : 'bg-stone-950 text-stone-300 border-stone-700 hover:border-stone-600'
+                        ? 'bg-[#2b2e2c] text-white border-[#2b2e2c] shadow-xs'
+                        : 'bg-white text-[#5c5e63] border-[#dedfdb] hover:bg-[#faf9f7]'
                     }`}
                   >
                     🏦 Chuyển khoản (Bank)
@@ -740,10 +760,10 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
             )}
 
             <div>
-              <label className="text-xs text-stone-300 block font-medium mb-1">
+              <label className="text-xs text-[#5c5e63] block font-medium mb-1">
                 {paymentModal.event === 'paid'
                   ? 'Ghi chú thanh toán (tùy chọn):'
-                  : 'Lý do bắt buộc (Kiểm toán Invariant V18):'}
+                  : 'Lý do bắt buộc:'}
               </label>
               <input
                 type="text"
@@ -754,14 +774,14 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                   paymentModal.event === 'paid'
                     ? 'Ghi chú thanh toán...'
                     : paymentModal.event === 'refunded'
-                    ? 'Lý do hoàn tiền (VD: Khách hủy đơn hoàn tiền)'
-                    : 'Lý do điều chỉnh (VD: Bấm nhầm thanh toán)'
+                    ? 'Lý do hoàn tiền...'
+                    : 'Lý do điều chỉnh...'
                 }
-                className="w-full p-2.5 bg-stone-950 border border-stone-700 rounded-lg text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                className="w-full p-2.5 bg-[#faf9f7] border border-[#d2d2d2] rounded-xl text-xs text-[#171a17] placeholder-[#787979] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 focus:border-[#7cd56e]"
               />
             </div>
 
-            <div className="flex justify-end space-x-2 pt-2 border-t border-stone-800">
+            <div className="flex justify-end space-x-2 pt-2 border-t border-[#e2e3e3]">
               <button
                 type="button"
                 onClick={() => {
@@ -769,7 +789,7 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                   setPaymentReason('')
                 }}
                 disabled={isProcessingPayment}
-                className="px-3 py-1.5 text-xs text-stone-400 hover:text-white transition"
+                className="elera-btn-secondary h-8 px-3 text-xs"
               >
                 Hủy bỏ
               </button>
@@ -777,13 +797,7 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                 type="button"
                 onClick={handleExecutePayment}
                 disabled={isProcessingPayment}
-                className={`px-4 py-1.5 text-white font-bold text-xs rounded-lg transition disabled:opacity-50 ${
-                  paymentModal.event === 'paid'
-                    ? 'bg-emerald-600 hover:bg-emerald-500'
-                    : paymentModal.event === 'refunded'
-                    ? 'bg-rose-700 hover:bg-rose-600'
-                    : 'bg-amber-600 hover:bg-amber-500'
-                }`}
+                className="elera-btn-accent h-8 px-4 text-xs font-semibold"
               >
                 {isProcessingPayment
                   ? 'Đang xử lý...'
@@ -800,10 +814,10 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
 
       {/* Reason Dialog Modal */}
       {reasonModal && (
-        <div className="fixed inset-0 z-60 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-xl p-5 w-full max-w-md shadow-2xl">
-            <h3 className="text-sm font-bold text-stone-100 uppercase">{reasonModal.title}</h3>
-            <p className="text-xs text-stone-400 mt-1">
+        <div className="fixed inset-0 z-60 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#e2e3e3] rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-3 elera-animate-modal">
+            <h3 className="text-sm font-bold text-[#171a17] uppercase">{reasonModal.title}</h3>
+            <p className="text-xs text-[#787979]">
               Vui lòng nhập lý do để lưu vào lịch sử kiểm toán của quán:
             </p>
             <input
@@ -812,13 +826,13 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
               value={transitionReason}
               onChange={(e) => setTransitionReason(e.target.value)}
               placeholder="VD: Hết món, Khách đổi ý, Quá tải bếp..."
-              className="mt-3 w-full p-2.5 bg-stone-950 border border-stone-700 rounded-lg text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              className="w-full p-2.5 bg-[#faf9f7] border border-[#d2d2d2] rounded-xl text-xs text-[#171a17] placeholder-[#787979] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 focus:border-[#7cd56e]"
             />
-            <div className="mt-4 flex justify-end space-x-2">
+            <div className="mt-4 flex justify-end space-x-2 pt-2 border-t border-[#e2e3e3]">
               <button
                 type="button"
                 onClick={() => setReasonModal(null)}
-                className="px-3 py-1.5 text-xs text-stone-400 hover:text-white transition"
+                className="elera-btn-secondary h-8 px-3 text-xs"
               >
                 Hủy bỏ
               </button>
@@ -826,7 +840,7 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                 type="button"
                 onClick={() => handleExecuteTransition(reasonModal.targetStatus, transitionReason)}
                 disabled={isSubmitting}
-                className="px-4 py-1.5 bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs rounded-lg transition disabled:opacity-50"
+                className="elera-btn-secondary text-rose-700 hover:bg-rose-50 border-rose-200 h-8 px-4 text-xs font-semibold disabled:opacity-50"
               >
                 Xác nhận
               </button>

@@ -100,6 +100,29 @@ npm run test:e2e
 npm run build
 ```
 
+### Jev: tự động vận hành browser cho coding agent
+
+```bash
+# Kiểm tra điều kiện chạy; không gọi model tốn phí
+npm run jev:check
+
+# Kiểm thử runner offline
+npm run test:jev
+
+# Chủ động chạy Jev thật (có thể phát sinh phí API)
+npm run jev:eval
+```
+
+Runner dùng sandbox dữ liệu giả và Chrome riêng, không dùng phiên đăng nhập cá nhân
+hoặc database nhà hàng. Kết quả phải qua assertion độc lập; `DONE` của model không
+được tính là PASS. Xem [hướng dẫn Jev](docs/jev-automation.md) và
+[quy tắc cho coding agent](scripts/jev/AGENTS.md).
+
+Đây là kiểm thử thao tác UI, **không phải** bằng chứng chất lượng câu trả lời của
+Concierge thật hoặc tính đúng đắn giao dịch DB. Concierge phục vụ khách vẫn dùng
+typed action hiện có và yêu cầu khách xác nhận đặt đơn/đặt bàn; Jev không điều
+khiển tab của khách từ server.
+
 ---
 
 ## Sổ tay vận hành hệ thống (Operational Runbooks)

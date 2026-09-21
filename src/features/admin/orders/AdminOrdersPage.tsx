@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback, type FC } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import {
+  Clock,
+  CheckCircle2,
+  ChefHat,
+  Armchair,
+  Truck,
+  XCircle,
+  Eye,
+  RefreshCw,
+} from 'lucide-react'
 import { adminApi } from '../../../lib/api/client'
 import { useAdmin } from '../layout/AdminContext'
 import { AdminOrderDetailModal } from './AdminOrderDetailModal'
@@ -78,69 +88,119 @@ export const AdminOrdersPage: FC = () => {
   const statusBadge = (status: OrderStatus) => {
     switch (status) {
       case 'pending':
-        return <span className="bg-amber-950 text-amber-300 border border-amber-800/80 px-2 py-0.5 rounded font-medium text-[11px]">Chờ nhận</span>
+        return (
+          <span className="inline-flex items-center gap-1 bg-[#faf1dc] text-[#a06b00] border border-[#f2deae] px-2 py-0.5 rounded-full font-medium text-[11px]">
+            <Clock className="w-3 h-3 text-[#b57a0b]" />
+            <span>Chờ nhận</span>
+          </span>
+        )
       case 'confirmed':
-        return <span className="bg-emerald-950 text-emerald-300 border border-emerald-800/80 px-2 py-0.5 rounded font-medium text-[11px]">Đã nhận</span>
+        return (
+          <span className="inline-flex items-center gap-1 bg-[#e8f2fe] text-[#1e60d5] border border-[#c8e0fc] px-2 py-0.5 rounded-full font-medium text-[11px]">
+            <CheckCircle2 className="w-3 h-3 text-[#1e60d5]" />
+            <span>Đã nhận</span>
+          </span>
+        )
       case 'preparing':
-        return <span className="bg-sky-950 text-sky-300 border border-sky-800/80 px-2 py-0.5 rounded font-medium text-[11px]">Đang nấu</span>
+        return (
+          <span className="inline-flex items-center gap-1 bg-[#fff7ed] text-[#c2410c] border border-[#fed7aa] px-2 py-0.5 rounded-full font-medium text-[11px]">
+            <ChefHat className="w-3 h-3 text-[#ea580c]" />
+            <span>Đang nấu</span>
+          </span>
+        )
       case 'served':
-        return <span className="bg-teal-950 text-teal-300 border border-teal-800/80 px-2 py-0.5 rounded font-medium text-[11px]">Đã ra bàn</span>
+        return (
+          <span className="inline-flex items-center gap-1 bg-[#e4f7c6] text-[#3e6300] border border-[#c4e899] px-2 py-0.5 rounded-full font-medium text-[11px]">
+            <Armchair className="w-3 h-3 text-[#3e6300]" />
+            <span>Đã ra bàn</span>
+          </span>
+        )
       case 'delivering':
-        return <span className="bg-indigo-950 text-indigo-300 border border-indigo-800/80 px-2 py-0.5 rounded font-medium text-[11px]">Đang ship</span>
+        return (
+          <span className="inline-flex items-center gap-1 bg-[#f3e8ff] text-[#7e22ce] border border-[#e1c5fc] px-2 py-0.5 rounded-full font-medium text-[11px]">
+            <Truck className="w-3 h-3 text-[#7e22ce]" />
+            <span>Đang ship</span>
+          </span>
+        )
       case 'completed':
-        return <span className="bg-emerald-950 text-emerald-400 border border-emerald-700/80 px-2 py-0.5 rounded font-bold text-[11px]">Hoàn tất</span>
+        return (
+          <span className="inline-flex items-center gap-1 bg-[#e4f7c6] text-[#24541c] border border-[#7cd56e]/50 px-2 py-0.5 rounded-full font-bold text-[11px]">
+            Hoàn tất
+          </span>
+        )
       case 'rejected':
-        return <span className="bg-rose-950 text-rose-300 border border-rose-800/80 px-2 py-0.5 rounded font-medium text-[11px]">Từ chối</span>
+        return (
+          <span className="inline-flex items-center gap-1 bg-[#fceae6] text-[#d93826] border border-[#f5c6c0] px-2 py-0.5 rounded-full font-medium text-[11px]">
+            <XCircle className="w-3 h-3" />
+            <span>Từ chối</span>
+          </span>
+        )
       case 'cancelled':
-        return <span className="bg-stone-800 text-stone-400 border border-stone-700 px-2 py-0.5 rounded font-medium text-[11px]">Đã hủy</span>
+        return (
+          <span className="inline-flex items-center gap-1 bg-[#edece9] text-[#787979] border border-[#e2e3e3] px-2 py-0.5 rounded-full font-medium text-[11px]">
+            Đã hủy
+          </span>
+        )
     }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Title */}
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Page Title & Counter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-stone-100 tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight text-[#171a17]">
             Hàng đợi Đơn hàng (Orders Queue)
           </h1>
-          <p className="text-xs text-stone-400 mt-0.5">
+          <p className="text-xs text-[#787979] mt-1">
             Quản lý tập trung mọi đơn tại bàn và đơn giao hàng theo thời gian thực
           </p>
         </div>
-        <div className="text-xs text-stone-400">
-          Tổng số: <strong className="text-amber-400 font-mono">{orders.length}</strong> đơn
+        <div className="flex items-center space-x-2">
+          <span className="px-3 py-1.5 bg-white border border-[#e2e3e3] rounded-xl text-xs text-[#5c5e63] font-medium shadow-2xs">
+            Tổng số: <strong className="text-[#171a17] font-mono font-bold">{orders.length}</strong> đơn
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              void loadOrders()
+              triggerRefresh()
+            }}
+            disabled={isLoading}
+            className="elera-icon-btn shadow-2xs"
+            title="Làm mới danh sách"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-[#7cd56e]' : ''}`} />
+          </button>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-stone-900 border border-stone-800 rounded-xl p-4 space-y-3">
-        {/* Type Filter */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-stone-400 mr-2">Loại đơn:</span>
-          {[
-            { key: 'all', label: 'Tất cả' },
-            { key: 'dine_in', label: 'Tại bàn (Dine-in)' },
-            { key: 'delivery', label: 'Giao hàng (Delivery)' },
-          ].map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setType(item.key as OrderType | 'all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                typeFilter === item.key
-                  ? 'bg-amber-500 text-stone-950 font-bold shadow-sm'
-                  : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+      {/* Filter Toolbar (Elera Style) */}
+      <div className="bg-white border border-[#e2e3e3] rounded-2xl p-4 shadow-sm space-y-3">
+        {/* Type Filter (Scope Tabs) */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-[#787979] mr-1">Kênh:</span>
+          <div className="elera-scope-tabs">
+            {[
+              { key: 'all', label: 'Tất cả' },
+              { key: 'dine_in', label: 'Tại bàn' },
+              { key: 'delivery', label: 'Giao hàng' },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setType(item.key as OrderType | 'all')}
+                className={`elera-pill-scope ${typeFilter === item.key ? 'selected' : ''}`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Status Filter */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-stone-800">
-          <span className="text-xs font-semibold text-stone-400 mr-2">Trạng thái:</span>
+        {/* Status Filter (Filter Chips) */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-[#e2e3e3]">
+          <span className="text-xs font-semibold text-[#787979] mr-1">Trạng thái:</span>
           {[
             { key: 'all', label: 'Tất cả' },
             { key: 'pending', label: 'Chờ xử lý' },
@@ -149,51 +209,46 @@ export const AdminOrdersPage: FC = () => {
             { key: 'served', label: 'Đã phục vụ' },
             { key: 'delivering', label: 'Đang ship' },
             { key: 'completed', label: 'Hoàn thành' },
-            { key: 'cancelled', label: 'Đã hủy/từ chối' },
+            { key: 'cancelled', label: 'Đã hủy' },
           ].map((item) => (
             <button
               key={item.key}
               type="button"
               onClick={() => setStatus(item.key as OrderStatus | 'all')}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition ${
-                statusFilter === item.key
-                  ? 'bg-amber-400 text-stone-950 font-bold'
-                  : 'bg-stone-800/80 text-stone-400 hover:bg-stone-700 hover:text-stone-200'
-              }`}
+              className={`elera-filter-chip ${statusFilter === item.key ? 'selected' : ''}`}
             >
-              {item.label}
+              <span>{item.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="bg-stone-900 border border-stone-800 rounded-xl shadow-sm overflow-hidden">
+      {/* Orders Table (Elera Card Table) */}
+      <div className="bg-white border border-[#e2e3e3] rounded-2xl shadow-sm overflow-hidden">
         {isLoading && orders.length === 0 ? (
-          <div className="py-20 flex flex-col items-center justify-center">
-            <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mb-3" />
-            <p className="text-xs text-stone-400">Đang tải danh sách đơn hàng...</p>
+          <div className="py-20 flex flex-col items-center justify-center text-[#787979]">
+            <div className="w-8 h-8 border-2 border-[#7cd56e] border-t-transparent rounded-full animate-spin mb-3" />
+            <p className="text-xs">Đang tải danh sách đơn hàng...</p>
           </div>
         ) : error ? (
           <div className="py-12 px-4 text-center">
-            <p className="text-xs text-rose-300 mb-3">{error}</p>
+            <p className="text-xs text-rose-600 mb-3">{error}</p>
             <button
               type="button"
               onClick={loadOrders}
-              className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-xs font-semibold text-stone-200 rounded-lg"
+              className="elera-btn-secondary text-xs"
             >
               Tải lại
             </button>
           </div>
         ) : orders.length === 0 ? (
-          <div className="py-16 text-center text-stone-500">
-            <span className="text-3xl mb-2 block">📭</span>
+          <div className="py-16 text-center text-[#787979]">
             <p className="text-xs font-medium">Không tìm thấy đơn hàng nào phù hợp với bộ lọc</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-stone-400 bg-stone-950/70 border-b border-stone-800 uppercase font-semibold">
+              <thead className="text-[#787979] bg-[#faf9f7] border-b border-[#e2e3e3] uppercase text-[11px] font-semibold">
                 <tr>
                   <th className="py-3 px-4">Mã đơn</th>
                   <th className="py-3 px-3">Loại đơn</th>
@@ -206,49 +261,36 @@ export const AdminOrdersPage: FC = () => {
                   <th className="py-3 px-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-800 text-stone-300">
+              <tbody className="divide-y divide-[#e2e3e3] text-[#5c5e63]">
                 {orders.map((order) => (
                   <tr
                     key={order.id}
-                    className="hover:bg-stone-800/40 transition cursor-pointer"
+                    className="hover:bg-[#faf9f7] transition cursor-pointer"
                     onClick={() => openOrderDetail(order.id)}
                   >
-                    <td className="py-3.5 px-4 font-mono font-bold text-amber-400 whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-mono font-bold text-[#171a17] whitespace-nowrap">
                       {order.code}
                     </td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-medium ${
                           order.order_type === 'dine_in'
-                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
-                            : 'bg-indigo-950 text-indigo-300 border border-indigo-800/60'
+                            ? 'bg-[#e4f7c6] text-[#3e6300] border border-[#c4e899]'
+                            : 'bg-[#f3e8ff] text-[#7e22ce] border border-[#e1c5fc]'
                         }`}
                       >
                         {order.order_type === 'dine_in' ? 'Tại bàn' : 'Giao hàng'}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 font-medium">
-                      {order.order_type === 'dine_in' ? (
-                        <div className="space-y-0.5">
-                          <span className="text-stone-200 font-semibold block">
-                            {order.table_name_snapshot || 'Bàn không tên'}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="space-y-0.5">
-                          <span className="text-stone-200 font-semibold block">
-                            {order.customer_name || 'Khách vãng lai'}
-                          </span>
-                          <span className="text-stone-400 font-mono text-[11px] block">
-                            {order.customer_phone || ''}
-                          </span>
-                        </div>
-                      )}
+                    <td className="py-3.5 px-4 font-medium text-[#171a17]">
+                      {order.order_type === 'dine_in'
+                        ? (order.table_name_snapshot || 'Bàn không tên')
+                        : `${order.customer_name || 'Khách online'} (${order.customer_phone || ''})`}
                     </td>
-                    <td className="py-3.5 px-3 text-stone-400">
+                    <td className="py-3.5 px-3 text-[#787979]">
                       {order.item_count} món
                     </td>
-                    <td className="py-3.5 px-3 font-mono font-bold text-stone-100 whitespace-nowrap">
+                    <td className="py-3.5 px-3 font-mono font-semibold text-[#171a17]">
                       {order.total_vnd.toLocaleString('vi-VN')}đ
                     </td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
@@ -256,16 +298,16 @@ export const AdminOrdersPage: FC = () => {
                     </td>
                     <td className="py-3.5 px-3 whitespace-nowrap">
                       <span
-                        className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded ${
+                        className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                           order.payment_status === 'paid'
-                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                            : 'bg-amber-950 text-amber-300 border border-amber-800'
+                            ? 'bg-[#e4f7c6] text-[#3e6300] border border-[#c4e899]'
+                            : 'bg-[#faf1dc] text-[#a06b00] border border-[#f2deae]'
                         }`}
                       >
                         {order.payment_status === 'paid' ? 'Đã trả' : 'Chưa trả'}
                       </span>
                     </td>
-                    <td className="py-3.5 px-3 text-stone-400 font-mono text-[11px] whitespace-nowrap">
+                    <td className="py-3.5 px-3 text-[#787979] font-mono text-[11px] whitespace-nowrap">
                       {new Date(order.created_at).toLocaleTimeString('vi-VN', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -275,9 +317,10 @@ export const AdminOrdersPage: FC = () => {
                       <button
                         type="button"
                         onClick={() => openOrderDetail(order.id)}
-                        className="px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white font-medium text-xs border border-stone-700 transition"
+                        className="elera-btn-secondary h-7 px-2.5 text-xs gap-1 shadow-2xs"
                       >
-                        Chi tiết
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Chi tiết</span>
                       </button>
                     </td>
                   </tr>

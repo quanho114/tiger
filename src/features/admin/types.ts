@@ -266,3 +266,38 @@ export interface AdminConciergeFeedback {
   created_at: string
   updated_at: string
 }
+
+export interface AdminAccountItem {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  role: 'owner' | 'admin' // 'owner': Admin chính, 'admin': Admin
+  status: 'active' | 'locked'
+  last_sign_in_at?: string | null
+  created_at: string
+}
+
+export interface AdminInvoiceItem {
+  id: string
+  code: string
+  order_id: string
+  order_type: OrderType
+  table_name?: string | null
+  customer_name?: string | null
+  customer_phone?: string | null
+  created_at: string
+  paid_at: string
+  payment_method: PaymentMethod | string
+  subtotal_vnd: number
+  discount_vnd?: number
+  shipping_fee_vnd?: number
+  total_vnd: number
+  cashier_name?: string
+  items: Array<{
+    name: string
+    quantity: number
+    unit_price_vnd: number
+    line_total_vnd: number
+  }>
+}

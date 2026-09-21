@@ -4,6 +4,7 @@ import { adminApi } from '../../../lib/api/client'
 import { ApiError } from '../../../lib/api/types'
 import { useAdmin } from '../layout/AdminContext'
 import type { AdminTableItem, AdminSeatingArea, TableVisitDetail, PaymentMethod } from '../types'
+import { Plus } from 'lucide-react'
 
 interface QrTentCardModalState {
   tableName: string
@@ -410,31 +411,31 @@ export const AdminTablesPage: FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-stone-100 tracking-tight">
-            Quản lý Bàn & Mã QR (Tables & QR Tent Cards)
+          <h1 className="text-2xl font-bold tracking-tight text-[#171a17]">
+            Quản lý Bàn &amp; Mã QR (Tables &amp; QR Tent Cards)
           </h1>
-          <p className="text-xs text-stone-400 mt-0.5">
+          <p className="text-xs text-[#787979] mt-1">
             Quản lý sơ đồ bàn, mở/đóng phiên khách (visit), xoay vòng mã QR bảo mật và in thẻ bàn
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-stone-400">
-            Tổng số: <strong className="text-amber-400 font-mono">{tables.length}</strong> bàn
+          <span className="px-3 py-1.5 bg-white border border-[#e2e3e3] rounded-xl text-xs text-[#5c5e63] font-medium shadow-2xs">
+            Tổng số: <strong className="text-[#171a17] font-mono font-bold">{tables.length}</strong> bàn
           </span>
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5"
+            className="elera-btn-primary gap-1.5 shadow-xs"
           >
+            <Plus className="w-4 h-4" />
             <span>+ Thêm Bàn Mới</span>
           </button>
         </div>
       </div>
-
       {/* Tables Grid */}
       {isLoading && tables.length === 0 ? (
         <div className="py-20 flex flex-col items-center justify-center">
@@ -461,39 +462,39 @@ export const AdminTablesPage: FC = () => {
             return (
               <div
                 key={table.id}
-                className={`rounded-xl border p-5 flex flex-col justify-between transition ${
+                className={`rounded-2xl border p-5 flex flex-col justify-between transition ${
                   isOccupied
-                    ? 'bg-stone-900 border-amber-500/40 shadow-sm'
-                    : 'bg-stone-900/70 border-stone-800 hover:border-stone-700'
+                    ? 'bg-[#fafef8] border-[#7cd56e]/50 ring-1 ring-[#7cd56e]/20 shadow-sm'
+                    : 'bg-white border-[#e2e3e3] hover:border-[#7cd56e] shadow-sm'
                 }`}
               >
                 <div>
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-bold text-amber-500 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/60 uppercase">
+                        <span className="text-xs font-mono font-bold text-[#171a17] bg-[#f6f5f3] px-2 py-0.5 rounded-lg border border-[#e2e3e3] uppercase">
                           {table.code}
                         </span>
                         {!table.active && (
-                          <span className="text-[10px] bg-stone-800 text-stone-400 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] bg-[#edece9] text-[#787979] px-1.5 py-0.5 rounded">
                             Tạm ngưng
                           </span>
                         )}
                       </div>
-                      <h3 className="text-base font-bold text-stone-100 mt-1">
+                      <h3 className="text-base font-bold text-[#171a17] mt-1.5">
                         {table.name}
                       </h3>
-                      <p className="text-[11px] text-stone-400 mt-0.5">
+                      <p className="text-[11px] text-[#787979] mt-0.5">
                         {table.area_name ? `Khu vực: ${table.area_name}` : 'Khu vực chung'}
                       </p>
                     </div>
 
                     <div className="flex flex-col items-end gap-1.5">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                           isOccupied
-                            ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                            : 'bg-stone-800 text-stone-400 border border-stone-700'
+                            ? 'bg-[#e4f7c6] text-[#3e6300] border border-[#c4e899]'
+                            : 'bg-[#f2f2ef] text-[#5c5e63] border border-[#dedfdb]'
                         }`}
                       >
                         {isOccupied ? 'Có khách' : 'Bàn trống'}
@@ -501,7 +502,7 @@ export const AdminTablesPage: FC = () => {
                       <button
                         type="button"
                         onClick={() => handleStartEditTable(table)}
-                        className="text-[11px] text-stone-500 hover:text-stone-300 underline"
+                        className="text-[11px] text-[#787979] hover:text-[#171a17] underline"
                       >
                         Sửa bàn
                       </button>
@@ -509,12 +510,12 @@ export const AdminTablesPage: FC = () => {
                   </div>
 
                   {isOccupied && (
-                    <div className="mt-4 pt-3 border-t border-stone-800/80 space-y-1.5 text-xs">
-                      <div className="flex justify-between text-stone-400">
+                    <div className="mt-4 pt-3 border-t border-[#e2e3e3] space-y-1.5 text-xs">
+                      <div className="flex justify-between text-[#787979]">
                         <span>Đơn chưa trả:</span>
                         <span
-                          className={`font-bold font-mono ${
-                            table.unpaid_orders_count > 0 ? 'text-rose-400' : 'text-emerald-400'
+                          className={`font-semibold font-mono ${
+                            table.unpaid_orders_count > 0 ? 'text-rose-600' : 'text-[#3e6300]'
                           }`}
                         >
                           {table.unpaid_orders_count > 0
@@ -523,29 +524,29 @@ export const AdminTablesPage: FC = () => {
                         </span>
                       </div>
                       {table.unpaid_total_vnd > 0 && (
-                        <div className="flex justify-between text-stone-400">
+                        <div className="flex justify-between text-[#787979]">
                           <span>Chưa thanh toán:</span>
-                          <span className="font-bold font-mono text-amber-400">
+                          <span className="font-bold font-mono text-[#171a17]">
                             {table.unpaid_total_vnd.toLocaleString('vi-VN')} đ
                           </span>
                         </div>
                       )}
                       {table.visit_opened_at && (
-                        <div className="text-[11px] text-stone-500 font-mono">
-                          Mở lúc: {new Date(table.visit_opened_at).toLocaleTimeString('vi-VN')}
+                        <div className="text-[11px] text-[#787979] font-mono">
+                          Mở lúc: {new Date(table.visit_opened_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       )}
                     </div>
                   )}
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-stone-800 space-y-2">
+                <div className="mt-5 pt-3 border-t border-[#e2e3e3] space-y-2">
                   {!isOccupied ? (
                     <button
                       type="button"
                       onClick={() => handleOpenVisit(table)}
                       disabled={isActing}
-                      className="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs transition disabled:opacity-50"
+                      className="elera-btn-primary w-full h-8 text-xs font-semibold gap-1.5 shadow-xs"
                     >
                       {isActing ? 'Đang mở bàn...' : 'Mở bàn (Bắt đầu phiên)'}
                     </button>
@@ -555,19 +556,19 @@ export const AdminTablesPage: FC = () => {
                         type="button"
                         onClick={() => handleOpenSettleVisit(table)}
                         aria-label={`Chi tiết và thanh toán bàn ${table.name}`}
-                        className="w-full py-2 px-3 rounded-lg font-bold text-xs bg-amber-500 hover:bg-amber-400 text-stone-950 transition shadow-xs flex items-center justify-center gap-1.5"
+                        className="elera-btn-accent w-full h-8 text-xs font-semibold gap-1.5 shadow-xs"
                       >
-                        <span>💳 Chi tiết & Thanh toán phiên</span>
+                        <span>💳 Chi tiết &amp; Thanh toán phiên</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleCloseVisit(table)}
                         disabled={isActing || table.unpaid_orders_count > 0}
-                        className={`w-full py-1.5 px-3 rounded-lg font-bold text-xs transition ${
+                        className={`w-full py-1.5 px-3 rounded-xl font-medium text-xs transition ${
                           table.unpaid_orders_count > 0
-                            ? 'bg-stone-800 text-stone-500 cursor-not-allowed border border-stone-800'
-                            : 'bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-800'
+                            ? 'bg-[#edece9] text-[#8a8f89] cursor-not-allowed border border-[#dedfdb]'
+                            : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
                         }`}
                         title={
                           table.unpaid_orders_count > 0
@@ -591,7 +592,7 @@ export const AdminTablesPage: FC = () => {
                           const fullQrUrl = `${baseUrl}/table/${table.active_qr_token}`
                           generateQrCard(table, table.active_qr_token!, fullQrUrl, false)
                         }}
-                        className="py-1.5 px-2.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-amber-300 text-[11px] font-semibold border border-stone-700 transition text-center"
+                        className="elera-btn-secondary flex-1 h-7 text-xs font-medium text-center"
                         title="Xem mã QR & in thẻ bàn hiện tại"
                       >
                         📱 Xem mã QR
@@ -600,10 +601,10 @@ export const AdminTablesPage: FC = () => {
                     <button
                       type="button"
                       onClick={() => setRotateConfirmTable(table)}
-                      className="flex-1 py-1.5 px-2.5 rounded-lg bg-stone-950 hover:bg-stone-800 text-stone-300 hover:text-amber-300 text-[11px] font-semibold border border-stone-800 transition text-center"
+                      className="elera-btn-secondary flex-1 h-7 text-xs font-medium text-center"
                       title="Tạo mã QR bảo mật mới (vô hiệu hóa mã cũ)"
                     >
-                      🔄 Đổi mã QR (Rotate)
+                      🔄 Đổi mã QR
                     </button>
                   </div>
                 </div>

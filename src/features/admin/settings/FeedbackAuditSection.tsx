@@ -1,4 +1,5 @@
 import { useState, type FC, type FormEvent } from 'react'
+import { Bot, ScrollText, X, Check, Filter } from 'lucide-react'
 import { adminApi } from '../../../lib/api/client'
 import type { AdminConciergeFeedback, AdminAuditLog } from '../types'
 
@@ -9,12 +10,12 @@ interface FeedbackAuditSectionProps {
   onNotify: (text: string, type: 'success' | 'error') => void
 }
 
-const RATING_LABELS: Record<string, { label: string; color: string }> = {
-  perfect: { label: '🌟 Rất vừa vặn & Hài lòng', color: 'text-emerald-400 bg-emerald-950/60 border-emerald-800' },
-  too_much: { label: '🍲 Hơi nhiều món / No quá', color: 'text-blue-400 bg-blue-950/60 border-blue-800' },
-  too_little: { label: '🥣 Hơi ít món / Chưa đủ no', color: 'text-amber-400 bg-amber-950/60 border-amber-800' },
-  too_expensive: { label: '💰 Giá hơi cao so với ngân sách', color: 'text-purple-400 bg-purple-950/60 border-purple-800' },
-  dislike: { label: '👎 Không hợp khẩu vị', color: 'text-rose-400 bg-rose-950/60 border-rose-800' },
+const RATING_LABELS: Record<string, { label: string; badgeClass: string }> = {
+  perfect: { label: 'Rất vừa vặn & Hài lòng', badgeClass: 'text-emerald-700 bg-emerald-50 border-emerald-200/80' },
+  too_much: { label: 'Hơi nhiều món / No quá', badgeClass: 'text-blue-700 bg-blue-50 border-blue-200/80' },
+  too_little: { label: 'Hơi ít món / Chưa đủ no', badgeClass: 'text-amber-700 bg-amber-50 border-amber-200/80' },
+  too_expensive: { label: 'Giá hơi cao so với ngân sách', badgeClass: 'text-purple-700 bg-purple-50 border-purple-200/80' },
+  dislike: { label: 'Không hợp khẩu vị', badgeClass: 'text-rose-700 bg-rose-50 border-rose-200/80' },
 }
 
 export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
@@ -71,22 +72,28 @@ export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
   return (
     <div className="space-y-6">
       {/* Concierge Feedback Review Section */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
-            <h2 className="text-sm font-bold text-stone-200 uppercase tracking-wider flex items-center gap-2">
-              <span>🤖 Phản Hồi Từ Khách Cho Trợ Lý Concierge</span>
-            </h2>
-            <p className="text-xs text-stone-400 mt-0.5">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200/60 flex items-center justify-center text-blue-600">
+                <Bot className="w-4 h-4" />
+              </div>
+              <h2 className="text-sm font-bold text-slate-900">
+                Phản Hồi Từ Khách Cho Trợ Lý Concierge
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
               Đánh giá gợi ý mâm tiệc, điều chỉnh khẩu vị và ghi chú huấn luyện
             </p>
           </div>
 
           <div className="flex items-center gap-2">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={selectedStatusFilter}
               onChange={(e) => setSelectedStatusFilter(e.target.value)}
-              className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-stone-200 focus:outline-none focus:border-amber-500"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             >
               <option value="ALL">Tất cả trạng thái ({feedbackList.length})</option>
               <option value="NEW">Mới gửi (NEW)</option>
@@ -98,42 +105,42 @@ export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
 
         <div className="space-y-3">
           {filteredFeedback.length === 0 ? (
-            <div className="p-8 text-center text-stone-500 text-xs bg-stone-950 rounded-xl border border-stone-800/80">
+            <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
               Chưa có phản hồi nào phù hợp với bộ lọc
             </div>
           ) : (
             filteredFeedback.map((fb) => {
               const ratingInfo = RATING_LABELS[fb.rating] || {
                 label: fb.rating,
-                color: 'text-stone-300 bg-stone-800 border-stone-700',
+                badgeClass: 'text-slate-700 bg-slate-100 border-slate-200',
               }
 
               return (
                 <div
                   key={fb.id}
-                  className="bg-stone-950 border border-stone-800/80 rounded-xl p-4 text-xs space-y-2 hover:border-stone-700 transition"
+                  className="bg-slate-50/60 border border-slate-200/80 rounded-xl p-4 text-xs space-y-2 hover:border-slate-300 transition shadow-2xs"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-800/60 pb-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-2">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${ratingInfo.color}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${ratingInfo.badgeClass}`}>
                         {ratingInfo.label}
                       </span>
-                      <span className="font-mono text-[11px] text-stone-500">
+                      <span className="font-mono text-[11px] text-slate-500">
                         Proposal #{fb.proposal_id.slice(0, 8)} (v{fb.proposal_version})
                       </span>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="text-stone-500 text-[11px]">
+                      <span className="text-slate-400 text-[11px]">
                         {new Date(fb.created_at).toLocaleString('vi-VN')}
                       </span>
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider border ${
                           fb.status === 'NEW'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
                             : fb.status === 'REVIEWED'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                            : 'bg-stone-800 text-stone-400'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
                         }`}
                       >
                         {fb.status}
@@ -141,7 +148,7 @@ export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
                       <button
                         type="button"
                         onClick={() => handleOpenReviewModal(fb)}
-                        className="px-2.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 font-semibold rounded-lg transition"
+                        className="px-2.5 py-1 bg-white hover:bg-slate-50 text-blue-600 border border-slate-200 font-semibold rounded-lg transition shadow-2xs cursor-pointer"
                       >
                         Xem xét
                       </button>
@@ -149,15 +156,15 @@ export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
                   </div>
 
                   {fb.feedback_text ? (
-                    <p className="text-stone-200 font-medium italic bg-stone-900/50 p-2.5 rounded-lg border border-stone-800/50">
+                    <p className="text-slate-800 font-medium italic bg-white p-2.5 rounded-lg border border-slate-200/80">
                       "{fb.feedback_text}"
                     </p>
                   ) : (
-                    <p className="text-stone-500 italic">Không có góp ý bằng chữ</p>
+                    <p className="text-slate-400 italic">Không có góp ý bằng chữ</p>
                   )}
 
                   {fb.admin_notes && (
-                    <div className="text-[11px] text-amber-300/90 bg-amber-950/20 border border-amber-900/30 p-2 rounded-lg">
+                    <div className="text-[11px] text-blue-800 bg-blue-50/80 border border-blue-200/60 p-2.5 rounded-lg">
                       <span className="font-bold">Ghi chú bếp / quản lý:</span> {fb.admin_notes}
                     </div>
                   )}
@@ -169,22 +176,28 @@ export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
       </div>
 
       {/* Audit Log Timeline Section */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
-            <h2 className="text-sm font-bold text-stone-200 uppercase tracking-wider flex items-center gap-2">
-              <span>📜 Nhật Ký Hoạt Động Hệ Thống (Audit Logs)</span>
-            </h2>
-            <p className="text-xs text-stone-400 mt-0.5">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
+                <ScrollText className="w-4 h-4" />
+              </div>
+              <h2 className="text-sm font-bold text-slate-900">
+                Nhật Ký Hoạt Động Hệ Thống (Audit Logs)
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
               Ghi nhận thao tác thay đổi cấu hình, xoay QR, đơn hàng và bảo mật
             </p>
           </div>
 
-          <div>
+          <div className="flex items-center gap-2">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={logFilter}
               onChange={(e) => setLogFilter(e.target.value)}
-              className="bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-stone-200 focus:outline-none focus:border-amber-500"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             >
               <option value="ALL">-- Tất cả đối tượng ({auditLogs.length}) --</option>
               <option value="menu_item">Món ăn (menu_item)</option>
@@ -197,9 +210,9 @@ export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border border-slate-200 rounded-xl">
           <table className="w-full text-left text-xs">
-            <thead className="text-stone-400 bg-stone-950/80 border-b border-stone-800">
+            <thead className="text-slate-500 bg-slate-50 border-b border-slate-200 font-semibold">
               <tr>
                 <th className="py-2.5 px-3">Thời gian</th>
                 <th className="py-2.5 px-3">Người thực hiện</th>
@@ -208,34 +221,34 @@ export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
                 <th className="py-2.5 px-3">Chi tiết thay đổi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-800/60 text-stone-300">
+            <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-stone-500">
+                  <td colSpan={5} className="py-8 text-center text-slate-400">
                     Chưa có nhật ký hoạt động nào
                   </td>
                 </tr>
               ) : (
                 filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-stone-800/30 font-mono text-[11px]">
-                    <td className="py-2.5 px-3 text-stone-400 whitespace-nowrap">
+                  <tr key={log.id} className="hover:bg-slate-50/70 font-mono text-[11px] transition">
+                    <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">
                       {new Date(log.created_at).toLocaleString('vi-VN')}
                     </td>
-                    <td className="py-2.5 px-3 font-sans text-stone-200">
+                    <td className="py-2.5 px-3 font-sans text-slate-900 font-medium">
                       {log.admin_name || log.actor_kind}
                     </td>
                     <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 rounded bg-stone-950 text-amber-400 border border-stone-800">
+                      <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/60 font-semibold">
                         {log.action}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-stone-300 font-sans">
-                      <span className="font-semibold text-stone-200">{log.entity_type}</span>
+                    <td className="py-2.5 px-3 text-slate-800 font-sans">
+                      <span className="font-semibold text-slate-900">{log.entity_type}</span>
                       {log.entity_id && (
-                        <span className="text-stone-500 ml-1 text-[10px]">({log.entity_id.slice(0, 8)})</span>
+                        <span className="text-slate-400 ml-1 text-[10px]">({log.entity_id.slice(0, 8)})</span>
                       )}
                     </td>
-                    <td className="py-2.5 px-3 text-stone-400 max-w-xs truncate font-mono text-[10px]">
+                    <td className="py-2.5 px-3 text-slate-500 max-w-xs truncate font-mono text-[10px]">
                       {JSON.stringify(log.metadata)}
                     </td>
                   </tr>
@@ -248,37 +261,37 @@ export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
 
       {/* Review Feedback Modal */}
       {editingFeedback && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-bold text-stone-100">Xử Lý Phản Hồi Trợ Lý</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900">Xử Lý Phản Hồi Trợ Lý</h3>
               <button
                 type="button"
                 onClick={() => setEditingFeedback(null)}
-                className="text-stone-400 hover:text-white"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleSaveFeedbackReview} className="space-y-4 text-xs">
-              <div className="bg-stone-950 p-3 rounded-xl border border-stone-800 space-y-1.5">
-                <div className="font-bold text-amber-400">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1.5">
+                <div className="font-semibold text-blue-700">
                   {RATING_LABELS[editingFeedback.rating]?.label || editingFeedback.rating}
                 </div>
                 {editingFeedback.feedback_text && (
-                  <p className="text-stone-300 italic font-medium">"{editingFeedback.feedback_text}"</p>
+                  <p className="text-slate-700 italic font-medium">"{editingFeedback.feedback_text}"</p>
                 )}
               </div>
 
               <div>
-                <label className="block font-medium text-stone-300 mb-1">Cập nhật trạng thái</label>
+                <label className="block font-semibold text-slate-700 mb-1">Cập nhật trạng thái</label>
                 <select
                   value={newStatusInput}
                   onChange={(e) =>
                     setNewStatusInput(e.target.value as 'NEW' | 'REVIEWED' | 'DISMISSED')
                   }
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   <option value="REVIEWED">REVIEWED (Đã tiếp thu & điều chỉnh)</option>
                   <option value="DISMISSED">DISMISSED (Bỏ qua / Không cần can thiệp)</option>
@@ -287,31 +300,33 @@ export const FeedbackAuditSection: FC<FeedbackAuditSectionProps> = ({
               </div>
 
               <div>
-                <label className="block font-medium text-stone-300 mb-1">Ghi chú của quản trị viên</label>
+                <label className="block font-semibold text-slate-700 mb-1">Ghi chú của quản trị viên</label>
                 <textarea
                   rows={3}
                   placeholder="Ghi chú nguyên nhân hoặc điều chỉnh món ăn/công thức..."
                   value={adminNoteInput}
                   onChange={(e) => setAdminNoteInput(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-stone-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingFeedback(null)}
-                  className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 font-semibold rounded-xl transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={updatingFeedbackId !== null}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-xl transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition flex items-center gap-1.5 shadow-2xs"
                 >
-                  {updatingFeedbackId !== null && (
-                    <span className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                  {updatingFeedbackId !== null ? (
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
                   )}
                   <span>Lưu Xem Xét</span>
                 </button>

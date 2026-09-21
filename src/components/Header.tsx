@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { FC } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, ShoppingBag, Menu, X, Phone, Clock, MapPin, User, LogOut, Settings } from 'lucide-react';
+import { Calendar, ShoppingBag, Menu, X, Phone, Clock, MapPin, User, LogOut, Settings, ExternalLink } from 'lucide-react';
 import { BotanicalSprig } from './BotanicalDecorations';
 import { useCart } from '../store/cart';
 import { useTableSession } from '../features/table-session';
@@ -26,7 +26,9 @@ export const Header: FC = () => {
   const location = useLocation();
   const { totalCount, setCartOpen } = useCart();
   const { session } = useTableSession();
-  const { role, user, customerProfile, signOut } = useAuth();
+  const { role, user, customerProfile, adminProfile, signOut } = useAuth();
+  const isAuthenticated = role === 'customer' || role === 'admin' || user !== null;
+  const isStaffOrAdmin = role === 'admin' || adminProfile !== null || import.meta.env.DEV;
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -94,7 +96,11 @@ export const Header: FC = () => {
 
   // Reset avatar fallback when the source URL changes
   const displayName =
-    customerProfile?.displayName || user?.email?.split('@')[0] || 'Tài khoản';
+    adminProfile?.displayName ||
+    customerProfile?.displayName ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Tài khoản';
   const rawAvatarSrc =
     customerProfile?.avatarUrl || user?.user_metadata?.avatar_url || null;
   const avatarSrc =
@@ -302,14 +308,14 @@ export const Header: FC = () => {
                 </span>
               </div>
 
-              {/* Customer Account — in-flow below xl, docked to the viewport corner on xl+ */}
+              {/* Customer / Admin Account — in-flow below xl, docked to the viewport corner on xl+ */}
               <div ref={accountRef} className="relative hidden md:flex items-center md:ml-2 max-xl:order-2 xl:ml-0 xl:absolute xl:right-8 xl:top-1/2 xl:-translate-y-1/2">
-                {role === 'customer' ? (
+                {isAuthenticated ? (
                   <>
                     <button
                       type="button"
                       onClick={() => setAccountMenuOpen((v) => !v)}
-                      className="flex items-center justify-center w-9 h-9 rounded-full overflow-hidden bg-[#fffefb] border border-[#e3d6bd] hover:border-[#234386]/50 transition-colors"
+                      className="flex items-center justify-center w-9 h-9 rounded-full overflow-hidden bg-[#fffefb] border border-[#e3d6bd] hover:border-[#234386]/50 transition-colors cursor-pointer"
                       aria-label={`Tài khoản ${displayName}`}
                       aria-haspopup="menu"
                       aria-expanded={accountMenuOpen}
@@ -332,8 +338,27 @@ export const Header: FC = () => {
                       <div
                         role="menu"
                         aria-label="Menu tài khoản"
-                        className="absolute right-0 top-full mt-2 w-52 py-1.5 bg-white rounded-2xl border border-[#e3d6bd] shadow-[0_8px_24px_rgba(35,67,134,0.12)] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+                        className="absolute right-0 top-full mt-2 w-56 py-1.5 bg-white rounded-2xl border border-[#e3d6bd] shadow-[0_8px_24px_rgba(35,67,134,0.12)] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
                       >
+                        {isStaffOrAdmin && (
+                          <>
+                            <a
+                              href="/admin"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => setAccountMenuOpen(false)}
+                              className="flex items-center justify-between px-3.5 py-2.5 mx-1.5 mb-1 text-[13px] font-semibold text-[#234386] bg-[#234386]/8 hover:bg-[#234386]/15 rounded-xl border border-[#234386]/20 transition-colors"
+                              title="Bảng điều phối Quản trị bếp (Mở tab mới)"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <Settings size={15} className="text-[#234386] shrink-0" />
+                                <span>Quản trị bếp & Hệ thống</span>
+                              </div>
+                              <ExternalLink size={13} className="text-[#234386]/70 shrink-0" />
+                            </a>
+                            <div className="my-1 border-t border-[#d2b68c]/25" />
+                          </>
+                        )}
                         <NavLink
                           to="/account"
                           end
@@ -384,15 +409,17 @@ export const Header: FC = () => {
                   </button>
                 )}
 
-                {import.meta.env.DEV && (
-                  <NavLink
-                    to="/admin"
-                    className="hidden lg:flex items-center justify-center w-10 h-10 rounded-full text-[#000000]/45 hover:text-[#234386] hover:bg-[#234386]/8 transition-colors shrink-0"
-                    title="Chuyển sang Quản trị (Dev Mode)"
-                    aria-label="Quản trị"
+                {isStaffOrAdmin && (
+                  <a
+                    href="/admin"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hidden lg:flex items-center justify-center w-10 h-10 rounded-full text-[#000000]/45 hover:text-[#234386] hover:bg-[#234386]/8 transition-colors shrink-0 ml-1 cursor-pointer"
+                    title="Bảng điều phối Quản trị bếp (Mở tab mới)"
+                    aria-label="Quản trị Bếp & Vận hành"
                   >
                     <Settings size={20} />
-                  </NavLink>
+                  </a>
                 )}
               </div>
 
@@ -479,15 +506,30 @@ export const Header: FC = () => {
               </nav>
 
               <div className="mt-6 pt-6 border-t border-[#d2b68c]/30 flex flex-col gap-3">
-                {role === 'customer' ? (
-                  <NavLink
-                    to="/account"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 bg-[#234386]/10 text-[#234386] py-3.5 rounded-full font-semibold text-sm shadow-xs"
-                  >
-                    <User size={16} className="text-[#ed7328]" />
-                    <span>Tài khoản ({customerProfile?.displayName || user?.email?.split('@')[0] || 'Khách hàng'})</span>
-                  </NavLink>
+                {isAuthenticated ? (
+                  <div className="flex flex-col gap-2">
+                    <NavLink
+                      to="/account"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2 bg-[#234386]/10 text-[#234386] py-3.5 rounded-full font-semibold text-sm shadow-xs"
+                    >
+                      <User size={16} className="text-[#ed7328]" />
+                      <span>Tài khoản ({displayName})</span>
+                    </NavLink>
+                    {isStaffOrAdmin && (
+                      <a
+                        href="/admin"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center justify-center gap-2 bg-[#234386] text-white py-3 rounded-full font-semibold text-sm shadow-xs transition-colors"
+                      >
+                        <Settings size={16} />
+                        <span>Quản trị bếp & Vận hành (Tab mới)</span>
+                        <ExternalLink size={14} className="opacity-80" />
+                      </a>
+                    )}
+                  </div>
                 ) : (
                   <NavLink
                     to="/login"
@@ -514,16 +556,6 @@ export const Header: FC = () => {
                   <ShoppingBag size={16} />
                   <span>Giỏ món giao ({totalCount})</span>
                 </button>
-
-                {import.meta.env.DEV && (
-                  <NavLink
-                    to="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 bg-amber-500/15 border border-amber-500/30 text-amber-950 py-2.5 rounded-full font-semibold text-xs transition-colors"
-                  >
-                    <span>⚙️ Vào Trang Quản Trị (Dev)</span>
-                  </NavLink>
-                )}
               </div>
             </div>
 

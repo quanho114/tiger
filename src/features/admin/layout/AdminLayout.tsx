@@ -1,8 +1,28 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { FC } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Armchair,
+  ReceiptText,
+  Utensils,
+  BarChart3,
+  Users,
+  Settings,
+  LogOut,
+  Search,
+  Bell,
+  RefreshCw,
+  Menu,
+  X,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+} from 'lucide-react'
 import { useAuth } from '../../auth'
 import { AdminContext } from './AdminContext'
+import '../elera.css'
 
 export const AdminLayout: FC = () => {
   const { adminProfile, signOut } = useAuth()
@@ -13,6 +33,8 @@ export const AdminLayout: FC = () => {
   const [refreshKey, setRefreshKey] = useState<number>(0)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false)
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
+  const [searchKeyword, setSearchKeyword] = useState<string>('')
 
   const triggerRefresh = useCallback(() => {
     setIsRefreshing(true)
@@ -47,12 +69,36 @@ export const AdminLayout: FC = () => {
     navigate('/admin/login', { state: { manualLogout: true } })
   }
 
-  const navItems = [
-    { label: 'Tổng quan (Dashboard)', path: '/admin', exact: true, icon: '📊' },
-    { label: 'Hàng đợi đơn hàng', path: '/admin/orders', exact: false, icon: '📋' },
-    { label: 'Quản lý đặt bàn', path: '/admin/reservations', exact: false, icon: '📅' },
-    { label: 'Quản lý bàn & QR', path: '/admin/tables', exact: false, icon: '🪑' },
-    { label: 'Cài đặt & Món ăn', path: '/admin/settings', exact: false, icon: '⚙️' },
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchKeyword.trim()) return
+    navigate(`/admin/orders?q=${encodeURIComponent(searchKeyword.trim())}`)
+  }
+
+  const navGroups = [
+    {
+      group: 'VẬN HÀNH',
+      items: [
+        { label: 'Tổng quan', path: '/admin', exact: true, icon: LayoutDashboard },
+        { label: 'Đơn hàng', path: '/admin/orders', exact: false, icon: ClipboardList, badge: 1 },
+        { label: 'Bàn & Đặt chỗ', path: '/admin/tables', exact: false, icon: Armchair, badge: 6 },
+        { label: 'Hóa đơn', path: '/admin/invoices', exact: false, icon: ReceiptText },
+      ],
+    },
+    {
+      group: 'QUẢN LÝ',
+      items: [
+        { label: 'Thực đơn', path: '/admin/menu', exact: false, icon: Utensils },
+        { label: 'Báo cáo', path: '/admin/reports', exact: false, icon: BarChart3 },
+        { label: 'Tài khoản admin', path: '/admin/accounts', exact: false, icon: Users },
+      ],
+    },
+    {
+      group: 'HỆ THỐNG',
+      items: [
+        { label: 'Cài đặt', path: '/admin/settings', exact: false, icon: Settings },
+      ],
+    },
   ]
 
   const isActive = (itemPath: string, exact: boolean) => {
@@ -60,148 +106,234 @@ export const AdminLayout: FC = () => {
     return location.pathname.startsWith(itemPath)
   }
 
+  const initials = adminProfile?.displayName
+    ? adminProfile.displayName
+        .split(' ')
+        .filter(Boolean)
+        .slice(-2)
+        .map((p) => p[0].toUpperCase())
+        .join('')
+    : 'NV'
+
   return (
     <AdminContext.Provider
       value={{ lastRefreshedAt, refreshKey, triggerRefresh, isRefreshing }}
     >
-      <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col md:flex-row font-sans">
+      <div className="admin-elera-scope min-h-screen flex flex-col md:flex-row antialiased selection:bg-[#7cd56e]/30 selection:text-[#121212]">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-stone-900 border-b border-stone-800">
-          <div className="flex items-center space-x-2">
-            <span className="text-xl font-bold tracking-wider text-amber-500">TIGER 345</span>
-            <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded font-mono font-semibold">ADMIN</span>
+        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-[#e2e3e3]">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#2b2e2c] flex items-center justify-center text-white font-black text-sm">
+              T
+            </div>
+            <div>
+              <span className="text-sm font-bold tracking-tight text-[#171a17]">TIGER 345</span>
+              <span className="text-[10px] text-[#787979] block leading-none">Bếp & Quán</span>
+            </div>
           </div>
           <button
             type="button"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 text-stone-300 hover:text-white rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="p-2 text-[#787979] hover:text-[#171a17] rounded-lg hover:bg-[#edece9] focus:outline-none transition"
             aria-label="Toggle menu"
           >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {isSidebarOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
+            {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </header>
 
-        {/* Sidebar */}
+        {/* Sidebar (Elera Collapsible 270px ⇄ 72px) */}
         <aside
-          className={`fixed inset-y-0 left-0 z-40 w-64 bg-stone-900 border-r border-stone-800 flex flex-col transition-transform duration-200 md:static md:translate-x-0 ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-[#e2e3e3] flex flex-col transition-all duration-200 ${
+            isCollapsed ? 'w-[72px]' : 'w-[270px]'
+          } ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
           }`}
         >
-          {/* Logo / Brand */}
-          <div className="p-5 border-b border-stone-800 flex items-center justify-between">
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-black tracking-wider text-amber-400">TIGER 345</span>
-                <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-mono font-semibold">BẾP & QUÁN</span>
+          {/* Brand Header */}
+          <div className="h-16 px-4 border-b border-[#e2e3e3] flex items-center justify-between shrink-0">
+            <Link to="/admin" className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-[#2b2e2c] flex items-center justify-center text-white font-black text-sm shadow-xs shrink-0">
+                T
               </div>
-              <p className="text-xs text-stone-400 mt-1">Hệ thống Điều phối Vận hành</p>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="flex-1 px-3 py-4 space-y-1">
-            {navItems.map((item) => {
-              const active = isActive(item.path, item.exact)
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setIsSidebarOpen(false)}
-                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    active
-                      ? 'bg-amber-500 text-stone-950 font-semibold shadow-sm'
-                      : 'text-stone-300 hover:bg-stone-800 hover:text-white'
-                  }`}
-                >
-                  <span className="text-base">{item.icon}</span>
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
-          </nav>
-
-          {/* Admin User Info & Logout */}
-          <div className="p-4 border-t border-stone-800 bg-stone-900/60">
-            <div className="flex items-center justify-between mb-3">
-              <div className="overflow-hidden">
-                <p className="text-xs text-stone-400 uppercase tracking-wider font-semibold">Quản trị viên</p>
-                <p className="text-sm font-medium text-stone-200 truncate">
-                  {adminProfile?.displayName || 'Bếp Trưởng'}
-                </p>
-              </div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-950 text-emerald-300 border border-emerald-800/60">
-                Online
-              </span>
-            </div>
+              {!isCollapsed && (
+                <div className="min-w-0">
+                  <h1 className="text-[13.5px] font-bold tracking-tight text-[#171a17] leading-tight truncate">
+                    TIGER 345
+                  </h1>
+                  <p className="text-[10.5px] text-[#787979] font-medium leading-none truncate">
+                    Bếp & Quán
+                  </p>
+                </div>
+              )}
+            </Link>
 
             <button
               type="button"
-              onClick={handleSignOut}
-              className="w-full py-2 px-3 text-xs font-semibold text-stone-300 hover:text-white bg-stone-800 hover:bg-stone-700 rounded transition border border-stone-700/60 flex items-center justify-center space-x-2"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="hidden md:flex p-1.5 text-[#787979] hover:text-[#171a17] hover:bg-[#edece9] rounded-lg transition"
+              title={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span>Đăng xuất</span>
+              {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
             </button>
+          </div>
+
+          {/* Navigation Groups */}
+          <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+            {navGroups.map((group, gIdx) => (
+              <div key={gIdx} className="space-y-1">
+                {!isCollapsed && group.group && (
+                  <p className="px-3 text-[10px] font-bold tracking-wider text-[#8a8f89] uppercase mb-1.5">
+                    {group.group}
+                  </p>
+                )}
+                {group.items.map((item) => {
+                  const active = isActive(item.path, item.exact)
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsSidebarOpen(false)}
+                      title={isCollapsed ? item.label : undefined}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                        active
+                          ? 'bg-[#7cd56e] text-[#0f170e] font-semibold shadow-xs'
+                          : 'text-[#5c5e63] hover:bg-[#edece9] hover:text-[#171a17]'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#0f170e]' : 'text-[#787979]'}`} />
+                      {!isCollapsed && <span className="truncate">{item.label}</span>}
+                      {!isCollapsed && item.badge !== undefined && (
+                        <small className="ml-auto px-1.5 py-0.5 rounded bg-[#e2e3e3] text-[#4f534e] text-[10px] font-bold">
+                          {item.badge}
+                        </small>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            ))}
+          </nav>
+
+          {/* User Profile Footer */}
+          <div className="p-3 border-t border-[#e2e3e3] bg-white shrink-0">
+            <div className={`flex items-center justify-between p-2 rounded-xl bg-[#f6f5f3] border border-[#e2e3e3] ${isCollapsed ? 'justify-center p-1.5' : ''}`}>
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-[#7cd56e]/20 text-[#24541c] flex items-center justify-center font-bold text-xs shrink-0 border border-[#7cd56e]/40">
+                  {initials}
+                </div>
+                {!isCollapsed && (
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#171a17] truncate">
+                      {adminProfile?.displayName || 'Bếp Trưởng'}
+                    </p>
+                    <p className="text-[10px] text-[#787979] font-medium">
+                      Admin chính
+                    </p>
+                  </div>
+                )}
+              </div>
+              {!isCollapsed && (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="p-1.5 text-[#787979] hover:text-rose-600 hover:bg-white rounded-lg transition"
+                  title="Đăng xuất"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </aside>
 
         {/* Backdrop for mobile */}
         {isSidebarOpen && (
           <div
-            className="fixed inset-0 z-30 bg-black/60 md:hidden"
+            className="fixed inset-0 z-30 bg-black/20 backdrop-blur-xs md:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Top Status Bar */}
-          <div className="bg-stone-900/80 backdrop-blur border-b border-stone-800 px-4 md:px-6 py-2.5 flex items-center justify-between text-xs text-stone-400">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-stone-300 font-medium">Hệ thống sẵn sàng</span>
-              </div>
-              <span className="text-stone-600">|</span>
-              <span className="hidden sm:inline">
-                Cập nhật lúc:{' '}
-                <span className="text-stone-200 font-mono">
-                  {lastRefreshedAt.toLocaleTimeString('vi-VN')}
-                </span>
-              </span>
-            </div>
+        <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${
+          isCollapsed ? 'md:ml-[72px]' : 'md:ml-[270px]'
+        }`}>
+          {/* Top Bar (Elera Topbar 64px) */}
+          <header className="h-16 bg-white border-b border-[#e2e3e3] px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
+            {/* Search Input with Kbd */}
+            <form onSubmit={handleSearchSubmit} className="relative w-full max-w-sm">
+              <Search className="w-4 h-4 text-[#787979] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                placeholder="Tìm đơn hàng, bàn, món ăn..."
+                className="w-full pl-9 pr-14 py-2 text-xs bg-[#f6f5f3] border border-[#d2d2d2] rounded-xl text-[#171a17] placeholder:text-[#787979] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 focus:border-[#7cd56e] transition"
+              />
+              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 inline-flex items-center px-1.5 py-0.5 rounded border border-[#e2e3e3] bg-white text-[10px] font-medium text-[#787979] font-mono shadow-2xs pointer-events-none">
+                ⌘ K
+              </kbd>
+            </form>
 
-            <div className="flex items-center space-x-2">
+            {/* Right Top Bar Actions */}
+            <div className="flex items-center space-x-3 ml-4">
+              {/* System status badge */}
+              <div className="hidden sm:inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#e4f7c6] border border-[#7cd56e]/30 text-[11px] text-[#3e6300] font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#7cd56e] animate-pulse" />
+                <span>Hệ thống trực tuyến</span>
+              </div>
+
+              {/* Manual Refresh Button */}
               <button
                 type="button"
                 onClick={triggerRefresh}
                 disabled={isRefreshing}
-                className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700/60 transition disabled:opacity-50"
-                title="Làm mới dữ liệu ngay (tự động 15s)"
+                className="elera-icon-btn disabled:opacity-50"
+                title={`Cập nhật lúc ${lastRefreshedAt.toLocaleTimeString('vi-VN')}`}
               >
-                <svg
-                  className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-amber-400' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span>{isRefreshing ? 'Đang tải...' : 'Làm mới'}</span>
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#7cd56e]' : ''}`} />
               </button>
+
+              {/* Notification Bell */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/orders')}
+                  className="elera-icon-btn relative"
+                  title="Thông báo đơn hàng"
+                >
+                  <Bell className="w-4 h-4" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#7cd56e] text-[#0f170e] rounded-full text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
+                    3
+                  </span>
+                </button>
+              </div>
+
+              {/* + Tạo đơn nhanh (Elera new-button style) */}
+              <button
+                type="button"
+                onClick={() => navigate('/admin/orders?action=new')}
+                className="elera-btn-primary hidden sm:inline-flex"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tạo đơn</span>
+              </button>
+
+              {/* Admin Profile Avatar */}
+              <div className="hidden lg:flex items-center space-x-2 pl-2 border-l border-[#e2e3e3]">
+                <div className="w-7 h-7 rounded-full bg-[#7cd56e]/20 text-[#24541c] font-bold text-xs flex items-center justify-center border border-[#7cd56e]/40">
+                  {initials}
+                </div>
+                <span className="text-xs font-medium text-[#171a17]">
+                  {adminProfile?.displayName || 'Bếp Trưởng'}
+                </span>
+              </div>
             </div>
-          </div>
+          </header>
 
           {/* Routed Page Content */}
-          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+          <main className="flex-1 p-4 md:p-6 lg:p-8">
             <Outlet />
           </main>
         </div>

@@ -56,7 +56,9 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose }) => {
     sendMessage(text)
   }
 
-  const renderCard = (card: ConciergeCard, idx: number) => {
+  // Only the latest server reply may offer state-changing actions.
+  const latestReply = [...messages].reverse().find((message) => message.sender === 'concierge')
+  const renderCard = (card: ConciergeCard, idx: number, stale: boolean) => {
     switch (card.type) {
       case 'meal_recommendation':
         return (
@@ -73,7 +75,7 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose }) => {
                 feedback_text: text,
               })
             }}
-            disabled={isLoading}
+            disabled={isLoading || stale}
           />
         )
       case 'menu_item':
@@ -83,7 +85,7 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose }) => {
           <ClarificationChoices
             key={`card-clarify-${idx}`}
             card={card}
-            disabled={isLoading}
+            disabled={isLoading || stale}
             onSelectChoice={(field, value) => {
               sendAction({
                 type: 'answer_clarification',
@@ -98,9 +100,9 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose }) => {
           <OrderQuoteCard
             key={`card-quote-${idx}`}
             quote={card}
-            disabled={isLoading}
+            disabled={isLoading || stale}
             onConfirmQuote={(token) => {
-              sendAction({
+              return sendAction({
                 type: 'confirm_quote',
                 quote_token: token,
               })
@@ -112,9 +114,9 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose }) => {
           <ReservationSummaryCard
             key={`card-res-${idx}`}
             reservation={card}
-            disabled={isLoading}
+            disabled={isLoading || stale}
             onConfirmReservation={() => {
-              sendAction({
+              return sendAction({
                 type: 'confirm_reservation',
                 hold_token: card.hold_token,
                 reservation_details: {
@@ -249,7 +251,7 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose }) => {
             {/* Render Cards underneath message */}
             {msg.cards && msg.cards.length > 0 && (
               <div className="w-full max-w-[95%] sm:max-w-[88%] mt-2.5 space-y-2.5 pl-8">
-                {msg.cards.map((card, idx) => renderCard(card, idx))}
+                {msg.cards.map((card, idx) => renderCard(card, idx, msg.id !== latestReply?.id))}
               </div>
             )}
           </div>

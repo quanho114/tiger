@@ -1,4 +1,5 @@
 import { useState, type FC, type FormEvent } from 'react'
+import { Building2, Truck, Plus, Edit2, Trash2, X, Check } from 'lucide-react'
 import { adminApi } from '../../../lib/api/client'
 import { ApiError } from '../../../lib/api/types'
 import type { AdminSeatingArea, AdminDeliveryZone } from '../types'
@@ -190,28 +191,34 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
   return (
     <div className="space-y-6">
       {/* Seating Areas Section */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
-            <h2 className="text-sm font-bold text-stone-200 uppercase tracking-wider flex items-center gap-2">
-              <span>🏛️ Khu Vực Bàn & Không Gian Quán</span>
-            </h2>
-            <p className="text-xs text-stone-400 mt-0.5">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200/60 flex items-center justify-center text-blue-600">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <h2 className="text-sm font-bold text-slate-900">
+                Khu Vực Bàn & Không Gian Quán
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
               Phân chia không gian bàn ăn (Trong nhà, Sân thượng, Ngoài trời, Phòng VIP)
             </p>
           </div>
           <button
             type="button"
             onClick={handleOpenCreateArea}
-            className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl shadow-xs transition self-start sm:self-auto"
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-2xs transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
-            + Thêm Khu Vực
+            <Plus className="w-3.5 h-3.5" />
+            <span>Thêm Khu Vực</span>
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border border-slate-200 rounded-xl">
           <table className="w-full text-left text-xs">
-            <thead className="text-stone-400 bg-stone-950/80 border-b border-stone-800">
+            <thead className="text-slate-500 bg-slate-50 border-b border-slate-200 font-semibold">
               <tr>
                 <th className="py-2.5 px-3">Mã khu vực</th>
                 <th className="py-2.5 px-3">Tên khu vực</th>
@@ -220,25 +227,25 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                 <th className="py-2.5 px-3 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-800/60 text-stone-300">
+            <tbody className="divide-y divide-slate-100 text-slate-700">
               {seatingAreas.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-stone-500">
+                  <td colSpan={5} className="py-8 text-center text-slate-400">
                     Chưa có khu vực bàn nào được tạo
                   </td>
                 </tr>
               ) : (
                 seatingAreas.map((area) => (
-                  <tr key={area.id} className="hover:bg-stone-800/30">
-                    <td className="py-2.5 px-3 font-mono font-bold text-amber-400">{area.code}</td>
-                    <td className="py-2.5 px-3 font-semibold text-stone-100">{area.name}</td>
-                    <td className="py-2.5 px-3 font-mono text-stone-400">{area.sort_order}</td>
+                  <tr key={area.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-2.5 px-3 font-mono font-bold text-blue-600">{area.code}</td>
+                    <td className="py-2.5 px-3 font-semibold text-slate-900">{area.name}</td>
+                    <td className="py-2.5 px-3 font-mono text-slate-400">{area.sort_order}</td>
                     <td className="py-2.5 px-3">
                       <span
-                        className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
                           area.active
-                            ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-                            : 'bg-stone-950 text-stone-500 border-stone-800'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-500 border-slate-200'
                         }`}
                       >
                         {area.active ? 'Hoạt động' : 'Tạm khóa'}
@@ -248,16 +255,18 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                       <button
                         type="button"
                         onClick={() => handleOpenEditArea(area)}
-                        className="text-stone-400 hover:text-white"
+                        className="p-1 text-slate-500 hover:text-blue-600 rounded transition inline-flex items-center gap-1 cursor-pointer"
                       >
-                        Sửa
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Sửa</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteArea(area)}
-                        className="text-stone-500 hover:text-rose-400"
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded transition inline-flex items-center gap-1 cursor-pointer"
                       >
-                        Xóa
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Xóa</span>
                       </button>
                     </td>
                   </tr>
@@ -269,28 +278,34 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
       </div>
 
       {/* Delivery Zones Section */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
-            <h2 className="text-sm font-bold text-stone-200 uppercase tracking-wider flex items-center gap-2">
-              <span>🛵 Khu Vực Giao Hàng & Phí Ship</span>
-            </h2>
-            <p className="text-xs text-stone-400 mt-0.5">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200/60 flex items-center justify-center text-blue-600">
+                <Truck className="w-4 h-4" />
+              </div>
+              <h2 className="text-sm font-bold text-slate-900">
+                Khu Vực Giao Hàng & Phí Ship
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
               Cấu hình phạm vi bán kính, phí vận chuyển và ngưỡng miễn phí ship
             </p>
           </div>
           <button
             type="button"
             onClick={handleOpenCreateZone}
-            className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl shadow-xs transition self-start sm:self-auto"
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-2xs transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
           >
-            + Thêm Khu Vực Ship
+            <Plus className="w-3.5 h-3.5" />
+            <span>Thêm Khu Vực Ship</span>
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border border-slate-200 rounded-xl">
           <table className="w-full text-left text-xs">
-            <thead className="text-stone-400 bg-stone-950/80 border-b border-stone-800">
+            <thead className="text-slate-500 bg-slate-50 border-b border-slate-200 font-semibold">
               <tr>
                 <th className="py-2.5 px-3">Khu vực ship</th>
                 <th className="py-2.5 px-3">Phí giao hàng</th>
@@ -300,32 +315,32 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                 <th className="py-2.5 px-3 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-800/60 text-stone-300">
+            <tbody className="divide-y divide-slate-100 text-slate-700">
               {deliveryZones.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center text-stone-500">
+                  <td colSpan={6} className="py-8 text-center text-slate-400">
                     Chưa có khu vực giao hàng nào được cấu hình
                   </td>
                 </tr>
               ) : (
                 deliveryZones.map((zone) => (
-                  <tr key={zone.id} className="hover:bg-stone-800/30">
-                    <td className="py-2.5 px-3 font-semibold text-stone-100">{zone.name}</td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-amber-400">
+                  <tr key={zone.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-2.5 px-3 font-semibold text-slate-900">{zone.name}</td>
+                    <td className="py-2.5 px-3 font-mono font-bold text-blue-600">
                       {zone.fee_vnd.toLocaleString('vi-VN')}đ
                     </td>
-                    <td className="py-2.5 px-3 font-mono text-emerald-400">
+                    <td className="py-2.5 px-3 font-mono text-emerald-600 font-medium">
                       {zone.free_threshold_vnd
                         ? `${zone.free_threshold_vnd.toLocaleString('vi-VN')}đ`
                         : 'Không hỗ trợ'}
                     </td>
-                    <td className="py-2.5 px-3 text-stone-400 text-[11px]">{zone.description || '—'}</td>
+                    <td className="py-2.5 px-3 text-slate-500 text-[11px]">{zone.description || '—'}</td>
                     <td className="py-2.5 px-3">
                       <span
-                        className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
                           zone.active
-                            ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
-                            : 'bg-stone-950 text-stone-500 border-stone-800'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-500 border-slate-200'
                         }`}
                       >
                         {zone.active ? 'Hoạt động' : 'Tạm dừng'}
@@ -335,16 +350,18 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                       <button
                         type="button"
                         onClick={() => handleOpenEditZone(zone)}
-                        className="text-stone-400 hover:text-white"
+                        className="p-1 text-slate-500 hover:text-blue-600 rounded transition inline-flex items-center gap-1 cursor-pointer"
                       >
-                        Sửa
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Sửa</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteZone(zone)}
-                        className="text-stone-500 hover:text-rose-400"
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded transition inline-flex items-center gap-1 cursor-pointer"
                       >
-                        Xóa
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Xóa</span>
                       </button>
                     </td>
                   </tr>
@@ -357,10 +374,10 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
 
       {/* Modal: Seating Area Create / Edit */}
       {(isCreateAreaOpen || editingArea) && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-bold text-stone-100">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900">
                 {editingArea ? `Sửa Khu Vực: ${editingArea.name}` : 'Thêm Khu Vực Bàn Mới'}
               </h3>
               <button
@@ -369,16 +386,16 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                   setIsCreateAreaOpen(false)
                   setEditingArea(null)
                 }}
-                className="text-stone-400 hover:text-white"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveArea} className="space-y-4">
+            <form onSubmit={handleSaveArea} className="space-y-4 text-xs">
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Mã khu vực (Code) <span className="text-amber-400">*</span>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Mã khu vực (Code) <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -386,13 +403,13 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                   placeholder="VD: INDOOR, OUTDOOR, ROOFTOP, VIP"
                   value={areaCode}
                   onChange={(e) => setAreaCode(e.target.value.toUpperCase())}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Tên hiển thị khu vực <span className="text-amber-400">*</span>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Tên hiển thị khu vực <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -400,19 +417,19 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                   placeholder="VD: Sảnh Tầng 1, Sân Thượng Thoáng Mát"
                   value={areaName}
                   onChange={(e) => setAreaName(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
+                <label className="block font-semibold text-slate-700 mb-1">
                   Thứ tự hiển thị
                 </label>
                 <input
                   type="number"
                   value={areaSortOrder}
                   onChange={(e) => setAreaSortOrder(Number(e.target.value))}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
@@ -422,33 +439,35 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                   id="areaActiveCheck"
                   checked={areaActive}
                   onChange={(e) => setAreaActive(e.target.checked)}
-                  className="rounded border-stone-700 bg-stone-950 text-amber-500 focus:ring-amber-500"
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
-                <label htmlFor="areaActiveCheck" className="text-xs text-stone-300">
+                <label htmlFor="areaActiveCheck" className="font-medium text-slate-700">
                   Khu vực đang mở cửa tiếp khách
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-stone-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
                     setIsCreateAreaOpen(false)
                     setEditingArea(null)
                   }}
-                  className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingArea}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition flex items-center gap-1.5 shadow-2xs"
                 >
-                  {isSubmittingArea && (
-                    <span className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                  {isSubmittingArea ? (
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
                   )}
-                  <span>{editingArea ? 'Lưu cập nhật' : 'Tạo khu vực'}</span>
+                  <span>Lưu Khu Vực</span>
                 </button>
               </div>
             </form>
@@ -458,11 +477,11 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
 
       {/* Modal: Delivery Zone Create / Edit */}
       {(isCreateZoneOpen || editingZone) && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-bold text-stone-100">
-                {editingZone ? `Sửa Khu Vực Ship: ${editingZone.name}` : 'Thêm Khu Vực Giao Hàng'}
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900">
+                {editingZone ? `Sửa Vùng Giao: ${editingZone.name}` : 'Thêm Khu Vực Giao Hàng Mới'}
               </h3>
               <button
                 type="button"
@@ -470,72 +489,84 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                   setIsCreateZoneOpen(false)
                   setEditingZone(null)
                 }}
-                className="text-stone-400 hover:text-white"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveZone} className="space-y-4">
+            <form onSubmit={handleSaveZone} className="space-y-4 text-xs">
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Tên khu vực ship <span className="text-amber-400">*</span>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Tên khu vực ship <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="VD: Trung tâm thị xã Sa Pa (< 3km)"
+                  placeholder="VD: Nội thành (< 3km), Ngoại ô (3-7km)"
                   value={zoneName}
                   onChange={(e) => setZoneName(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Mô tả phạm vi áp dụng
-                </label>
-                <input
-                  type="text"
-                  placeholder="VD: Các phường Cầu Mây, Sa Pả, Phan Si Păng"
-                  value={zoneDescription}
-                  onChange={(e) => setZoneDescription(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
-                    Phí giao hàng (VNĐ) <span className="text-amber-400">*</span>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Phí giao hàng (VNĐ) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
-                    required
                     min={0}
                     step={1000}
+                    required
                     value={zoneFeeVnd}
                     onChange={(e) => setZoneFeeVnd(Number(e.target.value))}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
-                    Freeship từ (VNĐ)
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Miễn ship từ (VNĐ)
                   </label>
                   <input
                     type="number"
                     min={0}
                     step={10000}
-                    placeholder="Không áp dụng"
+                    placeholder="Không miễn phí"
                     value={zoneFreeThresholdVnd ?? ''}
                     onChange={(e) =>
                       setZoneFreeThresholdVnd(e.target.value ? Number(e.target.value) : null)
                     }
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Mô tả chi tiết / Phường xã áp dụng
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Ghi rõ bán kính hoặc các phường được phục vụ..."
+                  value={zoneDescription}
+                  onChange={(e) => setZoneDescription(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Thứ tự ưu tiên
+                </label>
+                <input
+                  type="number"
+                  value={zoneSortOrder}
+                  onChange={(e) => setZoneSortOrder(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
               </div>
 
               <div className="flex items-center gap-2 pt-1">
@@ -544,33 +575,35 @@ export const AreasZonesSection: FC<AreasZonesSectionProps> = ({
                   id="zoneActiveCheck"
                   checked={zoneActive}
                   onChange={(e) => setZoneActive(e.target.checked)}
-                  className="rounded border-stone-700 bg-stone-950 text-amber-500 focus:ring-amber-500"
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
-                <label htmlFor="zoneActiveCheck" className="text-xs text-stone-300">
-                  Đang nhận giao hàng tại khu vực này
+                <label htmlFor="zoneActiveCheck" className="font-medium text-slate-700">
+                  Đang mở nhận đơn giao tới vùng này
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-stone-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
                     setIsCreateZoneOpen(false)
                     setEditingZone(null)
                   }}
-                  className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingZone}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition flex items-center gap-1.5 shadow-2xs"
                 >
-                  {isSubmittingZone && (
-                    <span className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                  {isSubmittingZone ? (
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
                   )}
-                  <span>{editingZone ? 'Lưu cập nhật' : 'Tạo khu vực ship'}</span>
+                  <span>Lưu Vùng Giao</span>
                 </button>
               </div>
             </form>

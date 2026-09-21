@@ -10,12 +10,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  ExternalLink,
 } from 'lucide-react'
 import { fetchCustomerOrders, reorderCustomerOrder } from './api'
 import type { CustomerOrderSummary, ReorderResponse } from './types'
 import { OrderDetailModal } from './OrderDetailModal'
 import { ReorderWarningModal } from './ReorderWarningModal'
 import { useCart } from '@/store/cart'
+import { useAuth } from '@/features/auth'
 
 function formatVnd(amount: number): string {
   return new Intl.NumberFormat('vi-VN', {
@@ -59,6 +61,8 @@ function getOrderStatusBadge(status: string) {
 const PAGE_SIZE = 10
 
 export function AccountOrdersPage() {
+  const { role, adminProfile } = useAuth()
+  const isStaffOrAdmin = role === 'admin' || adminProfile !== null || import.meta.env.DEV
   const [searchParams, setSearchParams] = useSearchParams()
   const initialOrderId = searchParams.get('id')
 
@@ -207,9 +211,22 @@ export function AccountOrdersPage() {
           <p className="text-sm font-medium">Đang tải danh sách đơn hàng...</p>
         </div>
       ) : error ? (
-        <div className="py-10 text-center text-red-600">
-          <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-80" />
+        <div className="py-10 text-center text-red-600 space-y-3">
+          <AlertCircle className="w-8 h-8 mx-auto opacity-80" />
           <p className="text-sm font-semibold">{error}</p>
+          {isStaffOrAdmin && (
+            <div className="pt-2">
+              <a
+                href="/admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+              >
+                <span>Mở Bảng Điều Phối Quản Trị Bếp (Tab Mới)</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
         </div>
       ) : orders.length === 0 ? (
         <div className="text-center py-16 text-slate-400">

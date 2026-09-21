@@ -32,7 +32,7 @@ export interface UseConciergeReturn {
   warnings: string[]
   suggestedActions: string[]
   sendMessage: (text: string) => Promise<void>
-  sendAction: (action: ConciergeActionPayload) => Promise<void>
+  sendAction: (action: ConciergeActionPayload) => Promise<boolean>
   addProposalToCart: (proposal: MealProposal, acceptPriceChange?: boolean) => Promise<void>
   submitFeedback: (payload: {
     proposal_id: string
@@ -82,45 +82,40 @@ export function useConcierge(): UseConciergeReturn {
 
   const cart = useCart()
 
-  // Clear customer context, conversation cache and increment epoch on logout/auth state changes
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
-        sessionEpochRef.current += 1
-        setMessages([INITIAL_GREETING])
-        setConversationId(null)
-        setSessionToken(null)
-        setStateVersion(1)
-        setCurrentStep('IDLE')
-        setCurrentIntent('general_chat')
-        setWarnings([])
-        setError(null)
-        setIsLoading(false)
-        inFlightRef.current = false
-      }
-    })
+  const stateRef = useRef({ conversationId, sessionToken, stateVersion })
+  const resetEpochRef = useRef<number | null>(null)
+  const identityRef = useRef<string | null>(null)
 
-    return () => {
-      authListener.subscription.unsubscribe()
-    }
+  const clearConversation = useCallback(() => {
+    stateRef.current = { conversationId: null, sessionToken: null, stateVersion: 1 }
+    setMessages([INITIAL_GREETING])
+    setConversationId(null)
+    setSessionToken(null)
+    setStateVersion(1)
+    setCurrentStep('IDLE')
+    setCurrentIntent('general_chat')
+    setWarnings([])
+    setSuggestedActions([])
+    setError(null)
   }, [])
 
-  // Track latest state references to avoid stale closure during rapid submissions
-  const stateRef = useRef({
-    conversationId,
-    sessionToken,
-    stateVersion,
-  })
   useEffect(() => {
-    stateRef.current = {
-      conversationId,
-      sessionToken,
-      stateVersion,
-    }
-  }, [conversationId, sessionToken, stateVersion])
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      const identity = session?.user.id ?? null
+      if (identity === identityRef.current) return
+      identityRef.current = identity
+      sessionEpochRef.current += 1
+      resetEpochRef.current = null
+      clearConversation()
+      inFlightRef.current = false
+      setIsLoading(false)
+    })
+    return () => authListener.subscription.unsubscribe()
+  }, [clearConversation])
 
   const applyEnvelope = useCallback(
     (envelope: ConciergeResponseEnvelope) => {
+      stateRef.current = { conversationId: envelope.conversation_id, sessionToken: envelope.session_token, stateVersion: envelope.state_version }
       setConversationId(envelope.conversation_id)
       setSessionToken(envelope.session_token)
       setStateVersion(envelope.state_version)
@@ -168,7 +163,7 @@ export function useConcierge(): UseConciergeReturn {
   const sendMessage = useCallback(
     async (text: string) => {
       const cleanText = text.trim()
-      if (!cleanText || isLoading || inFlightRef.current) return
+      if (!cleanText || inFlightRef.current) return
 
       const requestEpoch = sessionEpochRef.current
       inFlightRef.current = true
@@ -209,12 +204,13 @@ export function useConcierge(): UseConciergeReturn {
         }
       }
     },
-    [applyEnvelope, isLoading]
+    [applyEnvelope]
   )
 
-  const sendAction = useCallback(
-    async (action: ConciergeActionPayload) => {
-      if (isLoading || inFlightRef.current) return
+  // Internal callers may opt into rejection; public actions always resolve a boolean.
+  const performAction = useCallback(
+    async (action: ConciergeActionPayload, propagateError = false) => {
+      if (inFlightRef.current) return false
 
       const requestEpoch = sessionEpochRef.current
       inFlightRef.current = true
@@ -230,15 +226,18 @@ export function useConcierge(): UseConciergeReturn {
         })
         // If logout or account switch occurred while action was in-flight, discard stale response
         if (requestEpoch !== sessionEpochRef.current) {
-          return
+          return false
         }
         applyEnvelope(envelope)
+        return true
       } catch (err) {
         if (requestEpoch !== sessionEpochRef.current) {
-          return
+          return false
         }
         const msg = err instanceof Error ? err.message : 'Không thể thực hiện hành động này'
         setError(msg)
+        if (propagateError) throw err instanceof Error ? err : new Error(msg)
+        return false
       } finally {
         if (requestEpoch === sessionEpochRef.current) {
           inFlightRef.current = false
@@ -246,8 +245,10 @@ export function useConcierge(): UseConciergeReturn {
         }
       }
     },
-    [applyEnvelope, isLoading]
+    [applyEnvelope]
   )
+
+  const sendAction = useCallback((action: ConciergeActionPayload) => performAction(action), [performAction])
 
   const addProposalToCart = useCallback(
     async (proposal: MealProposal, acceptPriceChange = false) => {
@@ -258,13 +259,13 @@ export function useConcierge(): UseConciergeReturn {
       }
 
       // Explicit user action to add proposal
-      await sendAction({
+      await performAction({
         type: 'add_proposal_to_cart',
         proposal_id: proposal.id,
         accept_price_change: acceptPriceChange,
-      })
+      }, true)
     },
-    [sendAction]
+    [performAction]
   )
 
   const submitFeedback = useCallback(
@@ -284,31 +285,32 @@ export function useConcierge(): UseConciergeReturn {
   )
 
   const resetConversation = useCallback(async () => {
-    sessionEpochRef.current += 1
+    if (resetEpochRef.current === sessionEpochRef.current) return
+    const previous = stateRef.current
+    const requestEpoch = ++sessionEpochRef.current
+    resetEpochRef.current = requestEpoch
+    inFlightRef.current = true
+    clearConversation()
+    setIsLoading(true)
     try {
-      if (stateRef.current.conversationId) {
+      if (previous.conversationId) {
         await sendConciergeAction({
-          conversation_id: stateRef.current.conversationId,
-          session_token: stateRef.current.sessionToken || undefined,
-          state_version: stateRef.current.stateVersion,
+          conversation_id: previous.conversationId,
+          session_token: previous.sessionToken || undefined,
+          state_version: previous.stateVersion,
           action: { type: 'reset_conversation' },
         })
       }
     } catch {
-      // Clean local state even if network call failed
+      // Local context is already cleared even if the server reset fails.
     } finally {
-      setMessages([INITIAL_GREETING])
-      setConversationId(null)
-      setSessionToken(null)
-      setStateVersion(1)
-      setCurrentStep('IDLE')
-      setCurrentIntent('general_chat')
-      setWarnings([])
-      setError(null)
-      setIsLoading(false)
-      inFlightRef.current = false
+      if (requestEpoch === sessionEpochRef.current) {
+        resetEpochRef.current = null
+        inFlightRef.current = false
+        setIsLoading(false)
+      }
     }
-  }, [])
+  }, [clearConversation])
 
   const dismissError = useCallback(() => {
     setError(null)

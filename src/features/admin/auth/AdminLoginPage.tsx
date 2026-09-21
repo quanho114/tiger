@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, type FC, type FormEvent } from 'react'
-import { Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { Navigate, useNavigate, useLocation, Link } from 'react-router-dom'
+import { ShieldCheck, ArrowLeft, AlertCircle, KeyRound } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '../../auth'
 
@@ -99,85 +100,77 @@ export const AdminLoginPage: FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-stone-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center items-center space-x-2">
-          <span className="text-3xl font-black tracking-wider text-amber-500">TIGER 345</span>
-          <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded font-mono font-bold tracking-wider">
-            ADMIN
-          </span>
+    <div className="min-h-screen bg-[#f6f5f3] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans antialiased">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        {/* Brand Icon & Name */}
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#2b2e2c] text-white shadow-xs mb-3">
+          <ShieldCheck className="w-6 h-6 text-[#7cd56e]" />
         </div>
-        <h2 className="mt-4 text-center text-xl font-bold tracking-tight text-stone-100">
-          Đăng nhập Hệ thống Điều phối Vận hành
+        <h2 className="text-xl font-bold tracking-tight text-[#171a17]">
+          TIGER 345 • Bếp &amp; Quán
         </h2>
-        <p className="mt-1 text-center text-xs text-stone-400">
-          Khu vực bảo mật dành cho Bếp Trưởng và Quản Lý
+        <p className="mt-1 text-xs text-[#787979]">
+          Hệ thống điều phối vận hành &amp; quản lý đơn hàng
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
-        <div className="bg-stone-900 py-8 px-6 shadow-2xl rounded-xl sm:px-10 border border-stone-800">
-          <form className="space-y-5" onSubmit={handleSubmit}>
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-6 shadow-sm border border-[#e2e3e3] rounded-2xl sm:px-10">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             {errorMessage && (
-              <div className="rounded-lg bg-rose-950/70 border border-rose-800 p-3.5 text-xs text-rose-200 flex items-start space-x-2">
-                <svg className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-rose-700 flex items-start space-x-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
             <div>
-              <label htmlFor="admin-email" className="block text-xs font-semibold text-stone-300 uppercase tracking-wider">
-                Email Quản trị
+              <label htmlFor="admin-email" className="block text-xs font-semibold text-slate-700 mb-1">
+                Email Quản trị viên
               </label>
-              <div className="mt-1.5">
-                <input
-                  id="admin-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@tiger345.local"
-                  className="w-full px-3.5 py-2.5 bg-stone-950 border border-stone-700 rounded-lg text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                />
-              </div>
+              <input
+                id="admin-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@tiger345.vn"
+                className="w-full px-3.5 py-2.5 bg-[#faf9f7] border border-[#d2d2d2] rounded-xl text-xs text-[#171a17] placeholder-[#787979] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 focus:border-[#7cd56e] transition"
+              />
             </div>
 
             <div>
-              <label htmlFor="admin-password" className="block text-xs font-semibold text-stone-300 uppercase tracking-wider">
+              <label htmlFor="admin-password" className="block text-xs font-semibold text-slate-700 mb-1">
                 Mật khẩu
               </label>
-              <div className="mt-1.5">
-                <input
-                  id="admin-password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 bg-stone-950 border border-stone-700 rounded-lg text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                />
-              </div>
+              <input
+                id="admin-password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-3.5 py-2.5 bg-[#faf9f7] border border-[#d2d2d2] rounded-xl text-xs text-[#171a17] placeholder-[#787979] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 focus:border-[#7cd56e] transition"
+              />
             </div>
 
-            <div>
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-stone-950 bg-amber-500 hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="elera-btn-primary w-full h-10 rounded-xl text-xs font-semibold shadow-xs"
               >
                 {isSubmitting ? (
                   <div className="flex items-center space-x-2">
-                    <span className="w-4 h-4 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     <span>Đang đăng nhập...</span>
                   </div>
                 ) : (
-                  'Đăng nhập vào Hệ thống'
+                  'Đăng nhập Hệ thống'
                 )}
               </button>
 
@@ -186,21 +179,23 @@ export const AdminLoginPage: FC = () => {
                   type="button"
                   onClick={() => performLogin(DEV_DEFAULT_EMAIL, DEV_DEFAULT_PASSWORD)}
                   disabled={isSubmitting}
-                  className="w-full mt-3 py-2 px-4 border border-amber-500/40 rounded-lg text-xs font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="elera-btn-secondary w-full mt-2.5 h-10 rounded-xl text-xs font-semibold border-[#dedfdb] shadow-2xs gap-1.5"
                 >
-                  <span>⚡ Đăng nhập nhanh Dev ({DEV_DEFAULT_EMAIL})</span>
+                  <KeyRound className="w-3.5 h-3.5 text-[#2b2e2c]" />
+                  <span>Đăng nhập nhanh Dev ({DEV_DEFAULT_EMAIL})</span>
                 </button>
               )}
             </div>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-stone-800 text-center">
-            <a
-              href="/"
-              className="text-xs font-medium text-stone-400 hover:text-amber-400 transition"
+          <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+            <Link
+              to="/"
+              className="inline-flex items-center space-x-1.5 text-xs font-medium text-[#787979] hover:text-[#171a17] transition"
             >
-              ← Quay lại trang chủ khách hàng
-            </a>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Quay lại trang chủ khách hàng</span>
+            </Link>
           </div>
         </div>
       </div>

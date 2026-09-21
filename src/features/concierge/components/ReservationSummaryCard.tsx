@@ -1,10 +1,10 @@
-import type { FC } from 'react'
+import { useState, type FC } from 'react'
 import { Calendar, Users, Phone, MapPin, AlertCircle, CheckCircle2 } from 'lucide-react'
 import type { ReservationSummaryCardData } from '../types'
 
 interface ReservationSummaryCardProps {
   reservation: ReservationSummaryCardData
-  onConfirmReservation?: () => void
+  onConfirmReservation?: () => void | boolean | Promise<void | boolean>
   disabled?: boolean
 }
 
@@ -13,6 +13,21 @@ export const ReservationSummaryCard: FC<ReservationSummaryCardProps> = ({
   onConfirmReservation,
   disabled = false,
 }) => {
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [confirmationFailed, setConfirmationFailed] = useState(false)
+  const handleConfirm = async () => {
+    if (disabled || isConfirming || !onConfirmReservation) return
+    setIsConfirming(true)
+    setConfirmationFailed(false)
+    try {
+      const outcome = await onConfirmReservation()
+      setConfirmationFailed(outcome === false)
+    } catch {
+      setConfirmationFailed(true)
+    } finally {
+      setIsConfirming(false)
+    }
+  }
   return (
     <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden text-xs">
       <div className="p-3.5 bg-gradient-to-r from-emerald-500/10 via-emerald-400/5 to-transparent border-b border-stone-100 flex items-center justify-between">
@@ -25,6 +40,8 @@ export const ReservationSummaryCard: FC<ReservationSummaryCardProps> = ({
       </div>
 
       <div className="p-4 space-y-2.5">
+        <p>Người đặt bàn: <strong>{reservation.customer_name}</strong></p>
+        <p>Vui lòng kiểm tra thông tin trước khi xác nhận đặt bàn.</p>
         <div className="grid grid-cols-2 gap-2 text-stone-700">
           <div className="flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-stone-600" />
@@ -58,16 +75,17 @@ export const ReservationSummaryCard: FC<ReservationSummaryCardProps> = ({
         </div>
       </div>
 
+      {confirmationFailed && <p role="alert" className="px-4 py-2 text-xs text-rose-800">Chưa thể xác nhận. Vui lòng kiểm tra thông báo và thử lại.</p>}
       {onConfirmReservation && (
         <div className="p-3 bg-stone-50 border-t border-stone-100 flex justify-end">
           <button
             type="button"
-            disabled={disabled}
-            onClick={onConfirmReservation}
+            disabled={disabled || isConfirming}
+            onClick={() => void handleConfirm()}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 active:scale-95 shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Xác nhận thông tin đặt bàn</span>
+            <span>{isConfirming ? 'Đang gửi xác nhận...' : 'Xác nhận thông tin đặt bàn'}</span>
           </button>
         </div>
       )}

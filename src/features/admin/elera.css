@@ -1,0 +1,511 @@
+/* ========================================================================= */
+/* ELERA DESIGN TOKENS & MICRO-INTERACTIONS SCOPED FOR TIGER 345 ADMIN      */
+/* Bóc tách từ https://nazday-elera.vercel.app/                             */
+/* ========================================================================= */
+
+.admin-elera-scope {
+  --canvas: #f6f5f3;
+  --ink: #171a17;
+  --ink-secondary: #424242;
+  --muted: #787979;
+  --stroke: #e2e3e3;
+  --stroke-strong: #d2d2d2;
+  --accent: #7cd56e;
+  --accent-hover: #6bc95c;
+  --accent-soft: #8fdc85;
+  --accent-pill: #e4f7c6;
+  --accent-pill-text: #3e6300;
+  
+  --card-shadow: 0 1px 1px -.5px rgba(0,0,0,.06),
+                 0 3px 3px -1.5px rgba(0,0,0,.06),
+                 0 6px 6px -3px rgba(0,0,0,.06),
+                 0 12px 12px -6px rgba(0,0,0,.04),
+                 0 24px 24px -12px rgba(0,0,0,.04);
+
+  --card-shadow-hover: 0 4px 6px -1px rgba(0,0,0,.07),
+                       0 12px 20px -3px rgba(0,0,0,.06);
+
+  background-color: var(--canvas);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Tactile button & clickable compression */
+.admin-elera-scope button,
+.admin-elera-scope a.elera-pressable,
+.admin-elera-scope .elera-button {
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1),
+              background-color 0.15s ease-out,
+              border-color 0.15s ease-out,
+              color 0.15s ease-out,
+              box-shadow 0.15s ease-out,
+              opacity 0.15s ease-out;
+}
+
+.admin-elera-scope button:active,
+.admin-elera-scope a.elera-pressable:active,
+.admin-elera-scope .elera-button:active {
+  transform: scale(0.96);
+}
+
+.admin-elera-scope button:disabled,
+.admin-elera-scope button:disabled:active {
+  transform: none !important;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Animations */
+@keyframes elera-modal-in {
+  0% { opacity: 0; transform: scale(0.97) translateY(6px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes elera-drawer-in {
+  0% { opacity: 0; transform: translateX(16px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.elera-animate-modal {
+  animation: elera-modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.elera-animate-drawer {
+  animation: elera-drawer-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Unified Stats Strip */
+.elera-stats-strip {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid rgba(226, 227, 227, 0.7);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  transition: box-shadow 0.2s ease-out;
+}
+
+@media (min-width: 1024px) {
+  .elera-stats-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.elera-stat-tile {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-right: 1px solid var(--stroke);
+  border-bottom: 1px solid var(--stroke);
+  position: relative;
+  transition: background-color 0.15s ease-out;
+}
+
+@media (min-width: 1024px) {
+  .elera-stat-tile {
+    border-bottom: none;
+  }
+  .elera-stat-tile:last-child {
+    border-right: none;
+  }
+}
+
+.elera-stat-tile:hover {
+  background-color: #faf9f7;
+}
+
+.elera-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+
+.elera-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.elera-stat-badge.success {
+  background: var(--accent-pill);
+  color: var(--accent-pill-text);
+}
+
+.elera-stat-badge.amber {
+  background: #faf1dc;
+  color: #a06b00;
+}
+
+.elera-stat-badge.critical {
+  background: #fceae6;
+  color: #c93424;
+}
+
+.elera-stat-badge.neutral {
+  background: #eaebe7;
+  color: #636862;
+}
+
+/* Time Pills (Elera Timer) */
+.elera-time-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 13px;
+  white-space: nowrap;
+}
+
+.elera-time-pill.amber {
+  background: #faf1dc;
+  color: #b57a0b;
+}
+
+.elera-time-pill.red {
+  background: #fceae6;
+  color: #d93826;
+  animation: elera-pulse-subtle 2s infinite ease-in-out;
+}
+
+.elera-time-pill.neutral {
+  background: #eaebe7;
+  color: #727771;
+}
+
+@keyframes elera-pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* Filter Chips (Elera Chip System) */
+.elera-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px 0 12px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--stroke);
+  background: #ffffff;
+  color: #424242;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.elera-filter-chip:hover {
+  background: #f2f1ef;
+  border-color: var(--stroke-strong);
+}
+
+.elera-filter-chip.selected {
+  background: #2b2e2c;
+  color: #ffffff;
+  border-color: #2b2e2c;
+}
+
+.elera-filter-chip .chip-counter {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 100px;
+  background: #eaebe7;
+  color: #484b47;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 17px;
+}
+
+.elera-filter-chip.selected .chip-counter {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* Card Focus & Dimming Effect */
+.elera-order-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  box-shadow: var(--card-shadow);
+  transition: opacity 0.18s ease-out, transform 0.15s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.18s ease-out;
+  position: relative;
+}
+
+.elera-order-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--stroke-strong);
+}
+
+.elera-order-card.dim {
+  opacity: 0.45;
+  filter: grayscale(0.2);
+}
+
+.elera-order-card.dim:hover,
+.elera-order-card.dim:focus-within {
+  opacity: 1;
+  filter: none;
+  z-index: 5;
+}
+
+/* Elera Alert Banner on Card */
+.elera-card-alert {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fdf5e6;
+  color: #925f00;
+  border-radius: 8px;
+  padding: 6px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
+  border: 1px solid rgba(235, 178, 55, 0.3);
+}
+
+.elera-card-alert.critical {
+  background: #fef1ee;
+  color: #ba2818;
+  border-color: rgba(230, 80, 60, 0.3);
+}
+
+/* Elera Action Button on Card */
+.elera-card-action {
+  width: 100%;
+  height: 28px;
+  border-radius: 100px;
+  font-size: 11.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.elera-card-action.accent {
+  background: var(--accent-soft);
+  color: #121a12;
+  border-color: var(--accent);
+}
+
+.elera-card-action.accent:hover {
+  background: var(--accent);
+  color: #050c05;
+}
+
+.elera-card-action.outlined {
+  background: #ffffff;
+  color: #424242;
+  border-color: var(--stroke);
+}
+
+.elera-card-action.outlined:hover {
+  background: #f5f5f2;
+}
+
+/* Flow Column (Kitchen Board Column) */
+.elera-flow-column {
+  background: #edece9;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid rgba(226, 227, 227, 0.8);
+  min-width: 290px;
+  scroll-snap-align: start;
+}
+
+.elera-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px;
+}
+
+.elera-column-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2b2e2c;
+}
+
+.elera-column-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: #dedcd7;
+  color: #494d48;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.elera-column-target {
+  font-size: 11px;
+  color: #7b807a;
+  font-weight: 500;
+}
+
+/* Elera Standard Buttons */
+.admin-elera-scope .elera-btn-primary {
+  background: #2b2e2c;
+  color: #ffffff;
+  border-radius: 10px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.admin-elera-scope .elera-btn-primary:hover {
+  background: #171a17;
+}
+
+.admin-elera-scope .elera-btn-accent {
+  background: #7cd56e;
+  color: #121a12;
+  border-radius: 10px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #7cd56e;
+  cursor: pointer;
+}
+
+.admin-elera-scope .elera-btn-accent:hover {
+  background: #6bc95c;
+}
+
+.admin-elera-scope .elera-btn-secondary {
+  background: #ffffff;
+  color: #5c5e63;
+  border: 1px solid #dedfdb;
+  border-radius: 10px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.admin-elera-scope .elera-btn-secondary:hover {
+  background: #f5f5f2;
+  color: #171a17;
+  border-color: #d2d2d2;
+}
+
+/* Elera Icon Button (Topbar & Utility) */
+.admin-elera-scope .elera-icon-btn {
+  background: #eeedeb;
+  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid transparent;
+  color: #5c5e63;
+  cursor: pointer;
+}
+
+.admin-elera-scope .elera-icon-btn:hover {
+  background: #e6e5e3;
+  color: #171a17;
+}
+
+/* Elera Scope Tabs (Freestanding Pills) */
+.admin-elera-scope .elera-scope-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.admin-elera-scope .elera-pill-scope {
+  letter-spacing: -0.13px;
+  white-space: nowrap;
+  color: #5c5e63;
+  background: #e6e5e3;
+  border-radius: 100px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-elera-scope .elera-pill-scope:hover {
+  background: #dedcd8;
+  color: #171a17;
+}
+
+.admin-elera-scope .elera-pill-scope.selected {
+  color: #ffffff;
+  background: #2b2e2c;
+  font-weight: 600;
+}
+
+/* Elera Column Add Button (Dashed) */
+.admin-elera-scope .elera-add-column-btn {
+  color: #868481;
+  letter-spacing: -0.13px;
+  border-radius: 8px;
+  height: 28px;
+  font-size: 12.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border: 1px dashed #cfd0cc;
+  background: transparent;
+  cursor: pointer;
+}
+
+.admin-elera-scope .elera-add-column-btn:hover {
+  background: #e6e5e3;
+  color: #171a17;
+}

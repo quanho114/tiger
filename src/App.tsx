@@ -35,6 +35,10 @@ const AdminDashboardPage = lazy(() => import('./features/admin/dashboard/AdminDa
 const AdminOrdersPage = lazy(() => import('./features/admin/orders/AdminOrdersPage').then((m) => ({ default: m.AdminOrdersPage })));
 const AdminTablesPage = lazy(() => import('./features/admin/tables/AdminTablesPage').then((m) => ({ default: m.AdminTablesPage })));
 const AdminReservationsPage = lazy(() => import('./features/admin/reservations/AdminReservationsPage').then((m) => ({ default: m.AdminReservationsPage })));
+const AdminInvoicesPage = lazy(() => import('./features/admin/invoices/AdminInvoicesPage').then((m) => ({ default: m.AdminInvoicesPage })));
+const AdminMenuPage = lazy(() => import('./features/admin/menu/AdminMenuPage').then((m) => ({ default: m.AdminMenuPage })));
+const AdminReportsPage = lazy(() => import('./features/admin/reports/AdminReportsPage').then((m) => ({ default: m.AdminReportsPage })));
+const AdminAccountsPage = lazy(() => import('./features/admin/accounts/AdminAccountsPage').then((m) => ({ default: m.AdminAccountsPage })));
 const AdminSettingsPage = lazy(() => import('./features/admin/settings/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage })));
 
 const RouteFallback: FC = () => (
@@ -155,6 +159,10 @@ const AppRoutes: FC = () => {
           <Route path="orders" element={<Suspense fallback={<RouteFallback />}><AdminOrdersPage /></Suspense>} />
           <Route path="reservations" element={<Suspense fallback={<RouteFallback />}><AdminReservationsPage /></Suspense>} />
           <Route path="tables" element={<Suspense fallback={<RouteFallback />}><AdminTablesPage /></Suspense>} />
+          <Route path="invoices" element={<Suspense fallback={<RouteFallback />}><AdminInvoicesPage /></Suspense>} />
+          <Route path="menu" element={<Suspense fallback={<RouteFallback />}><AdminMenuPage /></Suspense>} />
+          <Route path="reports" element={<Suspense fallback={<RouteFallback />}><AdminReportsPage /></Suspense>} />
+          <Route path="accounts" element={<Suspense fallback={<RouteFallback />}><AdminAccountsPage /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<RouteFallback />}><AdminSettingsPage /></Suspense>} />
         </Route>
 

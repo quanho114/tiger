@@ -8,11 +8,14 @@ import {
   User,
   LogOut,
   ChevronRight,
+  Settings,
+  ExternalLink,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth'
 
 export function AccountLayout() {
-  const { user, customerProfile, signOut } = useAuth()
+  const { user, customerProfile, adminProfile, role, signOut } = useAuth()
+  const isStaffOrAdmin = role === 'admin' || adminProfile !== null || import.meta.env.DEV
   const navigate = useNavigate()
 
   const handleSignOut = async () => {
@@ -30,6 +33,7 @@ export function AccountLayout() {
   ]
 
   const displayName =
+    adminProfile?.displayName ||
     customerProfile?.displayName ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
@@ -51,19 +55,37 @@ export function AccountLayout() {
                   {displayName}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                  {user?.email || customerProfile?.phone || 'Thành viên Tiger 345'}
+                  {isStaffOrAdmin
+                    ? 'Tài khoản Quản trị & Vận hành Bếp'
+                    : user?.email || customerProfile?.phone || 'Thành viên Tiger 345'}
                 </p>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="inline-flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 text-xs font-semibold transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Đăng xuất</span>
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {isStaffOrAdmin && (
+                <a
+                  href="/admin"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold transition-colors"
+                  title="Mở Bảng điều phối Quản trị bếp trong tab mới"
+                >
+                  <Settings className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Bảng điều phối Bếp (Tab mới)</span>
+                  <ExternalLink className="w-3 h-3 text-blue-500" />
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50 text-xs font-semibold transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Đăng xuất</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -75,6 +97,23 @@ export function AccountLayout() {
           <aside className="md:col-span-1">
             <div className="bg-white rounded-2xl p-2 sm:p-3 border border-amber-100/80 shadow-xs">
               <nav className="flex md:flex-col gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+                {isStaffOrAdmin && (
+                  <div className="pb-1.5 mb-1 border-b border-amber-100/80">
+                    <a
+                      href="/admin"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition-colors whitespace-nowrap md:whitespace-normal"
+                      title="Mở Bảng điều phối Quản trị bếp trong tab mới"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Settings className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span>Bảng điều phối Bếp</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    </a>
+                  </div>
+                )}
                 {navItems.map((item) => {
                   const Icon = item.icon
                   return (
