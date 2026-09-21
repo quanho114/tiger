@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FC, type FormEvent } from 'react'
+import { useState, useEffect, useCallback, useRef, type FC, type FormEvent } from 'react'
 import {
   Bot,
   KeyRound,
@@ -56,24 +56,36 @@ export const ConciergeLlmSection: FC<ConciergeLlmSectionProps> = ({ onNotify }) 
   const [isTesting, setIsTesting] = useState<boolean>(false)
   const [testResult, setTestResult] = useState<string | null>(null)
 
+  // Parent re-renders often (new onNotify identity each time). These refs
+  // break that chain so the form is populated once and never reset
+  // while admin is typing.
+  const notifyRef = useRef(onNotify)
+  useEffect(() => {
+    notifyRef.current = onNotify
+  })
+  const formInitializedRef = useRef<boolean>(false)
+
   const loadConfig = useCallback(async () => {
     try {
-      setIsLoading(true)
+      if (!formInitializedRef.current) setIsLoading(true)
       const res = await adminApi.get<LlmConfig>('/llm-config')
       const cfg = res.data
       setConfig(cfg)
-      setProvider(cfg.provider || 'openai')
-      setBaseUrl(cfg.base_url || '')
-      setModel(cfg.model || '')
-      setEnabled(cfg.enabled)
-      setApiKey('')
-      setTestResult(null)
+      if (!formInitializedRef.current) {
+        setProvider(cfg.provider || 'openai')
+        setBaseUrl(cfg.base_url || '')
+        setModel(cfg.model || '')
+        setEnabled(cfg.enabled)
+        setApiKey('')
+        setTestResult(null)
+        formInitializedRef.current = true
+      }
     } catch (err: unknown) {
-      onNotify(err instanceof Error ? err.message : 'Không thể tải cấu hình chatbot', 'error')
+      notifyRef.current(err instanceof Error ? err.message : 'Không thể tải cấu hình chatbot', 'error')
     } finally {
       setIsLoading(false)
     }
-  }, [onNotify])
+  }, [])
 
   useEffect(() => {
     void loadConfig()
