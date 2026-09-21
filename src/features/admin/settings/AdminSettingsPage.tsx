@@ -1,4 +1,17 @@
 import { useState, useEffect, useCallback, type FC } from 'react'
+import { Link } from 'react-router-dom'
+import {
+  Clock,
+  UtensilsCrossed,
+  Building2,
+  ScrollText,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  ExternalLink,
+  Bot,
+} from 'lucide-react'
 import { adminApi } from '../../../lib/api/client'
 import { useAdmin } from '../layout/AdminContext'
 import type {
@@ -16,8 +29,9 @@ import { OperationsHoursSection } from './OperationsHoursSection'
 import { MenuContentSection } from './MenuContentSection'
 import { AreasZonesSection } from './AreasZonesSection'
 import { FeedbackAuditSection } from './FeedbackAuditSection'
+import { ConciergeLlmSection } from './ConciergeLlmSection'
 
-type TabKey = 'operations' | 'menu' | 'areas' | 'feedback'
+type TabKey = 'operations' | 'menu' | 'areas' | 'feedback' | 'chatbot'
 
 function extractItems<T>(raw: { items?: T[]; data?: T[] } | T[] | null | undefined): T[] {
   if (!raw) return []
@@ -102,8 +116,8 @@ export const AdminSettingsPage: FC = () => {
   if (isLoading && !settings) {
     return (
       <div className="py-24 flex flex-col items-center justify-center space-y-3">
-        <div className="w-9 h-9 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs text-stone-400 font-medium">Đang tải cấu hình & danh mục quán...</p>
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-slate-500 font-medium">Đang tải cấu hình & danh mục quán...</p>
       </div>
     )
   }
@@ -113,20 +127,20 @@ export const AdminSettingsPage: FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-stone-100 tracking-tight">
-              Cấu Hình & Quản Trị Nội Dung
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              Cài Đặt & Cấu Hình Quán
             </h1>
             {settings && (
-              <span className="font-mono text-xs text-amber-400 bg-amber-950/60 border border-amber-800/80 px-2 py-0.5 rounded-md font-semibold">
+              <span className="font-mono text-xs text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-md font-semibold">
                 v{settings.version}
               </span>
             )}
           </div>
-          <p className="text-xs text-stone-400 mt-1">
-            Quản lý giờ hoạt động, thực đơn, khu vực bàn, vùng giao hàng và nhật ký kiểm toán hệ thống
+          <p className="text-xs text-slate-500 mt-0.5">
+            Điều chỉnh giờ phục vụ, phí vận chuyển, khu vực chỗ ngồi và nhật ký vận hành
           </p>
         </div>
 
@@ -134,66 +148,69 @@ export const AdminSettingsPage: FC = () => {
           type="button"
           onClick={() => void loadData()}
           disabled={isLoading}
-          className="self-start sm:self-auto px-3.5 py-1.5 bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-700/80 rounded-xl text-xs font-semibold transition flex items-center gap-1.5"
+          className="self-start sm:self-auto px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
         >
-          {isLoading ? (
-            <span className="w-3.5 h-3.5 border-2 border-stone-300 border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <span>⟳ Làm mới</span>
-          )}
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : 'text-slate-400'}`} />
+          <span>Làm mới</span>
         </button>
       </div>
 
       {/* Global Notification Banner */}
       {statusMessage && (
         <div
-          className={`p-4 rounded-xl border text-xs flex items-center justify-between shadow-lg transition-all ${
+          className={`p-3.5 rounded-xl border text-xs flex items-center justify-between shadow-xs transition-all ${
             statusMessage.type === 'success'
-              ? 'bg-emerald-950/80 border-emerald-800 text-emerald-200 shadow-emerald-950/20'
-              : 'bg-rose-950/80 border-rose-800 text-rose-200 shadow-rose-950/20'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
           }`}
         >
           <div className="flex items-center gap-2">
-            <span>{statusMessage.type === 'success' ? '✓' : '⚠'}</span>
+            {statusMessage.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            )}
             <span className="font-medium">{statusMessage.text}</span>
           </div>
           <button
             type="button"
             onClick={() => setStatusMessage(null)}
-            className="text-stone-400 hover:text-white px-2 py-1 font-bold text-sm"
+            className="text-slate-400 hover:text-slate-600 p-1"
           >
-            ✕
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* Modern Tabs Navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-stone-800/80 pb-2">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200/80 pb-2">
         <button
           type="button"
           onClick={() => setActiveTab('operations')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
             activeTab === 'operations'
-              ? 'bg-amber-500 text-stone-950 shadow-md shadow-amber-500/10'
-              : 'bg-stone-900 text-stone-300 border border-stone-800 hover:bg-stone-850 hover:text-white'
+              ? 'bg-blue-600 text-white shadow-2xs'
+              : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
           }`}
         >
-          <span>⚡ Vận Hành & Giờ Mở Cửa</span>
+          <Clock className="w-3.5 h-3.5" />
+          <span>Vận Hành & Giờ Mở Cửa</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('menu')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
             activeTab === 'menu'
-              ? 'bg-amber-500 text-stone-950 shadow-md shadow-amber-500/10'
-              : 'bg-stone-900 text-stone-300 border border-stone-800 hover:bg-stone-850 hover:text-white'
+              ? 'bg-blue-600 text-white shadow-2xs'
+              : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
           }`}
         >
-          <span>🍲 Thực Đơn & Danh Mục</span>
+          <UtensilsCrossed className="w-3.5 h-3.5" />
+          <span>Thực Đơn & Danh Mục</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === 'menu' ? 'bg-stone-950/30 text-stone-950' : 'bg-stone-800 text-stone-400'
+              activeTab === 'menu' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
             }`}
           >
             {menuItems.length}
@@ -203,16 +220,17 @@ export const AdminSettingsPage: FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('areas')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
             activeTab === 'areas'
-              ? 'bg-amber-500 text-stone-950 shadow-md shadow-amber-500/10'
-              : 'bg-stone-900 text-stone-300 border border-stone-800 hover:bg-stone-850 hover:text-white'
+              ? 'bg-blue-600 text-white shadow-2xs'
+              : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
           }`}
         >
-          <span>🪑 Khu Vực & Phí Vận Chuyển</span>
+          <Building2 className="w-3.5 h-3.5" />
+          <span>Khu Vực & Phí Vận Chuyển</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-              activeTab === 'areas' ? 'bg-stone-950/30 text-stone-950' : 'bg-stone-800 text-stone-400'
+              activeTab === 'areas' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
             }`}
           >
             {seatingAreas.length}/{deliveryZones.length}
@@ -222,26 +240,66 @@ export const AdminSettingsPage: FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('feedback')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
             activeTab === 'feedback'
-              ? 'bg-amber-500 text-stone-950 shadow-md shadow-amber-500/10'
-              : 'bg-stone-900 text-stone-300 border border-stone-800 hover:bg-stone-850 hover:text-white'
+              ? 'bg-blue-600 text-white shadow-2xs'
+              : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
           }`}
         >
-          <span>📋 Phản Hồi & Nhật Ký</span>
+          <ScrollText className="w-3.5 h-3.5" />
+          <span>Phản Hồi & Nhật Ký</span>
           {newFeedbackCount > 0 && (
             <span
               className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                 activeTab === 'feedback'
-                  ? 'bg-rose-950 text-rose-200'
-                  : 'bg-rose-500 text-white animate-pulse'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-rose-50 text-rose-700 border border-rose-200'
               }`}
             >
               {newFeedbackCount} mới
             </span>
           )}
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('chatbot')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer ${
+            activeTab === 'chatbot'
+              ? 'bg-blue-600 text-white shadow-2xs'
+              : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
+          }`}
+        >
+          <Bot className="w-3.5 h-3.5" />
+          <span>Chatbot AI</span>
+        </button>
       </div>
+
+      {/* Dedicated Menu Page Notice Banner */}
+      {activeTab === 'menu' && (
+        <div className="bg-blue-50/60 border border-blue-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+              <UtensilsCrossed className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900">
+                Trang Quản Lý Thực Đơn Nâng Cao (/admin/menu)
+              </div>
+              <div className="text-[11px] text-slate-600">
+                Tìm kiếm, lọc danh mục và cập nhật trạng thái món trực quan dành riêng cho giờ cao điểm.
+              </div>
+            </div>
+          </div>
+          <Link
+            to="/admin/menu"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition shrink-0"
+          >
+            <span>Mở Trang Thực Đơn</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
 
       {/* Tab Panels */}
       <div>
@@ -281,6 +339,8 @@ export const AdminSettingsPage: FC = () => {
             onNotify={notify}
           />
         )}
+
+        {activeTab === 'chatbot' && <ConciergeLlmSection onNotify={notify} />}
       </div>
     </div>
   )

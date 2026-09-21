@@ -912,6 +912,265 @@ export async function handleContentRoutes(
     }
   }
 
+  // --------------------------------------------------------------------------
+  // 3b. CONCIERGE LLM CONFIG — shared chatbot backend for all users.
+  // API key is service_role-only in DB and NEVER returned raw (masked).
+  // --------------------------------------------------------------------------
+
+  const LLM_PROVIDERS = ['stub', 'openai', 'anthropic', 'gemini']
+
+  function maskLlmKey(key: unknown): string {
+    if (typeof key !== 'string' || key.length === 0) return ''
+    if (key.length <= 8) return '••••••••'
+    return `••••••••${key.slice(-4)}`
+  }
+
+  function normalizeLlmBaseUrl(raw: unknown): string {
+    if (typeof raw !== 'string') return ''
+    const trimmed = raw.trim().replace(/\/+$/, '')
+    if (trimmed === '') return ''
+    if (!/^https?:\/\//i.test(trimmed)) {
+      throw AppError.validation('base_url phải bắt đầu bằng http:// hoặc https://', {
+        base_url: ['URL không hợp lệ'],
+      })
+    }
+    if (trimmed.length > 500) {
+      throw AppError.validation('base_url quá dài (tối đa 500 ký tự)')
+    }
+    return trimmed
+  }
+
+  // GET /llm-config - Shared chatbot backend config (key masked)
+  if (path === '/llm-config' && req.method === 'GET') {
+    const res = await pool.query(
+      'SELECT provider, base_url, api_key, model, enabled, version, updated_at FROM public.concierge_llm_config WHERE id = 1'
+    )
+    if (res.rows.length === 0) {
+      throw AppError.notFound('Cấu hình chatbot chưa được khởi tạo')
+    }
+    const r = res.rows[0]
+    return jsonResponse(
+      {
+        provider: r.provider,
+        base_url: r.base_url,
+        model: r.model,
+        enabled: r.enabled,
+        version: Number(r.version),
+        updated_at: r.updated_at,
+        has_key: typeof r.api_key === 'string' && r.api_key.length > 0,
+        api_key_masked: maskLlmKey(r.api_key),
+      },
+      requestId,
+      req,
+      200,
+      { 'Cache-Control': 'no-store' }
+    )
+  }
+
+  // PATCH /llm-config - Update shared chatbot backend config with OCC.
+  // Omit api_key (or send '') to keep the stored key.
+  if (path === '/llm-config' && req.method === 'PATCH') {
+    const body = await parseJsonBody<Record<string, unknown>>(req)
+    const expectedVersion =
+      typeof body.expected_version === 'number' ? body.expected_version : Number(body.expected_version)
+    if (!Number.isInteger(expectedVersion) || expectedVersion < 1) {
+      throw AppError.validation('expected_version là bắt buộc để cập nhật cấu hình', {
+        expected_version: ['Bắt buộc, số nguyên dương'],
+      })
+    }
+
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      const curRes = await client.query(
+        'SELECT * FROM public.concierge_llm_config WHERE id = 1 FOR UPDATE'
+      )
+      if (curRes.rows.length === 0) {
+        throw AppError.notFound('Cấu hình chatbot không tồn tại')
+      }
+      const current = curRes.rows[0]
+      if (Number(current.version) !== expectedVersion) {
+        throw AppError.versionConflict(
+          `Cấu hình đã bị sửa đổi bởi người khác (hiện tại v${current.version}, yêu cầu v${expectedVersion})`
+        )
+      }
+
+      const provider =
+        body.provider !== undefined ? String(body.provider).trim().toLowerCase() : current.provider
+      if (!LLM_PROVIDERS.includes(provider)) {
+        throw AppError.validation('provider không hợp lệ', {
+          provider: ['Chấp nhận: stub, openai, anthropic, gemini'],
+        })
+      }
+      const baseUrl =
+        body.base_url !== undefined ? normalizeLlmBaseUrl(body.base_url) : current.base_url
+      const model = body.model !== undefined ? String(body.model).trim().slice(0, 200) : current.model
+      const enabled = body.enabled !== undefined ? Boolean(body.enabled) : current.enabled
+      // Empty/missing key keeps the stored secret; only non-empty replaces it.
+      const apiKey =
+        body.api_key !== undefined && String(body.api_key).trim() !== ''
+          ? String(body.api_key).trim()
+          : current.api_key
+      if (apiKey.length > 500) {
+        throw AppError.validation('api_key quá dài (tối đa 500 ký tự)')
+      }
+
+      const updateRes = await client.query(
+        `UPDATE public.concierge_llm_config
+         SET provider = $1,
+             base_url = $2,
+             api_key = $3,
+             model = $4,
+             enabled = $5,
+             version = version + 1,
+             updated_at = now()
+         WHERE id = 1 AND version = $6
+         RETURNING provider, base_url, model, enabled, version, updated_at,
+                   (api_key IS NOT NULL AND api_key <> '') AS has_key,
+                   CASE WHEN api_key IS NULL OR api_key = '' THEN '' ELSE '••••••••' || RIGHT(api_key, 4) END AS api_key_masked`,
+        [provider, baseUrl, apiKey, model, enabled, expectedVersion]
+      )
+
+      if (updateRes.rows.length === 0) {
+        throw AppError.versionConflict('Xung đột phiên bản khi lưu cấu hình chatbot')
+      }
+      const updated = updateRes.rows[0]
+
+      await client.query(
+        `INSERT INTO public.audit_logs (admin_id, actor_kind, action, entity_type, entity_id, metadata)
+         VALUES ($1, 'admin', 'update_llm_config', 'concierge_llm_config', '1', $2)`,
+        [
+          actor.userId,
+          JSON.stringify({
+            old_version: expectedVersion,
+            new_version: updated.version,
+            provider: updated.provider,
+            enabled: updated.enabled,
+          }),
+        ]
+      )
+
+      await client.query('COMMIT')
+      return jsonResponse({ ...updated, version: Number(updated.version) }, requestId, req, 200, {
+        'Cache-Control': 'no-store',
+      })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
+  }
+
+  // POST /llm-config/test - Dry-run a minimal call with given (or stored)
+  // credentials. Runs server-side; key is never exposed.
+  if (path === '/llm-config/test' && req.method === 'POST') {
+    const body = await parseJsonBody<Record<string, unknown>>(req)
+    const storedRes = await pool.query(
+      'SELECT provider, base_url, api_key, model FROM public.concierge_llm_config WHERE id = 1'
+    )
+    const stored = storedRes.rows[0] || {}
+
+    const provider =
+      body.provider !== undefined
+        ? String(body.provider).trim().toLowerCase()
+        : String(stored.provider || 'openai')
+    if (!LLM_PROVIDERS.includes(provider) || provider === 'stub') {
+      throw AppError.validation('Chọn provider openai / anthropic / gemini để kiểm tra kết nối')
+    }
+    const baseUrl =
+      body.base_url !== undefined
+        ? normalizeLlmBaseUrl(body.base_url)
+        : String(stored.base_url || '').replace(/\/+$/, '')
+    const apiKey =
+      body.api_key !== undefined && String(body.api_key).trim() !== ''
+        ? String(body.api_key).trim()
+        : String(stored.api_key || '')
+    const model =
+      body.model !== undefined && String(body.model).trim() !== ''
+        ? String(body.model).trim()
+        : String(stored.model || '')
+    if (!apiKey) {
+      throw AppError.validation('Thiếu api_key để kiểm tra kết nối')
+    }
+    if (!model) {
+      throw AppError.validation('Thiếu model để kiểm tra kết nối')
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 12000)
+    const startedAt = Date.now()
+    try {
+      if (provider === 'openai') {
+        const endpoint = baseUrl ? `${baseUrl}/chat/completions` : 'https://api.openai.com/v1/chat/completions'
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: 'ping' }],
+            max_tokens: 5,
+          }),
+          signal: controller.signal,
+        })
+        if (!res.ok) {
+          throw AppError.validation(`Kết nối thất bại (${res.status}): ${(await res.text()).slice(0, 300)}`)
+        }
+      } else if (provider === 'anthropic') {
+        const endpoint = baseUrl ? `${baseUrl}/v1/messages` : 'https://api.anthropic.com/v1/messages'
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 5,
+            messages: [{ role: 'user', content: 'ping' }],
+          }),
+          signal: controller.signal,
+        })
+        if (!res.ok) {
+          throw AppError.validation(`Kết nối thất bại (${res.status}): ${(await res.text()).slice(0, 300)}`)
+        }
+      } else {
+        const base = baseUrl || 'https://generativelanguage.googleapis.com'
+        const res = await fetch(
+          `${base}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: 'ping' }] }],
+              generationConfig: { maxOutputTokens: 5 },
+            }),
+            signal: controller.signal,
+          }
+        )
+        if (!res.ok) {
+          throw AppError.validation(`Kết nối thất bại (${res.status}): ${(await res.text()).slice(0, 300)}`)
+        }
+      }
+      return jsonResponse(
+        { ok: true, provider, model, latency_ms: Date.now() - startedAt },
+        requestId,
+        req,
+        200,
+        { 'Cache-Control': 'no-store' }
+      )
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw AppError.validation('Hết thời gian chờ (12s) — kiểm tra lại URL')
+      }
+      throw err
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
   // GET /business-hours or /settings/hours - List hours
   if ((path === '/business-hours' || path === '/settings/hours') && req.method === 'GET') {
     const res = await pool.query(

@@ -236,6 +236,8 @@ export interface LlmOrchestratorConfig {
   provider?: LlmProvider
   apiKey?: string
   model?: string
+  /** Optional OpenAI-compatible base URL (no trailing slash), e.g. a gateway or local model server. */
+  baseUrl?: string
   maxTokens?: number
   maxToolCalls?: number
   timeoutMs?: number
@@ -251,6 +253,7 @@ export class ConciergeLlmOrchestrator {
   private provider: LlmProvider
   private apiKey?: string
   private model?: string
+  private baseUrl?: string
   private maxTokens: number
   private maxToolCalls: number
   private timeoutMs: number
@@ -262,6 +265,7 @@ export class ConciergeLlmOrchestrator {
     this.provider = config?.provider || envProvider || 'stub'
     this.apiKey = config?.apiKey || this.resolveApiKey(this.provider)
     this.model = config?.model || this.defaultModel(this.provider)
+    this.baseUrl = config?.baseUrl?.trim().replace(/\/+$/, '') || undefined
     this.maxTokens = Math.min(config?.maxTokens || DEFAULT_MAX_TOKENS, 2048)
     this.maxToolCalls = config?.maxToolCalls || DEFAULT_MAX_TOOL_CALLS
     this.timeoutMs = config?.timeoutMs || DEFAULT_TIMEOUT_MS
@@ -691,7 +695,10 @@ export class ConciergeLlmOrchestrator {
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
 
     try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      const endpoint = this.baseUrl
+        ? `${this.baseUrl}/chat/completions`
+        : 'https://api.openai.com/v1/chat/completions'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

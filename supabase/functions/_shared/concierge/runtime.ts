@@ -52,7 +52,7 @@ import { ALLERGEN_PROFILES } from './knowledge.ts'
 import { verifyOrderQuote, verifyReservationHoldToken, getQuoteSecret } from '../quote.ts'
 import { sha256 } from '../crypto.ts'
 import { validateMealCandidate } from './validator.ts'
-import { ConciergeLlmOrchestrator } from './llm.ts'
+import { createTurnOrchestrator } from './llm-config.ts'
 import { extractReservationDetails, resolveReservationDateTime } from './date-resolver.ts'
 import { AppError } from '../errors.ts'
 import { getConciergeFeatureFlags } from './flags.ts'
@@ -1739,7 +1739,8 @@ export async function processConciergeTurn(
       }
 
       // 5. Connect Single LLM Orchestrator (AT11 / AT12)
-      const orchestrator = ctx.orchestrator || new ConciergeLlmOrchestrator()
+      // DB-driven shared config wins when admin enabled it; otherwise env/stub.
+      const orchestrator = await createTurnOrchestrator(ctx.pool, ctx.orchestrator)
       const llmResult = await orchestrator.orchestrateTurn(
         rawMessage,
         state.messages,
