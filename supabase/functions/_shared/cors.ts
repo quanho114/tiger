@@ -9,6 +9,7 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:4173',
   'https://tiger345.vn',
   'https://www.tiger345.vn',
+  'https://tiger-alpha-five.vercel.app',
 ]
 
 export function getCorsHeaders(req: Request): HeadersInit {
@@ -16,7 +17,8 @@ export function getCorsHeaders(req: Request): HeadersInit {
   const isAllowed =
     ALLOWED_ORIGINS.includes(origin) ||
     origin.startsWith('http://localhost:') ||
-    origin.startsWith('http://127.0.0.1:')
+    origin.startsWith('http://127.0.0.1:') ||
+    origin.endsWith('.vercel.app')
 
   return {
     'Access-Control-Allow-Origin': isAllowed ? origin : ALLOWED_ORIGINS[0],
