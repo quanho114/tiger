@@ -17,6 +17,7 @@ import {
 import { adminApi } from '../../../lib/api/client'
 import { useAdmin } from '../layout/AdminContext'
 import { ReceiptModal } from '../components/ReceiptModal'
+import { AdminLoading } from '../components/AdminLoading'
 import type {
   AdminDashboardData,
   AdminTableItem,
@@ -183,12 +184,7 @@ export const AdminDashboardPage: FC = () => {
   }
 
   if (isLoading && !data) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24">
-        <div className="w-8 h-8 border-2 border-[#7cd56e] border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-xs font-medium text-[#787979]">Đang đồng bộ dữ liệu vận hành Tiger 345...</p>
-      </div>
-    )
+    return <AdminLoading variant="screen" label="Đang đồng bộ dữ liệu vận hành Tiger 345..." />
   }
 
   if (error && !data) {

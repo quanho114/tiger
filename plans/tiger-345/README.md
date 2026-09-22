@@ -1,5 +1,9 @@
 # Tiger 345 — bộ tài liệu giao việc
 
+Kế hoạch mở rộng chatbot ngày 2026-09-22: [Concierge V2 — session, memory và draft cart](concierge-v2/README.md).
+Bộ này có 18 task chi tiết; trạng thái PLANNED, chưa triển khai. Các quyết định V2 về chatbot
+được ưu tiên so với kế hoạch concierge cũ khi thực hiện những task đó.
+
 Ngày lập: 2026-09-19. Chỉ có review và kế hoạch; chưa triển khai hệ thống.
 Áp dụng cấu trúc lập kế hoạch từ skill ECC blueprint; theo yêu cầu tiết kiệm quota của user,
 không gọi sub-agent. Bộ tài liệu đã tự kiểm tra, chưa có review độc lập sau coding.

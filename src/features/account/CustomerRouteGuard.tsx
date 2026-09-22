@@ -8,7 +8,7 @@ interface CustomerRouteGuardProps {
 }
 
 export function CustomerRouteGuard({ children }: CustomerRouteGuardProps) {
-  const { user, isLoading } = useAuth()
+  const { user, role, isLoading } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
@@ -23,6 +23,11 @@ export function CustomerRouteGuard({ children }: CustomerRouteGuardProps) {
   if (!user) {
     const returnTo = encodeURIComponent(location.pathname + location.search)
     return <Navigate to={`/login?returnTo=${returnTo}`} replace />
+  }
+
+  // Admin users should not see customer account dashboards; redirect to /admin
+  if (role === 'admin') {
+    return <Navigate to="/admin" replace />
   }
 
   return children ? <>{children}</> : null

@@ -15,6 +15,7 @@ import { ReservationPage } from './pages/ReservationPage';
 import { LocationPage } from './pages/LocationPage';
 import { TableResolvePage } from './features/table-session';
 import { LoginPage, AuthCallbackPage } from './features/auth';
+import { AdminLoading } from './features/admin/components/AdminLoading';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Protected Customer Account Routes (lazy loaded for bundle efficiency)
@@ -42,9 +43,7 @@ const AdminAccountsPage = lazy(() => import('./features/admin/accounts/AdminAcco
 const AdminSettingsPage = lazy(() => import('./features/admin/settings/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage })));
 
 const RouteFallback: FC = () => (
-  <div className="flex items-center justify-center min-h-[40vh] py-12">
-    <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
-  </div>
+  <AdminLoading variant="screen" label="Đang tải trang..." />
 );
 
 /** Calm route change: start at top on every navigation. */
@@ -96,11 +95,11 @@ const PublicShell: FC = () => {
                 </CustomerRouteGuard>
               }
             >
-              <Route index element={<Suspense fallback={<RouteFallback />}><AccountOverviewPage /></Suspense>} />
-              <Route path="orders" element={<Suspense fallback={<RouteFallback />}><AccountOrdersPage /></Suspense>} />
-              <Route path="reservations" element={<Suspense fallback={<RouteFallback />}><AccountReservationsPage /></Suspense>} />
-              <Route path="addresses" element={<Suspense fallback={<RouteFallback />}><AccountAddressesPage /></Suspense>} />
-              <Route path="favorites" element={<Suspense fallback={<RouteFallback />}><AccountFavoritesPage /></Suspense>} />
+              <Route index element={<AccountOverviewPage />} />
+              <Route path="orders" element={<AccountOrdersPage />} />
+              <Route path="reservations" element={<AccountReservationsPage />} />
+              <Route path="addresses" element={<AccountAddressesPage />} />
+              <Route path="favorites" element={<AccountFavoritesPage />} />
               <Route path="profile" element={<Suspense fallback={<RouteFallback />}><AccountProfilePage /></Suspense>} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -155,15 +154,15 @@ const AppRoutes: FC = () => {
             </ErrorBoundary>
           }
         >
-          <Route index element={<Suspense fallback={<RouteFallback />}><AdminDashboardPage /></Suspense>} />
-          <Route path="orders" element={<Suspense fallback={<RouteFallback />}><AdminOrdersPage /></Suspense>} />
-          <Route path="reservations" element={<Suspense fallback={<RouteFallback />}><AdminReservationsPage /></Suspense>} />
-          <Route path="tables" element={<Suspense fallback={<RouteFallback />}><AdminTablesPage /></Suspense>} />
-          <Route path="invoices" element={<Suspense fallback={<RouteFallback />}><AdminInvoicesPage /></Suspense>} />
-          <Route path="menu" element={<Suspense fallback={<RouteFallback />}><AdminMenuPage /></Suspense>} />
-          <Route path="reports" element={<Suspense fallback={<RouteFallback />}><AdminReportsPage /></Suspense>} />
-          <Route path="accounts" element={<Suspense fallback={<RouteFallback />}><AdminAccountsPage /></Suspense>} />
-          <Route path="settings" element={<Suspense fallback={<RouteFallback />}><AdminSettingsPage /></Suspense>} />
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
+          <Route path="reservations" element={<AdminReservationsPage />} />
+          <Route path="tables" element={<AdminTablesPage />} />
+          <Route path="invoices" element={<AdminInvoicesPage />} />
+          <Route path="menu" element={<AdminMenuPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="accounts" element={<AdminAccountsPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
 
         {/* Public Customer Shell & Routes */}

@@ -13,6 +13,7 @@ import {
 import { adminApi } from '../../../lib/api/client'
 import { useAdmin } from '../layout/AdminContext'
 import { AdminOrderDetailModal } from './AdminOrderDetailModal'
+import { AdminLoading } from '../components/AdminLoading'
 import type { AdminOrderSummary, OrderStatus, OrderType } from '../types'
 
 export const AdminOrdersPage: FC = () => {
@@ -144,6 +145,10 @@ export const AdminOrdersPage: FC = () => {
     }
   }
 
+  if (isLoading && orders.length === 0) {
+    return <AdminLoading variant="screen" label="Đang tải danh sách đơn hàng..." />
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Page Title & Counter */}
@@ -225,12 +230,7 @@ export const AdminOrdersPage: FC = () => {
 
       {/* Orders Table (Elera Card Table) */}
       <div className="bg-white border border-[#e2e3e3] rounded-2xl shadow-sm overflow-hidden">
-        {isLoading && orders.length === 0 ? (
-          <div className="py-20 flex flex-col items-center justify-center text-[#787979]">
-            <div className="w-8 h-8 border-2 border-[#7cd56e] border-t-transparent rounded-full animate-spin mb-3" />
-            <p className="text-xs">Đang tải danh sách đơn hàng...</p>
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="py-12 px-4 text-center">
             <p className="text-xs text-rose-600 mb-3">{error}</p>
             <button

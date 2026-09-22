@@ -25,6 +25,7 @@ import {
   type ReservationStatus,
 } from '@/features/reservations'
 import { getVietnamNow } from '@/lib/validation'
+import { AdminLoading } from '../components/AdminLoading'
 
 export const AdminReservationsPage: FC = () => {
   const { refreshKey, triggerRefresh } = useAdmin()
@@ -260,13 +261,13 @@ export const AdminReservationsPage: FC = () => {
         )
       case 'rejected':
         return (
-          <span className="inline-flex items-center gap-1 bg-rose-950/80 text-rose-300 border border-rose-800/80 px-2.5 py-0.5 rounded-full font-medium text-xs">
+          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-0.5 rounded-full font-medium text-xs">
             <XCircle size={12} /> Từ chối
           </span>
         )
       case 'cancelled':
         return (
-          <span className="inline-flex items-center gap-1 bg-stone-900 text-stone-400 border border-stone-800 px-2.5 py-0.5 rounded-full font-medium text-xs">
+          <span className="inline-flex items-center gap-1 bg-white text-slate-500 border border-slate-200 px-2.5 py-0.5 rounded-full font-medium text-xs">
             Đã hủy
           </span>
         )
@@ -292,23 +293,27 @@ export const AdminReservationsPage: FC = () => {
     }
   }
 
+  if (isLoading && reservations.length === 0) {
+    return <AdminLoading variant="screen" label="Đang tải danh sách đặt bàn..." />
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Title & Quick Refresh */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-stone-100 flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2.5">
             <Calendar className="text-amber-500" size={24} />
             <span>Quản lý Đặt bàn (Reservations)</span>
           </h1>
-          <p className="text-stone-400 text-xs mt-1">
+          <p className="text-slate-500 text-xs mt-1">
             Theo dõi yêu cầu đặt bàn, xếp chỗ, liên hệ xác nhận & kiểm soát trạng thái theo lượt
           </p>
         </div>
 
         <button
           onClick={triggerRefresh}
-          className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 border border-stone-800 text-stone-300 text-xs font-medium transition-colors cursor-pointer"
+          className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 text-xs font-medium transition-colors cursor-pointer"
         >
           <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
           <span>Làm mới</span>
@@ -316,12 +321,12 @@ export const AdminReservationsPage: FC = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-stone-900/90 border border-stone-800/90 rounded-2xl p-4 space-y-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-4">
         <div className="flex flex-wrap items-center gap-3">
           {/* Date Selector */}
-          <div className="flex items-center gap-2 bg-stone-950 border border-stone-800 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
             <Calendar size={15} className="text-amber-500" />
-            <label htmlFor="resv-date" className="text-xs text-stone-400 font-medium">
+            <label htmlFor="resv-date" className="text-xs text-slate-500 font-medium">
               Ngày:
             </label>
             <input
@@ -329,7 +334,7 @@ export const AdminReservationsPage: FC = () => {
               type="date"
               value={date}
               onChange={(e) => handleDateChange(e.target.value)}
-              className="bg-transparent text-xs text-stone-100 focus:outline-none"
+              className="bg-transparent text-xs text-slate-800 focus:outline-none"
             />
           </div>
 
@@ -337,7 +342,7 @@ export const AdminReservationsPage: FC = () => {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => handleDateChange(getVietnamNow().isoDate)}
-              className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 transition-colors"
+              className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
             >
               Hôm nay
             </button>
@@ -346,7 +351,7 @@ export const AdminReservationsPage: FC = () => {
                 const tm = new Date(Date.now() + 86400000)
                 handleDateChange(tm.toISOString().slice(0, 10))
               }}
-              className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 transition-colors"
+              className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
             >
               Ngày mai
             </button>
@@ -361,12 +366,12 @@ export const AdminReservationsPage: FC = () => {
                 placeholder="Tìm theo mã đặt bàn hoặc tên khách..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-stone-950 border border-stone-800 rounded-xl pl-9 pr-3 py-2 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-stone-500 focus:outline-none focus:border-amber-500/50"
               />
             </div>
             <button
               type="submit"
-              className="px-3 py-2 text-xs font-semibold bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-xl transition-colors"
+              className="px-3 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors"
             >
               Tìm
             </button>
@@ -393,7 +398,7 @@ export const AdminReservationsPage: FC = () => {
               className={`px-3 py-1.5 rounded-lg whitespace-nowrap font-medium transition-all ${
                 statusFilter === tab.id
                   ? 'bg-amber-500 text-stone-950 font-semibold shadow-xs'
-                  : 'bg-stone-950 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+                  : 'bg-slate-50 text-slate-500 hover:text-slate-700 hover:bg-slate-100'
               }`}
             >
               {tab.label}
@@ -404,17 +409,17 @@ export const AdminReservationsPage: FC = () => {
 
       {/* Error Notice */}
       {error && (
-        <div className="p-4 bg-rose-950/60 border border-rose-800 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
           <AlertCircle size={15} className="shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Table of Reservations */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-stone-950/80 text-stone-400 uppercase tracking-wider font-semibold border-b border-stone-800">
+            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">Mã đặt bàn</th>
                 <th className="px-4 py-3">Khách hàng</th>
@@ -426,7 +431,7 @@ export const AdminReservationsPage: FC = () => {
                 <th className="px-4 py-3 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-800/60">
+            <tbody className="divide-y divide-slate-200">
               {isLoading ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-stone-500">
@@ -444,31 +449,31 @@ export const AdminReservationsPage: FC = () => {
                 reservations.map((resv) => (
                   <tr
                     key={resv.id}
-                    className="hover:bg-stone-800/40 transition-colors cursor-pointer"
+                    className="hover:bg-slate-100 transition-colors cursor-pointer"
                     onClick={() => openDetail(resv.id)}
                   >
-                    <td className="px-4 py-3 font-mono font-bold text-amber-400">
+                    <td className="px-4 py-3 font-mono font-bold text-amber-600">
                       {resv.code}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-stone-100">{resv.customer_name}</div>
-                      <div className="text-stone-400 font-mono text-[11px]">{resv.customer_phone}</div>
+                      <div className="font-semibold text-slate-900">{resv.customer_name}</div>
+                      <div className="text-slate-500 font-mono text-[11px]">{resv.customer_phone}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-semibold text-stone-100">
+                      <span className="font-semibold text-slate-900">
                         {formatVnDateTime(resv.starts_at)}
                       </span>
-                      <span className="text-stone-400 block text-[11px]">
+                      <span className="text-slate-500 block text-[11px]">
                         kết thúc ~{formatVnDateTime(resv.ends_at)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 font-semibold text-stone-200">
-                        <Users size={12} className="text-amber-500/80" />
+                      <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
+                        <Users size={12} className="text-amber-600/80" />
                         {resv.guest_count}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-stone-300">
+                    <td className="px-4 py-3 text-slate-600">
                       {resv.area_name_snapshot || 'Tùy chọn quán'}
                     </td>
                     <td className="px-4 py-3">
@@ -490,7 +495,7 @@ export const AdminReservationsPage: FC = () => {
                           e.stopPropagation()
                           openDetail(resv.id)
                         }}
-                        className="px-2.5 py-1 rounded bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium transition-colors"
+                        className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition-colors"
                       >
                         Chi tiết
                       </button>
@@ -505,18 +510,18 @@ export const AdminReservationsPage: FC = () => {
 
       {/* Reservation Detail Modal */}
       {selectedId && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-6">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-6">
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-stone-800">
+            <div className="flex items-start justify-between pb-4 border-b border-slate-200">
               <div>
                 <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-bold text-stone-100 font-mono">
+                  <h3 className="text-xl font-bold text-slate-900 font-mono">
                     {selectedResv?.code || 'Đang tải...'}
                   </h3>
                   {selectedResv && getStatusBadge(selectedResv.status)}
                 </div>
-                <p className="text-xs text-stone-400 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Phiên bản: v{selectedResv?.version} · Tạo lúc:{' '}
                   {selectedResv?.created_at ? new Date(selectedResv.created_at).toLocaleString('vi-VN') : ''}
                 </p>
@@ -524,7 +529,7 @@ export const AdminReservationsPage: FC = () => {
               <button
                 type="button"
                 onClick={closeDetail}
-                className="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-400 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
               >
                 <X size={16} />
               </button>
@@ -539,7 +544,7 @@ export const AdminReservationsPage: FC = () => {
               <div className="space-y-6">
                 {/* Feedback Alerts */}
                 {detailActionError && (
-                  <div className="p-3.5 bg-rose-950/70 border border-rose-800 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
                     <AlertCircle size={15} className="shrink-0" />
                     <span>{detailActionError}</span>
                   </div>
@@ -552,10 +557,10 @@ export const AdminReservationsPage: FC = () => {
                 )}
 
                 {/* Main Information Card */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-stone-950 rounded-2xl border border-stone-800/80 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
                   <div>
                     <span className="text-stone-500 block mb-0.5">Khách hàng</span>
-                    <strong className="text-stone-100 text-sm font-semibold block">
+                    <strong className="text-slate-900 text-sm font-semibold block">
                       {selectedResv.customer_name}
                     </strong>
                     <a
@@ -568,17 +573,17 @@ export const AdminReservationsPage: FC = () => {
 
                   <div>
                     <span className="text-stone-500 block mb-0.5">Thời gian dùng bữa</span>
-                    <strong className="text-stone-100 font-semibold block">
+                    <strong className="text-slate-900 font-semibold block">
                       {formatVnDateTime(selectedResv.starts_at)}
                     </strong>
-                    <span className="text-stone-400 text-[11px]">
+                    <span className="text-slate-500 text-[11px]">
                       {new Date(selectedResv.starts_at).toLocaleDateString('vi-VN')}
                     </span>
                   </div>
 
                   <div>
                     <span className="text-stone-500 block mb-0.5">Số lượng khách</span>
-                    <strong className="text-stone-100 text-sm font-semibold flex items-center gap-1">
+                    <strong className="text-slate-900 text-sm font-semibold flex items-center gap-1">
                       <Users size={13} className="text-amber-500" />
                       {selectedResv.guest_count} người
                     </strong>
@@ -586,7 +591,7 @@ export const AdminReservationsPage: FC = () => {
 
                   <div>
                     <span className="text-stone-500 block mb-0.5">Khu vực ưu tiên</span>
-                    <strong className="text-stone-100 font-semibold">
+                    <strong className="text-slate-900 font-semibold">
                       {selectedResv.area_name_snapshot || 'Mặc định'}
                     </strong>
                   </div>
@@ -594,15 +599,15 @@ export const AdminReservationsPage: FC = () => {
 
                 {/* Customer Request Note */}
                 {selectedResv.note && (
-                  <div className="p-3.5 bg-stone-950/60 border border-stone-800/60 rounded-xl text-xs space-y-1">
-                    <span className="font-semibold text-stone-400">Ghi chú từ khách:</span>
-                    <p className="text-stone-200">{selectedResv.note}</p>
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
+                    <span className="font-semibold text-slate-500">Ghi chú từ khách:</span>
+                    <p className="text-slate-700">{selectedResv.note}</p>
                   </div>
                 )}
 
                 {/* State Transition Actions */}
-                <div className="p-4 bg-stone-950 border border-stone-800/80 rounded-2xl space-y-3">
-                  <h4 className="text-xs font-bold text-stone-300 uppercase tracking-wider">
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                  <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                     Thao tác chuyển trạng thái
                   </h4>
 
@@ -622,7 +627,7 @@ export const AdminReservationsPage: FC = () => {
                         type="button"
                         disabled={isSubmittingAction}
                         onClick={() => setShowRejectInput(!showRejectInput)}
-                        className="px-4 py-2 rounded-xl bg-rose-900/60 hover:bg-rose-800/80 text-rose-200 font-semibold text-xs border border-rose-800/80 transition-colors flex items-center gap-1.5 cursor-pointer"
+                        className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs border border-rose-200 transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <XCircle size={14} />
                         <span>Từ chối</span>
@@ -632,7 +637,7 @@ export const AdminReservationsPage: FC = () => {
                         type="button"
                         disabled={isSubmittingAction}
                         onClick={() => handleTransition('cancelled', 'Quán hủy theo yêu cầu')}
-                        className="px-3 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-medium text-xs transition-colors cursor-pointer"
+                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors cursor-pointer"
                       >
                         Hủy
                       </button>
@@ -646,7 +651,7 @@ export const AdminReservationsPage: FC = () => {
                         placeholder="Nhập lý do từ chối (hết bàn, sự cố...)"
                         value={rejectionReason}
                         onChange={(e) => setRejectionReason(e.target.value)}
-                        className="flex-1 bg-stone-900 border border-rose-800/80 rounded-xl px-3 py-2 text-xs text-stone-100 placeholder-stone-500 focus:outline-none"
+                        className="flex-1 bg-white border border-rose-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-stone-500 focus:outline-none"
                       />
                       <button
                         type="button"
@@ -685,7 +690,7 @@ export const AdminReservationsPage: FC = () => {
                         type="button"
                         disabled={isSubmittingAction}
                         onClick={() => handleTransition('cancelled', 'Khách báo hủy bàn')}
-                        className="px-3 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 font-medium text-xs transition-colors cursor-pointer"
+                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition-colors cursor-pointer"
                       >
                         Hủy bàn
                       </button>
@@ -716,10 +721,10 @@ export const AdminReservationsPage: FC = () => {
                 {/* Contact Outcome Tracker */}
                 <form
                   onSubmit={handleSaveContact}
-                  className="p-4 bg-stone-950 border border-stone-800/80 rounded-2xl space-y-2.5"
+                  className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5"
                 >
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-stone-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                       <PhoneCall size={13} className="text-amber-500" />
                       <span>Ghi nhận liên hệ khách hàng</span>
                     </label>
@@ -736,12 +741,12 @@ export const AdminReservationsPage: FC = () => {
                       placeholder="Ví dụ: Đã gọi xác nhận 6 người lớn, chuẩn bị hoa..."
                       value={contactOutcomeInput}
                       onChange={(e) => setContactOutcomeInput(e.target.value)}
-                      className="flex-1 bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50"
+                      className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-stone-500 focus:outline-none focus:border-amber-500/50"
                     />
                     <button
                       type="submit"
                       disabled={isSubmittingAction || !contactOutcomeInput.trim()}
-                      className="px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       Lưu liên hệ
                     </button>
@@ -751,9 +756,9 @@ export const AdminReservationsPage: FC = () => {
                 {/* Internal Note */}
                 <form
                   onSubmit={handleSaveNote}
-                  className="p-4 bg-stone-950 border border-stone-800/80 rounded-2xl space-y-2.5"
+                  className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5"
                 >
-                  <label className="text-xs font-bold text-stone-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
                     <Edit3 size={13} className="text-amber-500" />
                     <span>Ghi chú nội bộ quán (Bàn xếp, yêu cầu nhân viên)</span>
                   </label>
@@ -764,12 +769,12 @@ export const AdminReservationsPage: FC = () => {
                       placeholder="Ví dụ: Xếp bàn số 4 khu sảnh trệt gần hồ cá..."
                       value={internalNoteInput}
                       onChange={(e) => setInternalNoteInput(e.target.value)}
-                      className="flex-1 bg-stone-900 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50"
+                      className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-stone-500 focus:outline-none focus:border-amber-500/50"
                     />
                     <button
                       type="submit"
                       disabled={isSubmittingAction}
-                      className="px-3.5 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       Lưu ghi chú
                     </button>

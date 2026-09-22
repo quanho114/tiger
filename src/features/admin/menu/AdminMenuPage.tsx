@@ -10,6 +10,7 @@ import {
   X,
   Star,
   Flame,
+  MoreHorizontal,
 } from 'lucide-react'
 import type { AdminMenuItem, AdminCategory } from '../types'
 
@@ -121,6 +122,15 @@ export const AdminMenuPage: FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'out_of_stock'>('all')
 
+  // Toast notification
+  const [notification, setNotification] = useState<string | null>(null)
+  const showToast = (msg: string) => {
+    setNotification(msg)
+    setTimeout(() => {
+      setNotification((prev) => (prev === msg ? null : prev))
+    }, 3200)
+  }
+
   // Edit / Add Modal state
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
   const [editingItem, setEditingItem] = useState<AdminMenuItem | null>(null)
@@ -139,7 +149,14 @@ export const AdminMenuPage: FC = () => {
   // Fast toggle availability (Còn món / Hết món)
   const handleToggleAvailable = (itemId: string) => {
     setMenuItems((prev) =>
-      prev.map((item) => (item.id === itemId ? { ...item, available: !item.available } : item))
+      prev.map((item) => {
+        if (item.id === itemId) {
+          const nextState = !item.available
+          showToast(`Đã chuyển "${item.name}" sang trạng thái: ${nextState ? 'Còn món' : 'Hết món'}`)
+          return { ...item, available: nextState }
+        }
+        return item
+      })
     )
   }
 
@@ -195,6 +212,7 @@ export const AdminMenuPage: FC = () => {
             : item
         )
       )
+      showToast(`Đã cập nhật món "${modalForm.name}"`)
     } else {
       const newItem: AdminMenuItem = {
         id: `item-${Date.now()}`,
@@ -205,6 +223,7 @@ export const AdminMenuPage: FC = () => {
         version: 1,
       }
       setMenuItems((prev) => [newItem, ...prev])
+      showToast(`Đã thêm món mới "${modalForm.name}" vào thực đơn`)
     }
 
     setIsModalOpen(false)
@@ -233,16 +252,33 @@ export const AdminMenuPage: FC = () => {
   }, [menuItems, selectedCategory, availabilityFilter, searchQuery])
 
   const outOfStockCount = menuItems.filter((i) => !i.available).length
+  const availableCount = menuItems.filter((i) => i.available).length
+
+  // Elera tactile multi-layer shadow
+  const eleraCardShadow = '0 1px 1px rgba(0,0,0,.06), 0 3px 3px rgba(0,0,0,.06), 0 6px 6px rgba(0,0,0,.06), 0 12px 12px rgba(0,0,0,.04), 0 24px 24px rgba(0,0,0,.04)'
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 font-sans tracking-[-0.01em]">
+      {/* Toast Notification */}
+      {notification && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#2b2e2c] text-white text-xs px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-2.5 border border-stone-700 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-[#7cd56e] shrink-0" />
+          <span>{notification}</span>
+        </div>
+      )}
+
+      {/* Header bar phong cách Elera */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            Quản lý Thực đơn & Bếp
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <div className="flex items-center space-x-2.5">
+            <h1 className="text-[20px] font-medium tracking-[-0.25px] text-[#171a17]">
+              Quản lý Thực đơn & Bếp
+            </h1>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-[6px] text-[11px] font-medium bg-[#e4f7c6] text-[#3e6300]">
+              {menuItems.length} món hoạt động
+            </span>
+          </div>
+          <p className="text-[12px] text-[#787979] mt-0.5">
             Bật/tắt trạng thái Còn món - Hết món nhanh trong ca và điều chỉnh giá bán
           </p>
         </div>
@@ -250,18 +286,69 @@ export const AdminMenuPage: FC = () => {
         <button
           type="button"
           onClick={handleOpenCreate}
-          className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-xs self-start sm:self-auto"
+          className="inline-flex items-center space-x-1.5 px-4 py-2 bg-[#2b2e2c] hover:bg-black text-white rounded-[12px] text-xs font-medium transition active:scale-95 shadow-xs self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-[#7cd56e]" />
           <span>Thêm món mới</span>
         </button>
       </div>
 
+      {/* 4 KPI Overview Strip giống Elera */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div
+          style={{ boxShadow: eleraCardShadow }}
+          className="bg-white rounded-[20px] p-4 border border-[#e2e3e3]/50"
+        >
+          <span className="text-[12px] font-medium text-[#787979]">Tổng số món</span>
+          <p className="text-[22px] font-semibold font-mono tracking-tight text-[#171a17] mt-1.5">
+            {menuItems.length}
+            <span className="text-[13px] font-normal text-[#787979] ml-1">món</span>
+          </p>
+          <p className="text-[11px] text-[#787979] mt-1">Đầy đủ 6 danh mục chính</p>
+        </div>
+
+        <div
+          style={{ boxShadow: eleraCardShadow }}
+          className="bg-white rounded-[20px] p-4 border border-[#e2e3e3]/50"
+        >
+          <span className="text-[12px] font-medium text-[#787979]">Đang phục vụ</span>
+          <p className="text-[22px] font-semibold font-mono tracking-tight text-[#2e5b15] mt-1.5">
+            {availableCount}
+            <span className="text-[13px] font-normal text-[#787979] ml-1">món</span>
+          </p>
+          <p className="text-[11px] text-[#2e5b15] mt-1">Sẵn sàng gọi tại bàn & giao đi</p>
+        </div>
+
+        <div
+          style={{ boxShadow: eleraCardShadow }}
+          className="bg-white rounded-[20px] p-4 border border-[#e2e3e3]/50"
+        >
+          <span className="text-[12px] font-medium text-[#787979]">Tạm hết món</span>
+          <p className="text-[22px] font-semibold font-mono tracking-tight text-[#c93424] mt-1.5">
+            {outOfStockCount}
+            <span className="text-[13px] font-normal text-[#787979] ml-1">món</span>
+          </p>
+          <p className="text-[11px] text-[#c93424] mt-1">Đã ẩn trên máy gọi món QR</p>
+        </div>
+
+        <div
+          style={{ boxShadow: eleraCardShadow }}
+          className="bg-white rounded-[20px] p-4 border border-[#e2e3e3]/50"
+        >
+          <span className="text-[12px] font-medium text-[#787979]">Danh mục</span>
+          <p className="text-[22px] font-semibold font-mono tracking-tight text-[#171a17] mt-1.5">
+            {SAMPLE_CATEGORIES.length - 1}
+            <span className="text-[13px] font-normal text-[#787979] ml-1">nhóm</span>
+          </p>
+          <p className="text-[11px] text-[#787979] mt-1">Phân luồng ra món theo trạm bếp</p>
+        </div>
+      </div>
+
       {/* Operational Notice if items are Out of Stock */}
       {outOfStockCount > 0 && (
-        <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl flex items-center justify-between text-xs text-amber-900">
-          <div className="flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+        <div className="p-3.5 bg-[#fef9ee] border border-[#f5e6c4] rounded-[16px] flex items-center justify-between text-xs text-[#8c5e00] shadow-2xs">
+          <div className="flex items-center space-x-2.5">
+            <AlertCircle className="w-4 h-4 text-[#d97706] shrink-0" />
             <span>
               Hiện có <strong>{outOfStockCount} món</strong> đang tạm báo <strong>Hết món</strong> trên hệ thống đặt món online và QR tại bàn.
             </span>
@@ -269,7 +356,7 @@ export const AdminMenuPage: FC = () => {
           <button
             type="button"
             onClick={() => setAvailabilityFilter('out_of_stock')}
-            className="text-[11px] font-semibold text-amber-800 underline hover:text-amber-900 ml-4 whitespace-nowrap"
+            className="text-[11px] font-medium text-[#b45309] hover:underline ml-4 whitespace-nowrap"
           >
             Xem danh sách hết món
           </button>
@@ -277,60 +364,87 @@ export const AdminMenuPage: FC = () => {
       )}
 
       {/* Controls Bar: Search & Category Pills */}
-      <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-2xs space-y-4">
+      <div
+        style={{ boxShadow: eleraCardShadow }}
+        className="bg-white rounded-[20px] p-4.5 border border-[#e2e3e3]/50 space-y-4"
+      >
         {/* Search and Availability Filter */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-[#8a8f89] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Tìm tên món ăn, đồ uống..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full pl-10 pr-3.5 py-2 text-xs bg-[#f6f5f3] hover:bg-[#f1f1ee] focus:bg-white border border-[#e2e3e3] rounded-[12px] text-[#171a17] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 transition"
             />
           </div>
 
-          <div className="flex items-center space-x-1.5 self-start sm:self-auto text-xs">
-            <span className="text-slate-400 text-[11px] mr-1">Trạng thái:</span>
+          <div className="flex items-center space-x-2 self-start sm:self-auto text-xs">
+            <span className="text-[#8a8f89] text-[11px] mr-0.5">Trạng thái:</span>
             <button
               type="button"
+              aria-label="Lọc tất cả món"
               onClick={() => setAvailabilityFilter('all')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition flex items-center space-x-1.5 ${
                 availabilityFilter === 'all'
-                  ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-200/60'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  ? 'bg-[#2b2e2c] text-white shadow-xs'
+                  : 'bg-white hover:bg-[#faf9f7] text-[#5c5e63] border border-[#e2e3e3]'
               }`}
             >
-              Tất cả ({menuItems.length})
+              <span>Tất cả</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-semibold ${
+                  availabilityFilter === 'all' ? 'bg-white/20 text-white' : 'bg-[#e4f7c6] text-[#2e5b15]'
+                }`}
+              >
+                {menuItems.length}
+              </span>
             </button>
             <button
               type="button"
+              aria-label="Lọc còn món"
               onClick={() => setAvailabilityFilter('available')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition flex items-center space-x-1.5 ${
                 availabilityFilter === 'available'
-                  ? 'bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/60'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  ? 'bg-[#2b2e2c] text-white shadow-xs'
+                  : 'bg-white hover:bg-[#faf9f7] text-[#5c5e63] border border-[#e2e3e3]'
               }`}
             >
-              Còn món ({menuItems.filter((i) => i.available).length})
+              <span>Còn món</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-semibold ${
+                  availabilityFilter === 'available' ? 'bg-white/20 text-white' : 'bg-[#e4f7c6] text-[#2e5b15]'
+                }`}
+              >
+                {availableCount}
+              </span>
             </button>
             <button
               type="button"
+              aria-label="Lọc hết món"
               onClick={() => setAvailabilityFilter('out_of_stock')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition flex items-center space-x-1.5 ${
                 availabilityFilter === 'out_of_stock'
-                  ? 'bg-rose-50 text-rose-700 font-semibold border border-rose-200/60'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  ? 'bg-[#2b2e2c] text-white shadow-xs'
+                  : 'bg-white hover:bg-[#faf9f7] text-[#5c5e63] border border-[#e2e3e3]'
               }`}
             >
-              Hết món ({outOfStockCount})
+              <span>Hết món</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-semibold ${
+                  availabilityFilter === 'out_of_stock' ? 'bg-white/20 text-white' : 'bg-[#fceae6] text-[#c93424]'
+                }`}
+              >
+                {outOfStockCount}
+              </span>
             </button>
           </div>
         </div>
 
         {/* Categories Horizontal Scroll */}
-        <div className="flex items-center space-x-2 overflow-x-auto pb-1 border-t border-slate-100 pt-3">
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1 border-t border-[#f0f0ee] pt-3.5">
           {SAMPLE_CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat.id
             return (
@@ -338,10 +452,10 @@ export const AdminMenuPage: FC = () => {
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition ${
+                className={`px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition font-medium ${
                   isSelected
-                    ? 'bg-blue-600 text-white font-semibold shadow-2xs'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/70 font-medium'
+                    ? 'bg-[#2b2e2c] text-white shadow-xs font-semibold'
+                    : 'bg-white hover:bg-[#faf9f7] text-[#5c5e63] border border-[#e2e3e3]'
                 }`}
               >
                 {cat.name}
@@ -351,70 +465,98 @@ export const AdminMenuPage: FC = () => {
         </div>
       </div>
 
-      {/* Menu Items Table */}
-      <div className="bg-white border border-slate-200/80 rounded-xl shadow-2xs overflow-hidden">
+      {/* Menu Items Table Card */}
+      <div
+        style={{ boxShadow: eleraCardShadow }}
+        className="bg-white rounded-[20px] border border-[#e2e3e3]/50 overflow-hidden"
+      >
+        {/* Table Header Row */}
+        <div className="px-5 py-4 border-b border-[#f0f0ee] flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-[10px] bg-[#424242] text-white flex items-center justify-center shadow-xs">
+              <Utensils className="w-4 h-4 text-[#7cd56e]" />
+            </div>
+            <div>
+              <h2 className="text-[15.5px] font-medium tracking-[-0.25px] text-[#171a17]">
+                Danh Sách Món Thực Đơn
+              </h2>
+              <p className="text-[11px] text-[#8a8f89]">
+                Cập nhật bảng giá và trạng thái phục vụ thời gian thực
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => showToast('Mở tùy chọn bảng thực đơn')}
+            className="w-7 h-7 rounded-lg hover:bg-stone-100 flex items-center justify-center text-[#8e9094] transition"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase bg-slate-50/50">
-                <th className="py-3 px-4 font-medium">Tên món & Mô tả</th>
-                <th className="py-3 px-4 font-medium">Danh mục</th>
-                <th className="py-3 px-4 font-medium">Đơn giá</th>
-                <th className="py-3 px-4 font-medium">Kênh phục vụ</th>
-                <th className="py-3 px-4 font-medium text-center">Bật/Tắt Còn món</th>
-                <th className="py-3 px-4 font-medium text-right">Thao tác</th>
+              <tr className="border-b border-[#f0f0ee] text-[12px] font-normal text-[#8a8f89] bg-[#faf9f7]">
+                <th className="py-3 px-5 font-normal">Tên món & Mô tả</th>
+                <th className="py-3 px-4 font-normal">Danh mục</th>
+                <th className="py-3 px-4 font-normal">Đơn giá</th>
+                <th className="py-3 px-4 font-normal">Kênh phục vụ</th>
+                <th className="py-3 px-4 font-normal text-center">Bật/Tắt Còn món</th>
+                <th className="py-3 px-5 font-normal text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-[#f7f6f4] text-[#171a17]">
               {filteredItems.map((item) => {
                 const isAvailable = item.available
 
                 return (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3.5 px-4 max-w-xs">
+                  <tr key={item.id} className="hover:bg-[#faf9f7] transition group">
+                    <td className="py-3.5 px-5 max-w-sm">
                       <div className="space-y-0.5">
-                        <div className="flex items-center space-x-1.5 flex-wrap">
-                          <span className="font-bold text-slate-900 text-sm">{item.name}</span>
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <span className="font-medium text-[#171a17] text-[13.5px]">{item.name}</span>
                           {item.is_signature && (
-                            <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200/60 text-[9px] font-bold">
-                              <Star className="w-2.5 h-2.5 text-blue-600" />
+                            <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-[5px] bg-[#edf3fd] text-[#3d78e3] text-[10px] font-medium">
+                              <Star className="w-2.5 h-2.5 text-[#3d78e3]" />
                               <span>Đặc sản</span>
                             </span>
                           )}
                           {item.is_bestseller && (
-                            <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/60 text-[9px] font-bold">
-                              <Flame className="w-2.5 h-2.5 text-amber-600" />
+                            <span className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-[5px] bg-[#fef3c7] text-[#92400e] text-[10px] font-medium">
+                              <Flame className="w-2.5 h-2.5 text-amber-500" />
                               <span>Bán chạy</span>
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-slate-400 line-clamp-1">
+                        <p className="text-[11.5px] text-[#787979] line-clamp-1">
                           {item.description}
                         </p>
                       </div>
                     </td>
 
                     <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-[6px] text-[11px] font-medium bg-[#f1f1ee] text-[#555]">
                         {item.category_name || 'Món chính'}
                       </span>
                     </td>
 
                     <td className="py-3.5 px-4">
-                      <span className="font-mono font-bold text-slate-900 text-xs">
+                      <span className="font-mono font-semibold text-[#171a17] text-[13.5px]">
                         {item.price_vnd.toLocaleString('vi-VN')}đ
                       </span>
                     </td>
 
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center space-x-1.5 text-[11px] text-slate-600">
+                      <div className="flex items-center space-x-1.5 text-[11px]">
                         {item.allow_dine_in && (
-                          <span className="px-1.5 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-600">
+                          <span className="px-2 py-0.5 rounded-[5px] bg-stone-100 text-stone-700 font-medium">
                             Tại bàn
                           </span>
                         )}
                         {item.allow_delivery && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200/60 text-emerald-700">
+                          <span className="px-2 py-0.5 rounded-[5px] bg-[#e4f7c6] text-[#2e5b15] font-medium">
                             Giao hàng
                           </span>
                         )}
@@ -426,32 +568,32 @@ export const AdminMenuPage: FC = () => {
                       <button
                         type="button"
                         onClick={() => handleToggleAvailable(item.id)}
-                        className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold transition border ${
+                        className={`inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full text-[11px] font-medium transition border active:scale-95 ${
                           isAvailable
-                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                            : 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
+                            ? 'bg-[#eaf7e8] border-[#cbe9c8] text-[#2fa32a] hover:bg-[#dcf2d9]'
+                            : 'bg-[#fceae6] border-[#f5c6be] text-[#c93424] hover:bg-[#fadad3]'
                         }`}
                         title="Bấm để chuyển trạng thái Còn/Hết món nhanh"
                       >
                         {isAvailable ? (
                           <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#2fa32a]" />
                             <span>Còn món</span>
                           </>
                         ) : (
                           <>
-                            <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                            <XCircle className="w-3.5 h-3.5 text-[#c93424]" />
                             <span>HẾT MÓN</span>
                           </>
                         )}
                       </button>
                     </td>
 
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3.5 px-5 text-right">
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(item)}
-                        className="inline-flex items-center space-x-1 p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                        className="inline-flex items-center space-x-1 p-1.5 text-[#8a8f89] hover:text-[#171a17] hover:bg-stone-100 rounded-[8px] transition"
                         title="Chỉnh sửa món ăn"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -464,8 +606,8 @@ export const AdminMenuPage: FC = () => {
 
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
-                    <Utensils className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                  <td colSpan={6} className="py-12 text-center text-[#8a8f89]">
+                    <Utensils className="w-8 h-8 mx-auto mb-2 text-stone-300" />
                     <p className="text-xs font-medium">Không tìm thấy món ăn nào phù hợp</p>
                   </td>
                 </tr>
@@ -477,29 +619,34 @@ export const AdminMenuPage: FC = () => {
 
       {/* Modal: Edit or Create Menu Item */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            style={{ boxShadow: '0 20px 40px -15px rgba(0,0,0,0.15)' }}
+            className="relative w-full max-w-lg bg-white rounded-[24px] border border-[#e2e3e3] overflow-hidden"
+          >
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center space-x-2">
-                <Utensils className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-semibold text-slate-900">
+            <div className="px-6 py-4 border-b border-[#f0f0ee] flex items-center justify-between bg-[#faf9f7]">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-[8px] bg-[#424242] text-white flex items-center justify-center shadow-2xs">
+                  <Utensils className="w-4 h-4 text-[#7cd56e]" />
+                </div>
+                <h3 className="text-[15px] font-medium text-[#171a17]">
                   {editingItem ? 'Chỉnh sửa món ăn' : 'Thêm món mới vào thực đơn'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                className="w-8 h-8 rounded-full text-[#8a8f89] hover:text-[#171a17] hover:bg-stone-100 flex items-center justify-center transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Form */}
             <form onSubmit={handleSaveItem} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-[12px] font-medium text-[#171a17] mb-1.5">
                   Tên món ăn <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -508,19 +655,19 @@ export const AdminMenuPage: FC = () => {
                   placeholder="Ví dụ: Bò xào cần tỏi"
                   value={modalForm.name}
                   onChange={(e) => setModalForm({ ...modalForm, name: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3.5 py-2 text-xs bg-[#f6f5f3] hover:bg-[#f1f1ee] focus:bg-white border border-[#e2e3e3] rounded-[12px] text-[#171a17] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 transition"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-[12px] font-medium text-[#171a17] mb-1.5">
                     Danh mục <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={modalForm.category_id}
                     onChange={(e) => setModalForm({ ...modalForm, category_id: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full px-3.5 py-2 text-xs bg-[#f6f5f3] border border-[#e2e3e3] rounded-[12px] text-[#171a17] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 transition"
                   >
                     {SAMPLE_CATEGORIES.filter((c) => c.id !== 'cat-all').map((c) => (
                       <option key={c.id} value={c.id}>
@@ -531,7 +678,7 @@ export const AdminMenuPage: FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-[12px] font-medium text-[#171a17] mb-1.5">
                     Đơn giá (VNĐ) <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -541,13 +688,13 @@ export const AdminMenuPage: FC = () => {
                     step={1000}
                     value={modalForm.price_vnd}
                     onChange={(e) => setModalForm({ ...modalForm, price_vnd: Number(e.target.value) })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full px-3.5 py-2 text-xs bg-[#f6f5f3] border border-[#e2e3e3] rounded-[12px] text-[#171a17] font-mono focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 transition"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-[12px] font-medium text-[#171a17] mb-1.5">
                   Mô tả món ăn / Thành phần
                 </label>
                 <textarea
@@ -555,62 +702,62 @@ export const AdminMenuPage: FC = () => {
                   placeholder="Ghi chú nguyên liệu, khẩu phần, gia vị..."
                   value={modalForm.description}
                   onChange={(e) => setModalForm({ ...modalForm, description: e.target.value })}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3.5 py-2 text-xs bg-[#f6f5f3] hover:bg-[#f1f1ee] focus:bg-white border border-[#e2e3e3] rounded-[12px] text-[#171a17] focus:outline-none focus:ring-2 focus:ring-[#7cd56e]/40 transition"
                 />
               </div>
 
               {/* Toggles */}
-              <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+              <div className="pt-2.5 border-t border-[#f0f0ee] space-y-2.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-700">Trạng thái phục vụ (Còn món)</span>
+                  <span className="font-medium text-[#171a17]">Trạng thái phục vụ (Còn món)</span>
                   <input
                     type="checkbox"
                     checked={modalForm.available}
                     onChange={(e) => setModalForm({ ...modalForm, available: e.target.checked })}
-                    className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    className="rounded text-[#424242] focus:ring-[#7cd56e] w-4 h-4 accent-[#424242]"
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-700">Cho phép phục vụ tại quán</span>
+                  <span className="font-medium text-[#171a17]">Cho phép phục vụ tại quán</span>
                   <input
                     type="checkbox"
                     checked={modalForm.allow_dine_in}
                     onChange={(e) => setModalForm({ ...modalForm, allow_dine_in: e.target.checked })}
-                    className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    className="rounded text-[#424242] focus:ring-[#7cd56e] w-4 h-4 accent-[#424242]"
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-700">Cho phép giao hàng online</span>
+                  <span className="font-medium text-[#171a17]">Cho phép giao hàng online</span>
                   <input
                     type="checkbox"
                     checked={modalForm.allow_delivery}
                     onChange={(e) => setModalForm({ ...modalForm, allow_delivery: e.target.checked })}
-                    className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    className="rounded text-[#424242] focus:ring-[#7cd56e] w-4 h-4 accent-[#424242]"
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-slate-700">Món đặc sản (Signature)</span>
+                  <span className="font-medium text-[#171a17]">Món đặc sản (Signature)</span>
                   <input
                     type="checkbox"
                     checked={modalForm.is_signature}
                     onChange={(e) => setModalForm({ ...modalForm, is_signature: e.target.checked })}
-                    className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    className="rounded text-[#424242] focus:ring-[#7cd56e] w-4 h-4 accent-[#424242]"
                   />
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-2">
+              <div className="pt-4 border-t border-[#f0f0ee] flex items-center justify-end space-x-2.5">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
+                  className="px-4 py-2 text-xs font-medium text-[#5c5e63] hover:text-[#171a17] hover:bg-stone-100 rounded-[10px] transition"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-xs"
+                  className="px-4 py-2 bg-[#2b2e2c] hover:bg-black text-white rounded-[10px] text-xs font-medium transition shadow-xs active:scale-95"
                 >
                   Lưu món ăn
                 </button>

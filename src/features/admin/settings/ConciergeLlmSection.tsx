@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { adminApi } from '../../../lib/api/client'
 import { ApiError } from '../../../lib/api/types'
+import { AdminLoading } from '../components/AdminLoading'
 
 interface ConciergeLlmSectionProps {
   onNotify: (text: string, type: 'success' | 'error') => void
@@ -148,12 +149,7 @@ export const ConciergeLlmSection: FC<ConciergeLlmSectionProps> = ({ onNotify }) 
   }
 
   if (isLoading) {
-    return (
-      <div className="py-16 flex flex-col items-center justify-center space-y-3">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs text-slate-500 font-medium">Đang tải cấu hình chatbot...</p>
-      </div>
-    )
+    return <AdminLoading label="Đang tải cấu hình chatbot..." />
   }
 
   return (

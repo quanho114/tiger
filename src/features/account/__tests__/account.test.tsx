@@ -118,6 +118,38 @@ describe('T16: Customer Account & Personalization', () => {
 
       expect(screen.getByText('Account Protected Content')).toBeInTheDocument()
     })
+
+    it('redirects admin users to /admin', () => {
+      const adminState = createMockAuthState({
+        role: 'admin',
+        adminProfile: {
+          userId: 'cust-123',
+          displayName: 'Bếp Trưởng Admin',
+          active: true,
+        },
+      })
+
+      render(
+        <MemoryRouter initialEntries={['/account']}>
+          <AuthContext.Provider value={adminState}>
+            <Routes>
+              <Route
+                path="/account"
+                element={
+                  <CustomerRouteGuard>
+                    <div>Account Protected Content</div>
+                  </CustomerRouteGuard>
+                }
+              />
+              <Route path="/admin" element={<div>Admin Dashboard Redirect Target</div>} />
+            </Routes>
+          </AuthContext.Provider>
+        </MemoryRouter>
+      )
+
+      expect(screen.getByText('Admin Dashboard Redirect Target')).toBeInTheDocument()
+      expect(screen.queryByText('Account Protected Content')).not.toBeInTheDocument()
+    })
   })
 
   describe('AccountOverviewPage', () => {

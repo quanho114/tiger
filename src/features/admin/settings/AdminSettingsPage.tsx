@@ -30,6 +30,7 @@ import { MenuContentSection } from './MenuContentSection'
 import { AreasZonesSection } from './AreasZonesSection'
 import { FeedbackAuditSection } from './FeedbackAuditSection'
 import { ConciergeLlmSection } from './ConciergeLlmSection'
+import { AdminLoading } from '../components/AdminLoading'
 
 type TabKey = 'operations' | 'menu' | 'areas' | 'feedback' | 'chatbot'
 
@@ -114,12 +115,7 @@ export const AdminSettingsPage: FC = () => {
   }, [loadData, refreshKey])
 
   if (isLoading && !settings) {
-    return (
-      <div className="py-24 flex flex-col items-center justify-center space-y-3">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs text-slate-500 font-medium">Đang tải cấu hình & danh mục quán...</p>
-      </div>
-    )
+    return <AdminLoading variant="screen" label="Đang tải cấu hình & danh mục quán..." />
   }
 
   const newFeedbackCount = feedbacks.filter((f) => f.status === 'NEW').length

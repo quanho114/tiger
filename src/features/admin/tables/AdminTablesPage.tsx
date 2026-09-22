@@ -5,6 +5,7 @@ import { ApiError } from '../../../lib/api/types'
 import { useAdmin } from '../layout/AdminContext'
 import type { AdminTableItem, AdminSeatingArea, TableVisitDetail, PaymentMethod } from '../types'
 import { Plus } from 'lucide-react'
+import { AdminLoading } from '../components/AdminLoading'
 
 interface QrTentCardModalState {
   tableName: string
@@ -69,7 +70,10 @@ export const AdminTablesPage: FC = () => {
         ? tablesRes.data
         : (tablesRes.data as any)?.tables || (tablesRes.data as any)?.items || []
       setTables(items)
-      setSeatingAreas(areasRes.data || [])
+      const areas = Array.isArray(areasRes.data)
+        ? areasRes.data
+        : (areasRes.data as any)?.items || []
+      setSeatingAreas(areas)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách bàn')
     } finally {
@@ -410,6 +414,10 @@ export const AdminTablesPage: FC = () => {
     link.click()
   }
 
+  if (isLoading && tables.length === 0) {
+    return <AdminLoading variant="screen" label="Đang tải danh sách bàn..." />
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
@@ -437,18 +445,13 @@ export const AdminTablesPage: FC = () => {
         </div>
       </div>
       {/* Tables Grid */}
-      {isLoading && tables.length === 0 ? (
-        <div className="py-20 flex flex-col items-center justify-center">
-          <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mb-3" />
-          <p className="text-xs text-stone-400">Đang tải danh sách bàn...</p>
-        </div>
-      ) : error ? (
-        <div className="py-12 text-center bg-stone-900 border border-stone-800 rounded-xl p-6">
-          <p className="text-xs text-rose-300 mb-3">{error}</p>
+      {error ? (
+        <div className="py-12 text-center bg-white border border-slate-200 rounded-xl p-6">
+          <p className="text-xs text-rose-600 mb-3">{error}</p>
           <button
             type="button"
             onClick={loadTables}
-            className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-xs font-semibold text-stone-200 rounded-lg"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 rounded-lg"
           >
             Tải lại
           </button>
@@ -616,28 +619,28 @@ export const AdminTablesPage: FC = () => {
 
       {/* Rotate QR Confirmation Modal */}
       {rotateConfirmTable && (
-        <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-bold text-stone-100 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <span className="text-amber-500">⚠️</span> Xác nhận Đổi mã QR ({rotateConfirmTable.name})
               </h3>
               <button
                 type="button"
                 onClick={() => setRotateConfirmTable(null)}
-                className="text-stone-400 hover:text-white"
+                className="text-slate-500 hover:text-slate-900"
               >
                 ✕
               </button>
             </div>
 
-            <div className="text-xs text-stone-300 space-y-2 leading-relaxed">
+            <div className="text-xs text-slate-600 space-y-2 leading-relaxed">
               <p>
-                Thao tác này sẽ sinh ra một <strong className="text-amber-400">mã QR bảo mật mới</strong> cho bàn{' '}
+                Thao tác này sẽ sinh ra một <strong className="text-amber-600">mã QR bảo mật mới</strong> cho bàn{' '}
                 <strong>{rotateConfirmTable.name} ({rotateConfirmTable.code})</strong>.
               </p>
-              <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl text-amber-200/90 text-[11px]">
-                <p className="font-semibold text-amber-300 mb-1">Quy tắc Invariant V07 (QR Lifecycle):</p>
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-[11px]">
+                <p className="font-semibold text-amber-600 mb-1">Quy tắc Invariant V07 (QR Lifecycle):</p>
                 <ul className="list-disc list-inside space-y-0.5">
                   <li>Tất cả thẻ bàn in mã QR cũ sẽ bị vô hiệu hóa ngay lập tức.</li>
                   <li>Nếu bàn đang có khách ngồi, capability epoch sẽ được nâng lên, yêu cầu khách quét mã mới.</li>
@@ -646,12 +649,12 @@ export const AdminTablesPage: FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-stone-800">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
               <button
                 type="button"
                 onClick={() => setRotateConfirmTable(null)}
                 disabled={isRotating}
-                className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold transition"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
               >
                 Hủy bỏ
               </button>
@@ -659,10 +662,10 @@ export const AdminTablesPage: FC = () => {
                 type="button"
                 onClick={handleConfirmRotateQr}
                 disabled={isRotating}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold transition flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition flex items-center gap-1.5"
               >
                 {isRotating && (
-                  <span className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
                 <span>Xác nhận Đổi & In mã mới</span>
               </button>
@@ -673,21 +676,21 @@ export const AdminTablesPage: FC = () => {
 
       {/* Printable QR Tent Card Modal */}
       {tentCardModal && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
-                <h3 className="text-base font-bold text-stone-100">
+                <h3 className="text-base font-bold text-slate-900">
                   Mã QR / Liên kết gọi món ({tentCardModal.tableName})
                 </h3>
-                <p className="text-[11px] text-stone-400">
+                <p className="text-[11px] text-slate-500">
                   Thẻ Đặt Bàn Mã QR (Table Tent Card) - In thẻ bàn để khách quét gọi món
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setTentCardModal(null)}
-                className="text-stone-400 hover:text-white text-lg p-1"
+                className="text-slate-500 hover:text-slate-900 text-lg p-1"
               >
                 ✕
               </button>
@@ -705,7 +708,7 @@ export const AdminTablesPage: FC = () => {
                 <h2 className="text-lg font-black tracking-tight text-stone-900">
                   ẨM THỰC TÂY BẮC
                 </h2>
-                <div className="inline-block bg-stone-900 text-amber-400 font-mono font-bold text-sm px-3 py-1 rounded-full mt-1">
+                <div className="inline-block bg-amber-50 text-amber-700 border border-amber-200 font-mono font-bold text-sm px-3 py-1 rounded-full mt-1">
                   BÀN: {tentCardModal.tableName.toUpperCase()} ({tentCardModal.tableCode})
                 </div>
               </div>
@@ -734,21 +737,21 @@ export const AdminTablesPage: FC = () => {
             </div>
 
             {tentCardModal.isOneTimeToken && (
-              <div className="p-3 bg-amber-950/40 border border-amber-800/60 rounded-xl text-amber-300 text-[11px] leading-relaxed">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-[11px] leading-relaxed">
                 <strong>Lưu ý bảo mật (Invariant V07):</strong> Mã liên kết này chỉ hiển thị duy nhất một lần. Hệ thống chỉ lưu SHA-256 hash của token trong cơ sở dữ liệu. Vui lòng in hoặc lưu ngay lúc này.
               </div>
             )}
 
-            <div className="bg-stone-950 p-2.5 rounded-lg border border-stone-800 text-[11px] font-mono text-stone-400 break-all select-all">
+            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px] font-mono text-slate-600 break-all select-all">
               {tentCardModal.qrUrl}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-stone-800">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200">
               <a
                 href={tentCardModal.qrUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-semibold text-amber-400 hover:text-amber-300 underline"
+                className="text-xs font-semibold text-amber-600 hover:text-amber-700 underline"
               >
                 Mở thử trang gọi món ↗
               </a>
@@ -757,14 +760,14 @@ export const AdminTablesPage: FC = () => {
                 <button
                   type="button"
                   onClick={handleDownloadQrPng}
-                  className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-lg transition"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
                 >
                   Tải ảnh QR (PNG)
                 </button>
                 <button
                   type="button"
                   onClick={handlePrintTentCard}
-                  className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-lg transition shadow-xs flex items-center gap-1"
+                  className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition shadow-xs flex items-center gap-1"
                 >
                   <span>🖨️ In Thẻ Bàn (Print)</span>
                 </button>
@@ -776,14 +779,14 @@ export const AdminTablesPage: FC = () => {
 
       {/* Create Table Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-bold text-stone-100">Thêm Bàn Mới</h3>
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Thêm Bàn Mới</h3>
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="text-stone-400 hover:text-white"
+                className="text-slate-500 hover:text-slate-900"
               >
                 ✕
               </button>
@@ -791,8 +794,8 @@ export const AdminTablesPage: FC = () => {
 
             <form onSubmit={handleCreateTable} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Mã bàn (Code) <span className="text-amber-400">*</span>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Mã bàn (Code) <span className="text-amber-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -800,13 +803,13 @@ export const AdminTablesPage: FC = () => {
                   placeholder="VD: T01, VIP1, SAN_VUON_2"
                   value={newTableCode}
                   onChange={(e) => setNewTableCode(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 uppercase font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 uppercase font-mono focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Tên hiển thị <span className="text-amber-400">*</span>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Tên hiển thị <span className="text-amber-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -814,18 +817,18 @@ export const AdminTablesPage: FC = () => {
                   placeholder="VD: Bàn 01, Bàn VIP Sông Đà"
                   value={newTableName}
                   onChange={(e) => setNewTableName(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
                   Khu vực chỗ ngồi
                 </label>
                 <select
                   value={newTableAreaId}
                   onChange={(e) => setNewTableAreaId(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                 >
                   <option value="">-- Chọn khu vực (tùy chọn) --</option>
                   {seatingAreas.map((area) => (
@@ -836,21 +839,21 @@ export const AdminTablesPage: FC = () => {
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-stone-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingNewTable}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5"
                 >
                   {isSubmittingNewTable && (
-                    <span className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   )}
                   <span>Tạo bàn & Sinh mã QR</span>
                 </button>
@@ -862,16 +865,16 @@ export const AdminTablesPage: FC = () => {
 
       {/* Edit Table Modal */}
       {editingTable && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-bold text-stone-100">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-base font-bold text-slate-900">
                 Chỉnh sửa {editingTable.name}
               </h3>
               <button
                 type="button"
                 onClick={() => setEditingTable(null)}
-                className="text-stone-400 hover:text-white"
+                className="text-slate-500 hover:text-slate-900"
               >
                 ✕
               </button>
@@ -879,39 +882,39 @@ export const AdminTablesPage: FC = () => {
 
             <form onSubmit={handleUpdateTable} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Mã bàn (Code) <span className="text-amber-400">*</span>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Mã bàn (Code) <span className="text-amber-600">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={editTableCode}
                   onChange={(e) => setEditTableCode(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 uppercase font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 uppercase font-mono focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Tên hiển thị <span className="text-amber-400">*</span>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Tên hiển thị <span className="text-amber-600">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={editTableName}
                   onChange={(e) => setEditTableName(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
                   Khu vực chỗ ngồi
                 </label>
                 <select
                   value={editTableAreaId}
                   onChange={(e) => setEditTableAreaId(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                 >
                   <option value="">-- Không phân khu --</option>
                   {seatingAreas.map((area) => (
@@ -928,28 +931,28 @@ export const AdminTablesPage: FC = () => {
                   id="editTableActive"
                   checked={editTableActive}
                   onChange={(e) => setEditTableActive(e.target.checked)}
-                  className="rounded border-stone-700 bg-stone-950 text-amber-500 focus:ring-amber-500"
+                  className="rounded border-slate-300 bg-white text-amber-500 focus:ring-amber-500"
                 />
-                <label htmlFor="editTableActive" className="text-xs text-stone-300">
+                <label htmlFor="editTableActive" className="text-xs text-slate-600">
                   Bàn đang hoạt động (cho phép khách ngồi & phục vụ)
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-stone-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setEditingTable(null)}
-                  className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingEditTable}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5"
                 >
                   {isSubmittingEditTable && (
-                    <span className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   )}
                   <span>Lưu thay đổi</span>
                 </button>
@@ -961,16 +964,16 @@ export const AdminTablesPage: FC = () => {
 
       {/* Settle Visit & Detail Modal */}
       {selectedVisitTable && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 font-sans">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 font-sans">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-stone-900 border-b border-stone-800 flex items-center justify-between">
+            <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <h2 className="text-lg font-bold text-amber-400">
+                <h2 className="text-lg font-bold text-amber-600">
                   {`Phiên phục vụ: ${selectedVisitTable.name} (${selectedVisitTable.code})`}
                 </h2>
                 {visitDetail && (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-stone-800 text-stone-300 border border-stone-700">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-slate-100 text-slate-600 border border-slate-200">
                     v{visitDetail.visit.version}
                   </span>
                 )}
@@ -981,7 +984,7 @@ export const AdminTablesPage: FC = () => {
                   setSelectedVisitTable(null)
                   setVisitDetail(null)
                 }}
-                className="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-stone-800 transition"
+                className="text-slate-500 hover:text-slate-900 p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 ✕
               </button>
@@ -992,18 +995,18 @@ export const AdminTablesPage: FC = () => {
               {isLoadingVisit && !visitDetail && (
                 <div className="py-20 flex flex-col items-center justify-center">
                   <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mb-3" />
-                  <p className="text-xs text-stone-400">Đang tải thông tin phiên bàn...</p>
+                  <p className="text-xs text-slate-500">Đang tải thông tin phiên bàn...</p>
                 </div>
               )}
 
               {visitError && (
-                <div className="p-3.5 bg-rose-950/70 border border-rose-800 rounded-xl text-xs text-rose-200">
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600">
                   {visitError}
                 </div>
               )}
 
               {visitSuccess && (
-                <div className="p-3.5 bg-emerald-950/70 border border-emerald-800 rounded-xl text-xs text-emerald-200">
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-700">
                   {visitSuccess}
                 </div>
               )}
@@ -1011,28 +1014,28 @@ export const AdminTablesPage: FC = () => {
               {visitDetail && (
                 <>
                   {/* Summary Banner */}
-                  <div className="bg-stone-950 p-4 rounded-xl border border-stone-800 grid grid-cols-3 gap-4 text-xs">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-3 gap-4 text-xs">
                     <div>
-                      <span className="text-stone-400 block font-medium">Trạng thái phiên</span>
-                      <span className="text-sm font-bold text-stone-100 uppercase mt-0.5 block">
+                      <span className="text-slate-500 block font-medium">Trạng thái phiên</span>
+                      <span className="text-sm font-bold text-slate-900 uppercase mt-0.5 block">
                         {visitDetail.visit.status === 'active' ? 'Đang phục vụ' : 'Đã kết thúc'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-stone-400 block font-medium">Đơn chưa trả</span>
+                      <span className="text-slate-500 block font-medium">Đơn chưa trả</span>
                       <span
                         className={`text-sm font-bold font-mono mt-0.5 block ${
                           visitDetail.unpaid_summary.unpaid_orders_count > 0
-                            ? 'text-rose-400'
-                            : 'text-emerald-400'
+                            ? 'text-rose-600'
+                            : 'text-emerald-600'
                         }`}
                       >
                         {visitDetail.unpaid_summary.unpaid_orders_count} đơn
                       </span>
                     </div>
                     <div>
-                      <span className="text-stone-400 block font-medium">Tổng nợ cần thu</span>
-                      <span className="text-base font-black font-mono text-amber-400 mt-0.5 block">
+                      <span className="text-slate-500 block font-medium">Tổng nợ cần thu</span>
+                      <span className="text-base font-black font-mono text-amber-600 mt-0.5 block">
                         {visitDetail.unpaid_summary.unpaid_total_vnd.toLocaleString('vi-VN')}đ
                       </span>
                     </div>
@@ -1041,40 +1044,40 @@ export const AdminTablesPage: FC = () => {
                   {/* Orders Breakdown */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-semibold text-stone-300 uppercase tracking-wider">
+                      <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                         Các đợt gọi món ({visitDetail.orders.length})
                       </h4>
-                      <span className="text-[11px] text-stone-400">
+                      <span className="text-[11px] text-slate-500">
                         {`Đang hoạt động: ${visitDetail.unpaid_summary.active_orders_count} đơn`}
                       </span>
                     </div>
 
                     <div className="space-y-2.5">
                       {visitDetail.orders.length === 0 ? (
-                        <div className="p-4 bg-stone-950/50 rounded-xl border border-stone-800 text-stone-400 text-xs text-center">
+                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-slate-500 text-xs text-center">
                           Chưa có đơn gọi món nào trong phiên này.
                         </div>
                       ) : (
                         visitDetail.orders.map((order) => (
                           <div
                             key={order.id}
-                            className="bg-stone-950/80 border border-stone-800 rounded-xl p-3.5 space-y-2"
+                            className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2"
                           >
                             <div className="flex items-center justify-between text-xs">
                               <div className="flex items-center space-x-2">
-                                <span className="font-mono font-bold text-amber-400">
+                                <span className="font-mono font-bold text-amber-600">
                                   {order.code}
                                 </span>
-                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-stone-800 text-stone-300">
+                                <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-slate-100 text-slate-600">
                                   {order.status}
                                 </span>
                                 <span
                                   className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
                                     order.payment_status === 'paid'
-                                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                       : order.payment_status === 'refunded'
-                                      ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                                      : 'bg-amber-950 text-amber-300 border border-amber-800'
+                                      ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                                      : 'bg-amber-50 text-amber-600 border border-amber-200'
                                   }`}
                                 >
                                   {order.payment_status === 'paid'
@@ -1084,13 +1087,13 @@ export const AdminTablesPage: FC = () => {
                                     : 'CHƯA TRẢ'}
                                 </span>
                               </div>
-                              <span className="font-mono font-bold text-stone-100 text-sm">
+                              <span className="font-mono font-bold text-slate-900 text-sm">
                                 {order.total_vnd.toLocaleString('vi-VN')}đ
                               </span>
                             </div>
 
                             {/* Items summary */}
-                            <div className="text-[11px] text-stone-400 divide-y divide-stone-900 pt-1">
+                            <div className="text-[11px] text-slate-500 divide-y divide-slate-200 pt-1">
                               {(order.items_summary || []).map((it, idx) => (
                                 <div key={idx} className="flex justify-between py-0.5">
                                   <span>
@@ -1109,27 +1112,27 @@ export const AdminTablesPage: FC = () => {
                   </div>
 
                   {/* Settlement / Close Controls */}
-                  <div className="pt-3 border-t border-stone-800 space-y-4">
+                  <div className="pt-3 border-t border-slate-200 space-y-4">
                     {visitDetail.unpaid_summary.unpaid_orders_count > 0 ? (
-                      <div className="p-4 bg-stone-950 border border-amber-800/40 rounded-xl space-y-3">
-                        <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                      <div className="p-4 bg-slate-50 border border-amber-200 rounded-xl space-y-3">
+                        <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider">
                           Thanh toán toàn bộ phiên (Settle Visit - Invariant V18)
                         </h4>
-                        <p className="text-[11px] text-stone-400 leading-relaxed">
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
                           Dine-in thanh toán toàn bộ các đơn chưa thanh toán trong phiên cùng một lúc
                           (không hỗ trợ thanh toán lẻ từng món).
                         </p>
 
                         <div>
-                          <span className="text-xs text-stone-300 block font-medium mb-1.5">
+                          <span className="text-xs text-slate-600 block font-medium mb-1.5">
                             Hình thức thanh toán:
                           </span>
                           <div className="grid grid-cols-2 gap-2">
                             <label
                               className={`flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold rounded-lg border cursor-pointer transition ${
                                 settleMethod === 'cash'
-                                  ? 'bg-amber-500 text-stone-950 border-amber-400'
-                                  : 'bg-stone-900 text-stone-300 border-stone-700 hover:border-stone-600'
+                                  ? 'bg-amber-500 text-white border-amber-500'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:border-amber-500'
                               }`}
                             >
                               <input
@@ -1145,8 +1148,8 @@ export const AdminTablesPage: FC = () => {
                             <label
                               className={`flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold rounded-lg border cursor-pointer transition ${
                                 settleMethod === 'bank_transfer'
-                                  ? 'bg-amber-500 text-stone-950 border-amber-400'
-                                  : 'bg-stone-900 text-stone-300 border-stone-700 hover:border-stone-600'
+                                  ? 'bg-amber-500 text-white border-amber-500'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:border-amber-500'
                               }`}
                             >
                               <input
@@ -1178,8 +1181,8 @@ export const AdminTablesPage: FC = () => {
                         </button>
                       </div>
                     ) : (
-                      <div className="p-4 bg-stone-950 border border-stone-800 rounded-xl space-y-3">
-                        <div className="flex items-center space-x-2 text-emerald-400 text-xs font-bold">
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                        <div className="flex items-center space-x-2 text-emerald-600 text-xs font-bold">
                           <span>✓ Tất cả đơn hàng trong phiên đã được thanh toán đầy đủ.</span>
                         </div>
 
@@ -1203,14 +1206,14 @@ export const AdminTablesPage: FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3 bg-stone-900 border-t border-stone-800 flex justify-end">
+            <div className="px-6 py-3 bg-white border-t border-slate-200 flex justify-end">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedVisitTable(null)
                   setVisitDetail(null)
                 }}
-                className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-200 font-semibold text-xs rounded-lg border border-stone-700 transition"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg border border-slate-300 transition"
               >
                 Đóng
               </button>

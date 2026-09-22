@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { FC } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -19,9 +19,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  ChevronDown,
 } from 'lucide-react'
 import { useAuth } from '../../auth'
 import { AdminContext } from './AdminContext'
+import { ErrorBoundary } from '../../../components/ErrorBoundary'
 import '../elera.css'
 
 export const AdminLayout: FC = () => {
@@ -35,6 +37,29 @@ export const AdminLayout: FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false)
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
   const [searchKeyword, setSearchKeyword] = useState<string>('')
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsUserMenuOpen(false)
+      }
+    }
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleKeyDown)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isUserMenuOpen])
 
   const triggerRefresh = useCallback(() => {
     setIsRefreshing(true)
@@ -320,21 +345,79 @@ export const AdminLayout: FC = () => {
                 <span>Tạo đơn</span>
               </button>
 
-              {/* Admin Profile Avatar */}
-              <div className="hidden lg:flex items-center space-x-2 pl-2 border-l border-[#e2e3e3]">
-                <div className="w-7 h-7 rounded-full bg-[#7cd56e]/20 text-[#24541c] font-bold text-xs flex items-center justify-center border border-[#7cd56e]/40">
-                  {initials}
-                </div>
-                <span className="text-xs font-medium text-[#171a17]">
-                  {adminProfile?.displayName || 'Bếp Trưởng'}
-                </span>
+              {/* Admin Profile Dropdown */}
+              <div className="relative pl-2 border-l border-[#e2e3e3]" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                  className="flex items-center space-x-2 py-1 px-1.5 rounded-lg hover:bg-[#f6f5f3] transition cursor-pointer"
+                  aria-expanded={isUserMenuOpen}
+                  aria-haspopup="true"
+                >
+                  <div className="w-7 h-7 rounded-full bg-[#7cd56e]/20 text-[#24541c] font-bold text-xs flex items-center justify-center border border-[#7cd56e]/40 shrink-0">
+                    {initials}
+                  </div>
+                  <span className="hidden lg:inline text-xs font-medium text-[#171a17] max-w-[120px] truncate">
+                    {adminProfile?.displayName || 'Bếp Trưởng'}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-[#787979] hidden lg:inline" />
+                </button>
+
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white border border-[#e2e3e3] shadow-lg py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-3.5 py-2 border-b border-[#e2e3e3]">
+                      <p className="text-xs font-semibold text-[#171a17] truncate">
+                        {adminProfile?.displayName || 'Bếp Trưởng'}
+                      </p>
+                      <p className="text-[11px] text-[#24541c] font-medium mt-0.5 flex items-center gap-1">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#7cd56e]" />
+                        <span>Tài khoản Quản trị</span>
+                      </p>
+                    </div>
+
+                    <div className="py-1">
+                      <Link
+                        to="/admin/accounts"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#171a17] hover:bg-[#f6f5f3] transition"
+                      >
+                        <Users className="w-4 h-4 text-[#787979]" />
+                        <span>Tài khoản admin</span>
+                      </Link>
+                      <Link
+                        to="/admin/settings"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-[#171a17] hover:bg-[#f6f5f3] transition"
+                      >
+                        <Settings className="w-4 h-4 text-[#787979]" />
+                        <span>Cài đặt hệ thống</span>
+                      </Link>
+                    </div>
+
+                    <div className="my-1 border-t border-[#e2e3e3]" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false)
+                        handleSignOut()
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Đăng xuất</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </header>
 
           {/* Routed Page Content */}
           <main className="flex-1 p-4 md:p-6 lg:p-8">
-            <Outlet />
+            <ErrorBoundary variant="inline">
+              <Outlet />
+            </ErrorBoundary>
           </main>
         </div>
       </div>

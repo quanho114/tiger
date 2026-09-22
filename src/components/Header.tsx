@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { FC } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, ShoppingBag, Menu, X, Phone, Clock, MapPin, User, LogOut, Settings, ExternalLink } from 'lucide-react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Calendar, ShoppingBag, Menu, X, Phone, Clock, MapPin, User, LogOut, Settings } from 'lucide-react';
 import { BotanicalSprig } from './BotanicalDecorations';
 import { useCart } from '../store/cart';
 import { useTableSession } from '../features/table-session';
@@ -28,7 +28,7 @@ export const Header: FC = () => {
   const { session } = useTableSession();
   const { role, user, customerProfile, adminProfile, signOut } = useAuth();
   const isAuthenticated = role === 'customer' || role === 'admin' || user !== null;
-  const isStaffOrAdmin = role === 'admin' || adminProfile !== null || import.meta.env.DEV;
+  const isAdmin = role === 'admin';
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -158,10 +158,13 @@ export const Header: FC = () => {
     const container = navRef.current;
     if (!container) return;
 
-    const resizeObserver = new ResizeObserver(() => {
-      updateIndicator();
-    });
-    resizeObserver.observe(container);
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        updateIndicator();
+      });
+      resizeObserver.observe(container);
+    }
 
     if (document.fonts) {
       document.fonts.ready.then(updateIndicator);
@@ -172,7 +175,7 @@ export const Header: FC = () => {
     });
 
     return () => {
-      resizeObserver.disconnect();
+      resizeObserver?.disconnect();
       cancelAnimationFrame(rafId);
     };
   }, [updateIndicator]);
@@ -340,60 +343,84 @@ export const Header: FC = () => {
                         aria-label="Menu tài khoản"
                         className="absolute right-0 top-full mt-2 w-56 py-1.5 bg-white rounded-2xl border border-[#e3d6bd] shadow-[0_8px_24px_rgba(35,67,134,0.12)] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
                       >
-                        {isStaffOrAdmin && (
+                        {isAdmin ? (
                           <>
-                            <a
-                              href="/admin"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => setAccountMenuOpen(false)}
-                              className="flex items-center justify-between px-3.5 py-2.5 mx-1.5 mb-1 text-[13px] font-semibold text-[#234386] bg-[#234386]/8 hover:bg-[#234386]/15 rounded-xl border border-[#234386]/20 transition-colors"
-                              title="Bảng điều phối Quản trị bếp (Mở tab mới)"
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <Settings size={15} className="text-[#234386] shrink-0" />
-                                <span>Quản trị bếp & Hệ thống</span>
+                            <div className="px-4 py-2.5 border-b border-[#e3d6bd]/60">
+                              <p className="text-xs font-semibold text-[#171a17] truncate">
+                                {displayName}
+                              </p>
+                              <div className="mt-1 flex items-center gap-1.5">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#7cd56e]/20 text-[#24541c] border border-[#7cd56e]/40">
+                                  Quản trị viên
+                                </span>
                               </div>
-                              <ExternalLink size={13} className="text-[#234386]/70 shrink-0" />
-                            </a>
+                            </div>
+                            <div className="py-1">
+                              <Link
+                                to="/admin"
+                                onClick={() => setAccountMenuOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#234386] hover:bg-[#fbf9f6] transition-colors"
+                              >
+                                <Settings size={15} className="text-[#234386] shrink-0" />
+                                <span>Trang quản trị</span>
+                              </Link>
+                            </div>
                             <div className="my-1 border-t border-[#d2b68c]/25" />
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={handleSignOut}
+                              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            >
+                              <LogOut size={15} className="shrink-0" />
+                              <span>Đăng xuất</span>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="px-4 py-2 border-b border-[#e3d6bd]/60">
+                              <p className="text-xs font-semibold text-[#171a17] truncate">
+                                {displayName}
+                              </p>
+                              <p className="text-[11px] text-[#787979]">Khách hàng thân thiết</p>
+                            </div>
+                            <NavLink
+                              to="/account"
+                              end
+                              onClick={() => setAccountMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#000000]/75 hover:bg-[#fbf9f6] hover:text-[#234386] transition-colors"
+                            >
+                              <User size={15} className="text-[#234386]/60 shrink-0" />
+                              <span>Tài khoản của tôi</span>
+                            </NavLink>
+                            <NavLink
+                              to="/account/reservations"
+                              onClick={() => setAccountMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#000000]/75 hover:bg-[#fbf9f6] hover:text-[#234386] transition-colors"
+                            >
+                              <Calendar size={15} className="text-[#234386]/60 shrink-0" />
+                              <span>Lịch sử đặt bàn</span>
+                            </NavLink>
+                            <NavLink
+                              to="/account/orders"
+                              onClick={() => setAccountMenuOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#000000]/75 hover:bg-[#fbf9f6] hover:text-[#234386] transition-colors"
+                            >
+                              <ShoppingBag size={15} className="text-[#234386]/60 shrink-0" />
+                              <span>Đơn hàng</span>
+                            </NavLink>
+                            <div className="my-1.5 border-t border-[#d2b68c]/25" />
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={handleSignOut}
+                              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#000000]/75 hover:bg-[#fbf9f6] hover:text-[#234386] transition-colors"
+                            >
+                              <LogOut size={15} className="text-[#234386]/60 shrink-0" />
+                              <span>Đăng xuất</span>
+                            </button>
                           </>
                         )}
-                        <NavLink
-                          to="/account"
-                          end
-                          onClick={() => setAccountMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#000000]/75 hover:bg-[#fbf9f6] hover:text-[#234386] transition-colors"
-                        >
-                          <User size={15} className="text-[#234386]/60 shrink-0" />
-                          <span>Tài khoản của tôi</span>
-                        </NavLink>
-                        <NavLink
-                          to="/account/reservations"
-                          onClick={() => setAccountMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#000000]/75 hover:bg-[#fbf9f6] hover:text-[#234386] transition-colors"
-                        >
-                          <Calendar size={15} className="text-[#234386]/60 shrink-0" />
-                          <span>Lịch sử đặt bàn</span>
-                        </NavLink>
-                        <NavLink
-                          to="/account/orders"
-                          onClick={() => setAccountMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#000000]/75 hover:bg-[#fbf9f6] hover:text-[#234386] transition-colors"
-                        >
-                          <ShoppingBag size={15} className="text-[#234386]/60 shrink-0" />
-                          <span>Đơn hàng</span>
-                        </NavLink>
-                        <div className="my-1.5 border-t border-[#d2b68c]/25" />
-                        <button
-                          type="button"
-                          role="menuitem"
-                          onClick={handleSignOut}
-                          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#000000]/75 hover:bg-[#fbf9f6] hover:text-[#234386] transition-colors"
-                        >
-                          <LogOut size={15} className="text-[#234386]/60 shrink-0" />
-                          <span>Đăng xuất</span>
-                        </button>
                       </div>
                     )}
                   </>
@@ -407,19 +434,6 @@ export const Header: FC = () => {
                   >
                     <User size={21} />
                   </button>
-                )}
-
-                {isStaffOrAdmin && (
-                  <a
-                    href="/admin"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hidden lg:flex items-center justify-center w-10 h-10 rounded-full text-[#000000]/45 hover:text-[#234386] hover:bg-[#234386]/8 transition-colors shrink-0 ml-1 cursor-pointer"
-                    title="Bảng điều phối Quản trị bếp (Mở tab mới)"
-                    aria-label="Quản trị Bếp & Vận hành"
-                  >
-                    <Settings size={20} />
-                  </a>
                 )}
               </div>
 
@@ -508,26 +522,55 @@ export const Header: FC = () => {
               <div className="mt-6 pt-6 border-t border-[#d2b68c]/30 flex flex-col gap-3">
                 {isAuthenticated ? (
                   <div className="flex flex-col gap-2">
-                    <NavLink
-                      to="/account"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-center gap-2 bg-[#234386]/10 text-[#234386] py-3.5 rounded-full font-semibold text-sm shadow-xs"
-                    >
-                      <User size={16} className="text-[#ed7328]" />
-                      <span>Tài khoản ({displayName})</span>
-                    </NavLink>
-                    {isStaffOrAdmin && (
-                      <a
-                        href="/admin"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center justify-center gap-2 bg-[#234386] text-white py-3 rounded-full font-semibold text-sm shadow-xs transition-colors"
-                      >
-                        <Settings size={16} />
-                        <span>Quản trị bếp & Vận hành (Tab mới)</span>
-                        <ExternalLink size={14} className="opacity-80" />
-                      </a>
+                    {isAdmin ? (
+                      <>
+                        <Link
+                          to="/admin"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center justify-between px-4 py-3.5 rounded-full bg-[#234386] text-white font-semibold text-sm shadow-xs transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Settings size={16} />
+                            <span>Trang quản trị</span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 font-bold">
+                            Quản trị viên
+                          </span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            handleSignOut();
+                          }}
+                          className="flex items-center justify-center gap-2 border border-rose-300 text-rose-600 py-2.5 rounded-full font-semibold text-sm hover:bg-rose-50 transition-colors"
+                        >
+                          <LogOut size={15} />
+                          <span>Đăng xuất ({displayName})</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <NavLink
+                          to="/account"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center justify-center gap-2 bg-[#234386]/10 text-[#234386] py-3.5 rounded-full font-semibold text-sm shadow-xs"
+                        >
+                          <User size={16} className="text-[#ed7328]" />
+                          <span>Tài khoản ({displayName})</span>
+                        </NavLink>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            handleSignOut();
+                          }}
+                          className="flex items-center justify-center gap-2 text-stone-500 py-2 text-xs font-medium hover:text-rose-600"
+                        >
+                          <LogOut size={14} />
+                          <span>Đăng xuất</span>
+                        </button>
+                      </>
                     )}
                   </div>
                 ) : (

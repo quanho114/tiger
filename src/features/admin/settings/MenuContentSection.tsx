@@ -366,20 +366,20 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
   return (
     <div className="space-y-6">
       {/* Category Management Block */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
           <div>
-            <h2 className="text-sm font-bold text-stone-200 uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
               <span>📂 Danh Mục Món Ăn</span>
             </h2>
-            <p className="text-xs text-stone-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Phân loại thực đơn và thứ tự hiển thị trên giao diện khách
             </p>
           </div>
           <button
             type="button"
             onClick={() => setIsCreateCategoryOpen(true)}
-            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl transition self-start sm:self-auto"
+            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition self-start sm:self-auto"
           >
             + Thêm Danh Mục
           </button>
@@ -391,18 +391,18 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
               key={cat.id}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs transition ${
                 cat.active
-                  ? 'bg-stone-950 border-stone-800 text-stone-200'
-                  : 'bg-stone-950/50 border-stone-800/60 text-stone-500'
+                  ? 'bg-white border-slate-200 text-slate-700'
+                  : 'bg-slate-50 border-slate-200 text-stone-500'
               }`}
             >
               <span className="font-semibold">{cat.name}</span>
-              <span className="text-[10px] font-mono text-amber-500 bg-stone-900 px-1.5 py-0.5 rounded border border-stone-800">
+              <span className="text-[10px] font-mono text-amber-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">
                 #{cat.sort_order}
               </span>
               <button
                 type="button"
                 onClick={() => handleStartEditCategory(cat)}
-                className="text-stone-400 hover:text-white p-0.5 ml-1"
+                className="text-slate-400 hover:text-slate-600 p-0.5 ml-1"
                 title="Chỉnh sửa"
               >
                 ✏️
@@ -410,7 +410,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
               <button
                 type="button"
                 onClick={() => handleDeleteCategory(cat)}
-                className="text-stone-500 hover:text-rose-400 p-0.5"
+                className="text-stone-500 hover:text-rose-600 p-0.5"
                 title="Xóa/Lưu trữ"
               >
                 ✕
@@ -421,20 +421,20 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
       </div>
 
       {/* Menu Items Management Block */}
-      <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
           <div>
-            <h2 className="text-sm font-bold text-stone-200 uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
               <span>🍲 Quản Lý Danh Sách Món Ăn</span>
             </h2>
-            <p className="text-xs text-stone-400 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               Cập nhật giá, hình ảnh, chế độ phục vụ và tình trạng còn/hết món
             </p>
           </div>
           <button
             type="button"
             onClick={handleOpenCreateItem}
-            className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs rounded-xl shadow-xs transition self-start sm:self-auto flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition self-start sm:self-auto flex items-center gap-1.5"
           >
             <span>+ Thêm Món Mới</span>
           </button>
@@ -447,13 +447,13 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
             placeholder="🔍 Tìm kiếm theo tên hoặc mô tả món..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-200 placeholder-stone-500 focus:outline-none focus:border-amber-500"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-stone-500 focus:outline-none focus:border-amber-500"
           />
 
           <select
             value={selectedCategoryFilter}
             onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-            className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-200 focus:outline-none focus:border-amber-500"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
           >
             <option value="ALL">-- Tất cả danh mục ({categories.length}) --</option>
             {categories.map((c) => (
@@ -463,12 +463,12 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
             ))}
           </select>
 
-          <div className="flex items-center gap-1 bg-stone-950 p-1 rounded-xl border border-stone-800 text-xs">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
             <button
               type="button"
               onClick={() => setAvailabilityFilter('ALL')}
               className={`flex-1 py-1 rounded-lg font-medium transition ${
-                availabilityFilter === 'ALL' ? 'bg-amber-500 text-stone-950 font-bold' : 'text-stone-400 hover:text-white'
+                availabilityFilter === 'ALL' ? 'bg-amber-500 text-white font-bold' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               Tất cả
@@ -477,7 +477,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
               type="button"
               onClick={() => setAvailabilityFilter('AVAILABLE')}
               className={`flex-1 py-1 rounded-lg font-medium transition ${
-                availabilityFilter === 'AVAILABLE' ? 'bg-emerald-500 text-stone-950 font-bold' : 'text-stone-400 hover:text-white'
+                availabilityFilter === 'AVAILABLE' ? 'bg-emerald-500 text-white font-bold' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               Còn món
@@ -486,7 +486,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
               type="button"
               onClick={() => setAvailabilityFilter('UNAVAILABLE')}
               className={`flex-1 py-1 rounded-lg font-medium transition ${
-                availabilityFilter === 'UNAVAILABLE' ? 'bg-rose-500 text-stone-950 font-bold' : 'text-stone-400 hover:text-white'
+                availabilityFilter === 'UNAVAILABLE' ? 'bg-rose-500 text-white font-bold' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               Hết món
@@ -497,7 +497,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
         {/* Menu Items Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-stone-400 bg-stone-950/80 border-b border-stone-800 uppercase font-semibold">
+            <thead className="text-slate-500 bg-slate-50 border-b border-slate-200 uppercase font-semibold">
               <tr>
                 <th className="py-3 px-3">Món ăn</th>
                 <th className="py-3 px-3">Danh mục</th>
@@ -509,27 +509,27 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                 <th className="py-3 px-3 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-800/80 text-stone-300">
+            <tbody className="divide-y divide-slate-200 text-slate-600">
               {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-stone-800/30 transition">
-                  <td className="py-3 px-3 font-medium text-stone-100">
+                <tr key={item.id} className="hover:bg-slate-100 transition">
+                  <td className="py-3 px-3 font-medium text-slate-900">
                     <div className="flex items-center gap-3">
                       {item.image_path ? (
                         <img
                           src={item.image_path}
                           alt={item.name}
-                          className="w-11 h-11 rounded-lg object-cover border border-stone-800 shrink-0"
+                          className="w-11 h-11 rounded-lg object-cover border border-slate-200 shrink-0"
                         />
                       ) : (
-                        <div className="w-11 h-11 rounded-lg bg-stone-950 border border-stone-800 flex items-center justify-center text-stone-600 text-lg shrink-0">
+                        <div className="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 text-lg shrink-0">
                           🍲
                         </div>
                       )}
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-stone-100">{item.name}</span>
+                          <span className="font-bold text-slate-900">{item.name}</span>
                           {item.is_signature && (
-                            <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1 rounded">
+                            <span className="text-[10px] bg-amber-500/20 text-amber-600 border border-amber-500/40 px-1 rounded">
                               Đặc sản
                             </span>
                           )}
@@ -540,7 +540,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                           )}
                         </div>
                         {item.description && (
-                          <p className="text-[11px] text-stone-400 line-clamp-1 max-w-xs">{item.description}</p>
+                          <p className="text-[11px] text-slate-500 line-clamp-1 max-w-xs">{item.description}</p>
                         )}
                         {item.serving_size && (
                           <span className="text-[10px] text-stone-500 font-mono">Khẩu phần: {item.serving_size}</span>
@@ -548,8 +548,8 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-3 text-stone-400">{item.category_name || 'Chung'}</td>
-                  <td className="py-3 px-3 font-mono font-bold text-amber-400 whitespace-nowrap">
+                  <td className="py-3 px-3 text-slate-500">{item.category_name || 'Chung'}</td>
+                  <td className="py-3 px-3 font-mono font-bold text-amber-600 whitespace-nowrap">
                     {item.price_vnd.toLocaleString('vi-VN')}đ
                   </td>
                   <td className="py-3 px-3 whitespace-nowrap space-y-0.5">
@@ -560,7 +560,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                       {item.allow_delivery ? '✓ Giao hàng' : '✕ Không giao'}
                     </div>
                   </td>
-                  <td className="py-3 px-3 text-[11px] text-stone-400">
+                  <td className="py-3 px-3 text-[11px] text-slate-500">
                     {item.spice_level ? `🌶️ Cay cấp ${item.spice_level}` : 'Không cay'}
                   </td>
                   <td className="py-3 px-3 text-center">
@@ -570,8 +570,8 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                       disabled={updatingItemId === item.id}
                       className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition ${
                         item.published
-                          ? 'bg-stone-800 text-stone-300 border-stone-700 hover:bg-stone-700'
-                          : 'bg-stone-950 text-stone-500 border-stone-800 hover:bg-stone-900'
+                          ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                          : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
                       }`}
                     >
                       {item.published ? 'Hiện' : 'Ẩn'}
@@ -584,8 +584,8 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                       disabled={updatingItemId === item.id}
                       className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
                         item.available
-                          ? 'bg-emerald-950 text-emerald-300 border-emerald-800 hover:bg-emerald-900'
-                          : 'bg-rose-950 text-rose-300 border-rose-800 hover:bg-rose-900'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                       }`}
                     >
                       {item.available ? '● Còn món' : '○ Hết món'}
@@ -595,7 +595,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => handleOpenEditItem(item)}
-                      className="px-2.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold rounded-lg transition"
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
                     >
                       Sửa
                     </button>
@@ -609,10 +609,10 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
 
       {/* Modal: Category Create/Edit */}
       {(isCreateCategoryOpen || editingCategory) && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-bold text-stone-100">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-base font-bold text-slate-900">
                 {editingCategory ? `Sửa Danh Mục: ${editingCategory.name}` : 'Thêm Danh Mục Mới'}
               </h3>
               <button
@@ -621,7 +621,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                   setIsCreateCategoryOpen(false)
                   setEditingCategory(null)
                 }}
-                className="text-stone-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-600"
               >
                 ✕
               </button>
@@ -629,8 +629,8 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
 
             <form onSubmit={editingCategory ? handleUpdateCategory : handleCreateCategory} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Tên danh mục <span className="text-amber-400">*</span>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Tên danh mục <span className="text-amber-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -640,12 +640,12 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                   onChange={(e) =>
                     editingCategory ? setEditCatName(e.target.value) : setNewCatName(e.target.value)
                   }
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
                   Thứ tự sắp xếp (Số nhỏ xếp trước)
                 </label>
                 <input
@@ -656,7 +656,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                       ? setEditCatSortOrder(Number(e.target.value))
                       : setNewCatSortOrder(Number(e.target.value))
                   }
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500 font-mono"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500 font-mono"
                 />
               </div>
 
@@ -670,31 +670,31 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                       ? setEditCatActive(e.target.checked)
                       : setNewCatActive(e.target.checked)
                   }
-                  className="rounded border-stone-700 bg-stone-950 text-amber-500 focus:ring-amber-500"
+                  className="rounded border-slate-300 bg-white text-amber-500 focus:ring-amber-500"
                 />
-                <label htmlFor="catActiveCheckbox" className="text-xs text-stone-300">
+                <label htmlFor="catActiveCheckbox" className="text-xs text-slate-600">
                   Đang hoạt động (hiển thị trên thực đơn khách)
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-stone-800">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => {
                     setIsCreateCategoryOpen(false)
                     setEditingCategory(null)
                   }}
-                  className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingCat}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5"
                 >
                   {isSubmittingCat && (
-                    <span className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   )}
                   <span>{editingCategory ? 'Lưu cập nhật' : 'Tạo danh mục'}</span>
                 </button>
@@ -706,10 +706,10 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
 
       {/* Modal: Menu Item Create / Edit */}
       {(isCreateItemOpen || editingItem) && (
-        <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-stone-900 border border-stone-800 rounded-2xl p-6 w-full max-w-2xl shadow-2xl space-y-4 my-8">
-            <div className="flex items-center justify-between border-b border-stone-800 pb-3">
-              <h3 className="text-base font-bold text-stone-100">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-2xl shadow-2xl space-y-4 my-8">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="text-base font-bold text-slate-900">
                 {editingItem ? `Chỉnh sửa Món: ${editingItem.name}` : 'Thêm Món Mới Vào Thực Đơn'}
               </h3>
               <button
@@ -718,7 +718,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                   setIsCreateItemOpen(false)
                   setEditingItem(null)
                 }}
-                className="text-stone-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-600"
               >
                 ✕
               </button>
@@ -727,14 +727,14 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
             <form onSubmit={handleSaveItem} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
-                    Danh mục <span className="text-amber-400">*</span>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Danh mục <span className="text-amber-600">*</span>
                   </label>
                   <select
                     required
                     value={itemCategoryId}
                     onChange={(e) => setItemCategoryId(e.target.value)}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                   >
                     <option value="">-- Chọn danh mục --</option>
                     {categories.map((c) => (
@@ -746,8 +746,8 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
-                    Tên món <span className="text-amber-400">*</span>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Tên món <span className="text-amber-600">*</span>
                   </label>
                   <input
                     type="text"
@@ -755,13 +755,13 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                     placeholder="VD: Sườn Nướng Mắc Khén"
                     value={itemName}
                     onChange={(e) => setItemName(e.target.value)}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
                   Mô tả chi tiết món ăn
                 </label>
                 <textarea
@@ -769,14 +769,14 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                   placeholder="Mô tả hương vị, nguyên liệu đặc sắc bản địa..."
                   value={itemDescription}
                   onChange={(e) => setItemDescription(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
-                    Đơn giá (VNĐ) <span className="text-amber-400">*</span>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Đơn giá (VNĐ) <span className="text-amber-600">*</span>
                   </label>
                   <input
                     type="number"
@@ -785,12 +785,12 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                     step={1000}
                     value={itemPriceVnd}
                     onChange={(e) => setItemPriceVnd(Number(e.target.value))}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-mono focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
                     Khẩu phần (Serving size)
                   </label>
                   <input
@@ -798,14 +798,14 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                     placeholder="VD: 1 đĩa (2-3 người ăn)"
                     value={itemServingSize}
                     onChange={(e) => setItemServingSize(e.target.value)}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               {/* Image Upload Area */}
-              <div className="p-3.5 bg-stone-950 rounded-xl border border-stone-800 space-y-2">
-                <label className="block text-xs font-bold text-stone-200">
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
                   Ảnh món ăn (JPEG, PNG, WebP ≤ 5MB)
                 </label>
                 <div className="flex items-center gap-4">
@@ -813,10 +813,10 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                     <img
                       src={itemImagePath}
                       alt="Xem trước ảnh món"
-                      className="w-16 h-16 rounded-xl object-cover border border-stone-700 shrink-0"
+                      className="w-16 h-16 rounded-xl object-cover border border-slate-300 shrink-0"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center text-stone-600 text-xl shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 text-xl shrink-0">
                       📷
                     </div>
                   )}
@@ -827,15 +827,15 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                       accept="image/jpeg,image/png,image/webp"
                       onChange={handleImageFileChange}
                       disabled={isUploadingImage}
-                      className="text-xs text-stone-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-stone-800 file:text-amber-400 hover:file:bg-stone-700 cursor-pointer"
+                      className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-amber-600 hover:file:bg-slate-200 cursor-pointer"
                     />
                     {isUploadingImage && (
-                      <p className="text-[11px] text-amber-400 animate-pulse">
+                      <p className="text-[11px] text-amber-600 animate-pulse">
                         Đang kiểm tra và tải ảnh lên Storage...
                       </p>
                     )}
                     {imageUploadError && (
-                      <p className="text-[11px] text-rose-400 font-semibold">{imageUploadError}</p>
+                      <p className="text-[11px] text-rose-600 font-semibold">{imageUploadError}</p>
                     )}
                   </div>
                 </div>
@@ -844,7 +844,7 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
               {/* Additional Attributes */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
                     Độ cay (0..5)
                   </label>
                   <input
@@ -853,24 +853,24 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                     max={5}
                     value={itemSpiceLevel}
                     onChange={(e) => setItemSpiceLevel(Number(e.target.value))}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 font-mono focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-mono focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
                     Thời gian chuẩn bị ship
                   </label>
                   <input
                     type="text"
                     value={itemDeliveryEta}
                     onChange={(e) => setItemDeliveryEta(e.target.value)}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-300 mb-1">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
                     Gợi ý dùng kèm
                   </label>
                   <input
@@ -878,13 +878,13 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                     placeholder="VD: Rượu mận Tả Van"
                     value={itemPairingNote}
                     onChange={(e) => setItemPairingNote(e.target.value)}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-300 mb-1">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
                   Thẻ / Tags (cách nhau bởi dấu phẩy)
                 </label>
                 <input
@@ -892,71 +892,71 @@ export const MenuContentSection: FC<MenuContentSectionProps> = ({
                   placeholder="VD: món nướng, đặc sản, rau rừng"
                   value={itemTags}
                   onChange={(e) => setItemTags(e.target.value)}
-                  className="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-100 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* Checkbox Options */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-stone-800 text-xs">
-                <label className="flex items-center gap-2 text-stone-300">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-slate-200 text-xs">
+                <label className="flex items-center gap-2 text-slate-600">
                   <input
                     type="checkbox"
                     checked={itemAllowDineIn}
                     onChange={(e) => setItemAllowDineIn(e.target.checked)}
-                    className="rounded border-stone-700 bg-stone-950 text-amber-500 focus:ring-amber-500"
+                    className="rounded border-slate-300 bg-white text-amber-500 focus:ring-amber-500"
                   />
                   <span>Tại bàn</span>
                 </label>
 
-                <label className="flex items-center gap-2 text-stone-300">
+                <label className="flex items-center gap-2 text-slate-600">
                   <input
                     type="checkbox"
                     checked={itemAllowDelivery}
                     onChange={(e) => setItemAllowDelivery(e.target.checked)}
-                    className="rounded border-stone-700 bg-stone-950 text-amber-500 focus:ring-amber-500"
+                    className="rounded border-slate-300 bg-white text-amber-500 focus:ring-amber-500"
                   />
                   <span>Giao hàng</span>
                 </label>
 
-                <label className="flex items-center gap-2 text-stone-300">
+                <label className="flex items-center gap-2 text-slate-600">
                   <input
                     type="checkbox"
                     checked={itemIsSignature}
                     onChange={(e) => setItemIsSignature(e.target.checked)}
-                    className="rounded border-stone-700 bg-stone-950 text-amber-500 focus:ring-amber-500"
+                    className="rounded border-slate-300 bg-white text-amber-500 focus:ring-amber-500"
                   />
                   <span>Đặc sản quán</span>
                 </label>
 
-                <label className="flex items-center gap-2 text-stone-300">
+                <label className="flex items-center gap-2 text-slate-600">
                   <input
                     type="checkbox"
                     checked={itemIsBestseller}
                     onChange={(e) => setItemIsBestseller(e.target.checked)}
-                    className="rounded border-stone-700 bg-stone-950 text-amber-500 focus:ring-amber-500"
+                    className="rounded border-slate-300 bg-white text-amber-500 focus:ring-amber-500"
                   />
                   <span>Món bán chạy</span>
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-stone-800">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => {
                     setIsCreateItemOpen(false)
                     setEditingItem(null)
                   }}
-                  className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold rounded-xl transition"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingItem || isUploadingImage}
-                  className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5"
                 >
                   {isSubmittingItem && (
-                    <span className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin" />
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   )}
                   <span>{editingItem ? 'Lưu thay đổi món' : 'Tạo món mới'}</span>
                 </button>
