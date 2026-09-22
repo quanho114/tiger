@@ -17,10 +17,11 @@ export const AdminLoading: FC<AdminLoadingProps> = ({
   variant = 'block',
 }) => {
   if (variant === 'screen') {
-    // No background of its own: the cream paper body shows through,
-    // so guard -> suspense -> page loaders share one seamless backdrop.
+    // Fixed overlay: identical viewport-centered position no matter which
+    // layout nesting renders it (guard, suspense, or inside a page outlet).
+    // Transparent so the cream paper body shows through every stage.
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-stone-500">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center text-stone-500">
         <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
         <p className="text-sm font-medium tracking-wide">{label}</p>
       </div>
