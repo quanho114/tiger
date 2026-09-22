@@ -1,6 +1,6 @@
 # V02 - Shared TTL session store
 
-Status: TODO
+Status: BLOCKED
 Dependencies: V01
 Deliverable: implementation + applicable tests + ../reports/V02.md
 

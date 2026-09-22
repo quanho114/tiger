@@ -29,7 +29,7 @@ export interface ConciergeV2SessionBackend {
 }
 
 export interface ConciergeV2AtomicSessionBackend extends ConciergeV2SessionBackend {
-  create(record: ConciergeV2SessionRecord): Promise<boolean>
+  create(record: ConciergeV2SessionRecord, now: Date): Promise<boolean>
   compareAndSwap(input: ConciergeV2SessionMutationInput, capabilityHash: string, now: Date): Promise<ConciergeV2SessionMutationResult>
   deleteOwned(reference: ConciergeV2SessionReference, actor: ConciergeV2ActorBinding, capabilityHash: string, now: Date): Promise<ConciergeV2SessionDeleteResult>
 }
@@ -245,7 +245,7 @@ class SessionStore implements ConciergeV2SessionStore {
         idempotency: [],
       }
       const created = isAtomicBackend(this.backend)
-        ? await this.backend.create(record)
+        ? await this.backend.create(record, now)
         : await this.backend.update(sessionId, (current) => ({ next: current === null ? serialize(record) : null, result: current === null }))
 
       return created

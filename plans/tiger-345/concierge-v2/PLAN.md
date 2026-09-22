@@ -5,7 +5,7 @@ All tasks start TODO. Each task should fit one reviewable PR; split oversized ta
 | ID | Task | Depends on | Owner responsibility | Status |
 | --- | --- | --- | --- | --- |
 | [V01](tasks/V01-contracts-and-baseline.md) | Contract freeze and baseline | None | Architecture/integration | DONE |
-| [V02](tasks/V02-ephemeral-session-store.md) | Shared TTL session store | [V01](tasks/V01-contracts-and-baseline.md) | Session backend | TODO |
+| [V02](tasks/V02-ephemeral-session-store.md) | Shared TTL session store | [V01](tasks/V01-contracts-and-baseline.md) | Session backend | BLOCKED |
 | [V03](tasks/V03-session-runtime-and-retention.md) | Runtime session migration and retention repair | [V02](tasks/V02-ephemeral-session-store.md) | Integration/persistence | TODO |
 | [V04](tasks/V04-frontend-session-lifecycle.md) | Frontend session lifecycle | [V03](tasks/V03-session-runtime-and-retention.md) | Chat frontend | TODO |
 | [V05](tasks/V05-memory-schema-and-repository.md) | Memory schema, settings and repository | [V01](tasks/V01-contracts-and-baseline.md) | Memory data | TODO |
