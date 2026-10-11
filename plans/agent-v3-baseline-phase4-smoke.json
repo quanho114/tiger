@@ -1,0 +1,306 @@
+{
+ "at": "2026-10-11T12:36:30.089Z",
+ "results": [
+  {
+   "input": "xin chào",
+   "http": 200,
+   "latency_ms": 7841,
+   "phase": "DISCOVERY",
+   "state_version": 2,
+   "session_id": "fd008d0c-ebbb-407c-920f-34ad56315e86",
+   "has_capability": true,
+   "message": "Dạ Tiger xin chào bạn! Rất vui được hỗ trợ bạn hôm nay. Bạn đang tìm món ngon dùng bữa, muốn xem thực đơn hay cần đặt bàn trước thì cứ nhắn mình nhé!",
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": null
+  },
+  {
+   "input": "quán mở cửa mấy giờ",
+   "http": 200,
+   "latency_ms": 15049,
+   "phase": "DISCOVERY",
+   "state_version": 2,
+   "session_id": "1c8b2038-31c8-4740-8a49-7096dad8a5a2",
+   "has_capability": true,
+   "message": "Dạ, hôm nay quán mở cửa đón khách suốt cả ngày ạ. Không biết anh/chị dự định ghé dùng bữa vào khoảng thời gian nào để em chuẩn bị đón tiếp chu đáo nhất ạ?",
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": null
+  },
+  {
+   "input": "địa chỉ quán ở đâu",
+   "http": 200,
+   "latency_ms": 15650,
+   "phase": "DISCOVERY",
+   "state_version": 2,
+   "session_id": "0c5d7e3c-3446-4ba9-b43e-3510831e2ab4",
+   "has_capability": true,
+   "message": "Dạ, quán tọa lạc tại số 17, Đường Số 1, Tổ 6, Khu Phố 2, Thị Trấn Vĩnh An, Huyện Vĩnh Cửu, Tỉnh Đồng Nai. \n\nBạn đang dự định ghé quán dùng bữa hay cần hỗ trợ thêm thông tin đường đi không ạ?",
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": null
+  },
+  {
+   "input": "có chỗ đậu xe không",
+   "http": 200,
+   "latency_ms": 12166,
+   "phase": "DISCOVERY",
+   "state_version": 2,
+   "session_id": "8b1f513e-c1e4-4720-a121-ef69c1e7d469",
+   "has_capability": true,
+   "message": "Dạ hiện tại em chưa có thông tin xác thực về khu vực đỗ xe của quán. Anh/chị dự định ghé nhà hàng bằng ô tô hay xe máy để em tiện hỗ trợ thêm thông tin khi đặt bàn ạ?",
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": null
+  },
+  {
+   "input": "quán có món bò không",
+   "http": 503,
+   "latency_ms": 14395,
+   "phase": null,
+   "state_version": null,
+   "session_id": null,
+   "has_capability": false,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": {
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+   },
+   "retry": {
+    "http": 503,
+    "latency_ms": 14558,
+    "phase": null,
+    "message": null,
+    "cards": [],
+    "warnings": [],
+    "error": {
+     "code": "DEPENDENCY_UNAVAILABLE",
+     "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+    }
+   }
+  },
+  {
+   "input": "trà đào giá bao nhiêu",
+   "http": 200,
+   "latency_ms": 22159,
+   "phase": "RECOMMENDATION",
+   "state_version": 2,
+   "session_id": "4aaba81a-ba62-4180-8e92-57140dac5e13",
+   "has_capability": true,
+   "message": "Dạ em vừa kiểm tra hệ thống nhưng hiện tại không tìm thấy món này trong thực đơn của quán. Anh/chị có muốn tham khảo danh sách các món nước khác đang phục vụ không ạ?",
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": null
+  },
+  {
+   "input": "gợi ý món cho 4 người khoảng 800k",
+   "http": 503,
+   "latency_ms": 16232,
+   "phase": null,
+   "state_version": null,
+   "session_id": null,
+   "has_capability": false,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": {
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+   },
+   "retry": {
+    "http": 503,
+    "latency_ms": 16562,
+    "phase": null,
+    "message": null,
+    "cards": [],
+    "warnings": [],
+    "error": {
+     "code": "DEPENDENCY_UNAVAILABLE",
+     "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+    }
+   }
+  },
+  {
+   "input": "4 người, không ăn hải sản, tầm 700k, đừng cay quá",
+   "http": 503,
+   "latency_ms": 16815,
+   "phase": null,
+   "state_version": null,
+   "session_id": null,
+   "has_capability": false,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": {
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+   },
+   "retry": {
+    "http": 503,
+    "latency_ms": 18094,
+    "phase": null,
+    "message": null,
+    "cards": [],
+    "warnings": [],
+    "error": {
+     "code": "DEPENDENCY_UNAVAILABLE",
+     "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+    }
+   }
+  },
+  {
+   "input": "tôi bị dị ứng đậu phộng thì nên tránh món nào",
+   "http": 503,
+   "latency_ms": 16396,
+   "phase": null,
+   "state_version": null,
+   "session_id": null,
+   "has_capability": false,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": {
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+   },
+   "retry": {
+    "http": 500,
+    "latency_ms": 12194,
+    "phase": null,
+    "message": null,
+    "cards": [],
+    "warnings": [],
+    "error": {
+     "code": "INTERNAL_SAFE_FAILURE",
+     "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+    }
+   }
+  },
+  {
+   "input": "thêm 2 trà đào",
+   "http": 200,
+   "latency_ms": 9801,
+   "phase": "DISCOVERY",
+   "state_version": 2,
+   "session_id": "1cdfeb6f-558e-4fbb-901f-4e697d18bb7e",
+   "has_capability": true,
+   "message": "Happy to help with your order! Could you please let me know which specific dish you have in mind and how many portions you would like?",
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": null
+  },
+  {
+   "input": "xem giỏ",
+   "http": 500,
+   "latency_ms": 4615,
+   "phase": null,
+   "state_version": null,
+   "session_id": null,
+   "has_capability": false,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": {
+    "code": "INTERNAL_SAFE_FAILURE",
+    "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+   },
+   "retry": {
+    "http": 500,
+    "latency_ms": 8277,
+    "phase": null,
+    "message": null,
+    "cards": [],
+    "warnings": [],
+    "error": {
+     "code": "INTERNAL_SAFE_FAILURE",
+     "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+    }
+   }
+  },
+  {
+   "input": "tối mai 7h bàn 4 người còn không",
+   "http": 500,
+   "latency_ms": 7822,
+   "phase": null,
+   "state_version": null,
+   "session_id": null,
+   "has_capability": false,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": {
+    "code": "INTERNAL_SAFE_FAILURE",
+    "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+   },
+   "retry": {
+    "http": 503,
+    "latency_ms": 10026,
+    "phase": null,
+    "message": null,
+    "cards": [],
+    "warnings": [],
+    "error": {
+     "code": "DEPENDENCY_UNAVAILABLE",
+     "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+    }
+   }
+  },
+  {
+   "input": "quán có gì đặc biệt không",
+   "http": 500,
+   "latency_ms": 12834,
+   "phase": null,
+   "state_version": null,
+   "session_id": null,
+   "has_capability": false,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": {
+    "code": "INTERNAL_SAFE_FAILURE",
+    "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+   },
+   "retry": {
+    "http": 500,
+    "latency_ms": 16639,
+    "phase": null,
+    "message": null,
+    "cards": [],
+    "warnings": [],
+    "error": {
+     "code": "INTERNAL_SAFE_FAILURE",
+     "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+    }
+   }
+  },
+  {
+   "input": "cảm ơn bạn",
+   "http": 200,
+   "latency_ms": 6364,
+   "phase": "DISCOVERY",
+   "state_version": 2,
+   "session_id": "07951bb3-cc5c-4a7f-8975-a380cef34131",
+   "has_capability": true,
+   "message": "Dạ, rất vui được hỗ trợ bạn! Hôm nay bạn có muốn xem thử thực đơn, tìm món ngon hay dự định đặt bàn cho hai người không ạ?",
+   "cards": [],
+   "warnings": [],
+   "draft": null,
+   "error": null
+  }
+ ]
+}

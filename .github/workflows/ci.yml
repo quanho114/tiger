@@ -7,6 +7,9 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -16,6 +19,25 @@ permissions:
   contents: read
 
 jobs:
+  secrets:
+    name: Secret Scan (tracked files only)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan tracked files for high-confidence secret patterns
+        run: |
+          # Fail on likely-committed secrets. Values in .env.example / docs must stay placeholders.
+          PATTERN='(SUPABASE_SERVICE_ROLE_KEY\s*=\s*[^ ][^ ]|sk-(live|ant)-[A-Za-z0-9]|xox[bap]-|ghp_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{20,}|-----BEGIN (RSA |OPENSSH )?PRIVATE KEY-----|upstash\.io.*token\s*=\s*[^ ][^ ])'
+          if git grep -nEi "$PATTERN" -- . ':!package-lock.json' ':!pnpm-lock.yaml'; then
+            echo "ERROR: Possible secret committed to tracked files."
+            exit 1
+          fi
+          echo "PASS: No high-confidence secrets in tracked files."
+
   validate:
     name: Lint, Typecheck & Frontend Tests
     runs-on: ubuntu-latest
@@ -43,6 +65,9 @@ jobs:
       - name: Run linter (oxlint)
         run: npm run lint
 
+      - name: Check architecture boundaries
+        run: npm run check:architecture && npm run test:architecture
+
       - name: Run unit tests
         run: npm run test:unit
 
@@ -56,6 +81,9 @@ jobs:
         run: npm run test:e2e:mock
 
       - name: Run production build
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: ci-public-placeholder
         run: npm run build
 
       - name: Audit dist bundle for secrets (Invariant V25)
@@ -87,21 +115,30 @@ jobs:
       - name: Start Supabase Local Stack
         run: npx supabase start -x realtime,storage-api,imgproxy
 
+      - name: Mark fresh CI database as disposable
+        env:
+          DISPOSABLE_TEST_PROVISION_ALLOWED: 'true'
+          TEST_ENVIRONMENT: ci_disposable_test
+          TEST_INSTANCE_IDENTITY: ci_disposable_test_instance
+        run: node scripts/provision-test-db.mjs
+
       - name: Reset & seed test database
         run: npm run db:reset:test
 
       - name: Run RLS & RPC Security Policy Tests (Invariant V04)
         run: npm run test:policies
 
-      - name: Run Integration Tests (Invariants V03, V07, V08, V09, V10, V11, V14, V15, V18, V22, V23)
-        run: npm run test:integration
-
-      - name: Start Supabase Functions & Run Real E2E tests
+      - name: Start local functions and browser dependencies
         run: |
           npx supabase functions serve --no-verify-jwt &
           timeout 30 bash -c 'until curl -s http://127.0.0.1:54321/functions/v1/public-api/health | grep -q "ok"; do sleep 1; done'
           npx playwright install --with-deps chromium
-          npm run test:e2e:real
+
+      - name: Run PostgreSQL integration tests
+        run: npm run test:integration
+
+      - name: Run Real E2E tests
+        run: npm run test:e2e:real
 
       - name: Stop Supabase Stack
         if: always()

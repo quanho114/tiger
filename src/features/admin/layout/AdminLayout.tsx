@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import type { FC } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -11,6 +11,7 @@ import {
   Users,
   Settings,
   LogOut,
+  ArrowLeft,
   Search,
   Bell,
   RefreshCw,
@@ -20,10 +21,14 @@ import {
   PanelLeftOpen,
   Plus,
   ChevronDown,
+  Sparkles,
 } from 'lucide-react'
+import { adminApi } from '@/shared/lib/api/client'
+import type { AdminDashboardData } from '../types'
 import { useAuth } from '../../auth'
 import { AdminContext } from './AdminContext'
-import { ErrorBoundary } from '../../../components/ErrorBoundary'
+import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
+import { AdminPageSkeleton } from '../components/AdminLoading'
 import '../elera.css'
 
 export const AdminLayout: FC = () => {
@@ -33,6 +38,8 @@ export const AdminLayout: FC = () => {
 
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(new Date())
   const [refreshKey, setRefreshKey] = useState<number>(0)
+  const [health, setHealth] = useState<AdminDashboardData | null>(null)
+  const [connectionError, setConnectionError] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false)
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
@@ -64,9 +71,17 @@ export const AdminLayout: FC = () => {
   const triggerRefresh = useCallback(() => {
     setIsRefreshing(true)
     setRefreshKey((prev) => prev + 1)
-    setLastRefreshedAt(new Date())
-    setTimeout(() => setIsRefreshing(false), 500)
+
   }, [])
+
+  useEffect(() => {
+    let active = true
+    void adminApi.get<AdminDashboardData>('/dashboard').then(res => {
+      if (active) { setHealth(res.data); setConnectionError(false); setLastRefreshedAt(new Date()) }
+    }).catch(() => { if (active) { setConnectionError(true); setHealth(null) } })
+      .finally(() => { if (active) setIsRefreshing(false) })
+    return () => { active = false }
+  }, [refreshKey])
 
   // Auto-refresh poll every 15s when document is visible
   useEffect(() => {
@@ -105,8 +120,8 @@ export const AdminLayout: FC = () => {
       group: 'VẬN HÀNH',
       items: [
         { label: 'Tổng quan', path: '/admin', exact: true, icon: LayoutDashboard },
-        { label: 'Đơn hàng', path: '/admin/orders', exact: false, icon: ClipboardList, badge: 1 },
-        { label: 'Bàn & Đặt chỗ', path: '/admin/tables', exact: false, icon: Armchair, badge: 6 },
+        { label: 'Đơn hàng', path: '/admin/orders', exact: false, icon: ClipboardList, badge: health?.pending_orders_count },
+        { label: 'Bàn & Đặt chỗ', path: '/admin/tables', exact: false, icon: Armchair, badge: health?.open_visits_count },
         { label: 'Hóa đơn', path: '/admin/invoices', exact: false, icon: ReceiptText },
       ],
     },
@@ -114,6 +129,7 @@ export const AdminLayout: FC = () => {
       group: 'QUẢN LÝ',
       items: [
         { label: 'Thực đơn', path: '/admin/menu', exact: false, icon: Utensils },
+        { label: 'Menu Intelligence', path: '/admin/menu-intelligence', exact: false, icon: Sparkles },
         { label: 'Báo cáo', path: '/admin/reports', exact: false, icon: BarChart3 },
         { label: 'Tài khoản admin', path: '/admin/accounts', exact: false, icon: Users },
       ],
@@ -261,11 +277,12 @@ export const AdminLayout: FC = () => {
               {!isCollapsed && (
                 <button
                   type="button"
-                  onClick={handleSignOut}
-                  className="p-1.5 text-[#787979] hover:text-rose-600 hover:bg-white rounded-lg transition"
-                  title="Đăng xuất"
+                  onClick={() => navigate('/')}
+                  className="p-1.5 text-[#787979] hover:text-[#171a17] hover:bg-white rounded-lg transition"
+                  title="Về trang chủ"
+                  aria-label="Về trang chủ"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <ArrowLeft className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -306,7 +323,7 @@ export const AdminLayout: FC = () => {
               {/* System status badge */}
               <div className="hidden sm:inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#e4f7c6] border border-[#7cd56e]/30 text-[11px] text-[#3e6300] font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#7cd56e] animate-pulse" />
-                <span>Hệ thống trực tuyến</span>
+                <span>{connectionError ? 'Mất kết nối máy chủ' : health ? 'Đã kết nối máy chủ' : 'Đang kết nối...'}</span>
               </div>
 
               {/* Manual Refresh Button */}
@@ -330,7 +347,7 @@ export const AdminLayout: FC = () => {
                 >
                   <Bell className="w-4 h-4" />
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#7cd56e] text-[#0f170e] rounded-full text-[9px] font-bold flex items-center justify-center ring-2 ring-white">
-                    3
+                    {health?.pending_orders_count ?? 0}
                   </span>
                 </button>
               </div>
@@ -416,7 +433,9 @@ export const AdminLayout: FC = () => {
           {/* Routed Page Content */}
           <main className="flex-1 p-4 md:p-6 lg:p-8">
             <ErrorBoundary variant="inline">
-              <Outlet />
+              <Suspense fallback={<AdminPageSkeleton />}>
+                <Outlet />
+              </Suspense>
             </ErrorBoundary>
           </main>
         </div>

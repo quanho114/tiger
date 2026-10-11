@@ -59,6 +59,10 @@ export let RECOMMENDATION_CONFIG: RecommendationConfig = {
 /**
  * Structured serving profiles for seeded menu items
  * Note on provenance: 'tiger-menu-seed-v1'
+ *
+ * @deprecated Phase 5: development seed / test fixture only. Production
+ * runtime resolves serving metadata from menu_item_ai_profiles through
+ * menu/domain (MenuSnapshot). Do not add production items here.
  */
 export const SERVING_PROFILES: Record<string, ServingProfile> = {
   // Sườn Nướng Mật Ong Hoa Cà Phê
@@ -261,6 +265,10 @@ export const SERVING_PROFILES: Record<string, ServingProfile> = {
  * Allergen mapping per item
  * Safety rule: Any unverified allergen defaults to 'unknown'.
  * Never affirm safety when data is missing or marked unknown!
+ *
+ * @deprecated Phase 5: development seed / test fixture only. Production
+ * runtime resolves allergen metadata from menu_item_ai_profiles through
+ * menu/domain (MenuSnapshot). Do not add production items here.
  */
 export const ALLERGEN_PROFILES: Record<string, ItemAllergenProfile> = {
   // Sườn Nướng Mật Ong: Có mè/vừng rắc lên, đậu nành trong sốt ướp
@@ -582,6 +590,32 @@ const INITIAL_SERVING_SNAPSHOT = JSON.parse(JSON.stringify(SERVING_PROFILES))
 const INITIAL_ALLERGEN_SNAPSHOT = JSON.parse(JSON.stringify(ALLERGEN_PROFILES))
 const INITIAL_DOCS_SNAPSHOT = JSON.parse(JSON.stringify(RESTAURANT_KNOWLEDGE_DOCS))
 
+export interface KnowledgeSnapshot {
+  config: RecommendationConfig
+  servingProfiles: Record<string, ServingProfile>
+  allergenProfiles: Record<string, ItemAllergenProfile>
+  documents: KnowledgeDocument[]
+}
+
+export function seedKnowledgeSnapshot(): KnowledgeSnapshot {
+  return {
+    config: structuredClone(INITIAL_CONFIG_SNAPSHOT),
+    servingProfiles: structuredClone(INITIAL_SERVING_SNAPSHOT),
+    allergenProfiles: structuredClone(INITIAL_ALLERGEN_SNAPSHOT),
+    documents: structuredClone(INITIAL_DOCS_SNAPSHOT),
+  }
+}
+
+// Legacy admin validators operate synchronously on this module's store.
+export function applyKnowledgeSnapshot(snapshot: KnowledgeSnapshot): void {
+  RECOMMENDATION_CONFIG = structuredClone(snapshot.config)
+  for (const key of Object.keys(SERVING_PROFILES)) delete SERVING_PROFILES[key]
+  Object.assign(SERVING_PROFILES, structuredClone(snapshot.servingProfiles))
+  for (const key of Object.keys(ALLERGEN_PROFILES)) delete ALLERGEN_PROFILES[key]
+  Object.assign(ALLERGEN_PROFILES, structuredClone(snapshot.allergenProfiles))
+  RESTAURANT_KNOWLEDGE_DOCS.splice(0, RESTAURANT_KNOWLEDGE_DOCS.length, ...structuredClone(snapshot.documents))
+}
+
 export function resetKnowledgeStore(): void {
   RECOMMENDATION_CONFIG = JSON.parse(JSON.stringify(INITIAL_CONFIG_SNAPSHOT))
   for (const k of Object.keys(SERVING_PROFILES)) {
@@ -621,40 +655,60 @@ export interface KnowledgeAuditReport {
   }[]
 }
 
+let knowledgeCacheEpoch = 0
+
+export function getKnowledgeCacheEpoch(): number {
+  return knowledgeCacheEpoch
+}
+
+export function invalidateKnowledgeCache(): void {
+  knowledgeCacheEpoch++
+}
+
 export function adminUpdateServingProfile(
   itemId: string,
   profileUpdates: Partial<ServingProfile>,
-  auditedBy?: string
+  auditedBy?: string,
+  snapshot?: KnowledgeSnapshot
 ): ServingProfile {
+  const profiles = snapshot?.servingProfiles ?? SERVING_PROFILES
+  const roles = ['main_protein', 'carb', 'vegetable', 'soup_hotpot', 'side', 'dessert', 'drink', 'alcohol', 'set']
+  const units = ['con', 'phần', 'cây', 'đĩa', 'nồi', 'tô', 'cuốn', 'ly', 'chai', 'cái', 'bát', 'ống']
   if (!itemId || !/^[0-9a-fA-F-]{36}$/.test(itemId)) {
     throw new AppError('VALIDATION_ERROR', 'Mã món ăn không hợp lệ (yêu cầu UUID)', 422)
   }
 
   if (profileUpdates.people_min !== undefined) {
-    if (typeof profileUpdates.people_min !== 'number' || profileUpdates.people_min <= 0) {
+    if (!Number.isInteger(profileUpdates.people_min) || profileUpdates.people_min <= 0) {
       throw new AppError('VALIDATION_ERROR', 'Số người tối thiểu phải là số dương', 422)
     }
   }
   if (profileUpdates.people_max !== undefined) {
-    if (typeof profileUpdates.people_max !== 'number' || profileUpdates.people_max <= 0) {
+    if (!Number.isInteger(profileUpdates.people_max) || profileUpdates.people_max <= 0) {
       throw new AppError('VALIDATION_ERROR', 'Số người tối đa phải là số dương', 422)
     }
   }
-  const min = profileUpdates.people_min ?? SERVING_PROFILES[itemId]?.people_min ?? 1
-  const max = profileUpdates.people_max ?? SERVING_PROFILES[itemId]?.people_max ?? min
+  const min = profileUpdates.people_min ?? profiles[itemId]?.people_min ?? 1
+  const max = profileUpdates.people_max ?? profiles[itemId]?.people_max ?? min
   if (min > max) {
     throw new AppError('VALIDATION_ERROR', 'Số người tối thiểu không được lớn hơn số người tối đa', 422)
+  }
+  if ((profileUpdates.meal_role && !roles.includes(profileUpdates.meal_role)) ||
+      (profileUpdates.serving_unit && !units.includes(profileUpdates.serving_unit)) ||
+      (profileUpdates.confidence && !['restaurant_defined', 'estimated', 'unknown'].includes(profileUpdates.confidence)) ||
+      (profileUpdates.meal_context && !['single_main', 'shared', 'side_pairing'].includes(profileUpdates.meal_context))) {
+    throw new AppError('VALIDATION_ERROR', 'Vai trò hoặc đơn vị khẩu phần không hợp lệ', 422)
   }
 
   if (profileUpdates.contributions) {
     for (const [key, val] of Object.entries(profileUpdates.contributions)) {
-      if (typeof val !== 'number' || val < 0 || val > 1.5) {
+      if (typeof val !== 'number' || !Number.isFinite(val) || val < 0 || val > 1.5) {
         throw new AppError('VALIDATION_ERROR', `Giá trị đóng góp nhóm ${key} phải từ 0 đến 1.5`, 422)
       }
     }
   }
 
-  const existing = SERVING_PROFILES[itemId]
+  const existing = profiles[itemId]
   const now = new Date().toISOString()
   const updated: ServingProfile = {
     ...(existing || {
@@ -675,18 +729,21 @@ export function adminUpdateServingProfile(
     updated_at: now,
     provenance: `admin_audit:${auditedBy || 'kitchen_staff'}:${now}`,
   }
-  SERVING_PROFILES[itemId] = updated
+  profiles[itemId] = updated
+  invalidateKnowledgeCache()
   return updated
 }
 
 const VALID_ALLERGENS = ['seafood', 'peanuts', 'eggs', 'dairy', 'gluten', 'soy', 'sesame']
-const VALID_ALLERGEN_STATUSES = ['contains', 'may_contain', 'unknown']
+const VALID_ALLERGEN_STATUSES = ['contains', 'may_contain', 'absent', 'unknown']
 
 export function adminUpdateAllergenProfile(
   itemId: string,
   profileUpdates: Partial<ItemAllergenProfile>,
-  auditedBy?: string
+  auditedBy?: string,
+  snapshot?: KnowledgeSnapshot
 ): ItemAllergenProfile {
+  const profiles = snapshot?.allergenProfiles ?? ALLERGEN_PROFILES
   if (!itemId || !/^[0-9a-fA-F-]{36}$/.test(itemId)) {
     throw new AppError('VALIDATION_ERROR', 'Mã món ăn không hợp lệ (yêu cầu UUID)', 422)
   }
@@ -703,8 +760,9 @@ export function adminUpdateAllergenProfile(
   }
 
   // AT07 Safety Gate: verified_by_kitchen can NEVER self-verify or be set without kitchen attribution/notes
-  const existing = ALLERGEN_PROFILES[itemId]
+  const existing = profiles[itemId]
   let isVerified = existing?.verified_by_kitchen ?? false
+  if (profileUpdates.allergens && profileUpdates.verified_by_kitchen !== true) isVerified = false
 
   if (profileUpdates.verified_by_kitchen !== undefined) {
     if (profileUpdates.verified_by_kitchen === true) {
@@ -712,10 +770,10 @@ export function adminUpdateAllergenProfile(
       const hasKitchenNotes = Boolean(
         profileUpdates.kitchen_notes && profileUpdates.kitchen_notes.trim().length > 0
       )
-      if (!hasAuditor && !hasKitchenNotes) {
+      if (!hasAuditor || !hasKitchenNotes) {
         throw new AppError(
           'VALIDATION_ERROR',
-          'Xác nhận an toàn bếp (verified_by_kitchen) bắt buộc phải có ghi chú kiểm nghiệm của bếp hoặc thông tin người duyệt',
+          'Xác nhận an toàn bếp (verified_by_kitchen) bắt buộc phải có ghi chú kiểm nghiệm của bếp và thông tin người duyệt',
           422
         )
       }
@@ -734,22 +792,24 @@ export function adminUpdateAllergenProfile(
     }),
     ...profileUpdates,
     verified_by_kitchen: isVerified,
-    source: isVerified
-      ? 'kitchen_audited'
-      : (profileUpdates.source || existing?.source || 'demo_estimate'),
+    verified_at: isVerified ? (profileUpdates.verified_at || existing?.verified_at || now) : undefined,
+    source: isVerified ? 'kitchen_audited'
+      : existing?.source === 'system_seed' && !profileUpdates.allergens ? 'system_seed' : 'demo_estimate',
     updated_by: auditedBy || 'bếp trưởng',
     updated_at: now,
     kitchen_notes: `${profileUpdates.kitchen_notes || existing?.kitchen_notes || ''}${
       auditedBy ? ` [Duyệt bởi: ${auditedBy}]` : ''
     }`.trim(),
   }
-  ALLERGEN_PROFILES[itemId] = updated
+  profiles[itemId] = updated
+  invalidateKnowledgeCache()
   return updated
 }
 
 export function adminUpdateConfig(
   updates: Partial<RecommendationConfig>,
-  auditedBy?: string
+  auditedBy?: string,
+  snapshot?: KnowledgeSnapshot
 ): RecommendationConfig {
   if (
     updates.adult_factor !== undefined &&
@@ -785,28 +845,33 @@ export function adminUpdateConfig(
     throw new AppError('VALIDATION_ERROR', 'Độ lệch ngân sách mềm phải >= 0', 422)
   }
 
-  const newVersion = RECOMMENDATION_CONFIG.version + 1
-  RECOMMENDATION_CONFIG = {
-    ...RECOMMENDATION_CONFIG,
+  const previous = snapshot?.config ?? RECOMMENDATION_CONFIG
+  const newVersion = previous.version + 1
+  const updated = {
+    ...previous,
     ...updates,
     appetite_factors: {
-      ...RECOMMENDATION_CONFIG.appetite_factors,
+      ...previous.appetite_factors,
       ...(updates.appetite_factors || {}),
     },
     ideal_macro_ratios: {
-      ...RECOMMENDATION_CONFIG.ideal_macro_ratios,
+      ...previous.ideal_macro_ratios,
       ...(updates.ideal_macro_ratios || {}),
     },
     version: newVersion,
     updated_at: new Date().toISOString(),
     updated_by: auditedBy || 'admin',
   }
-  return RECOMMENDATION_CONFIG
+  if (snapshot) snapshot.config = updated
+  else RECOMMENDATION_CONFIG = updated
+  invalidateKnowledgeCache()
+  return updated
 }
 
 export function adminCreateDocument(
   doc: Omit<KnowledgeDocument, 'id' | 'version' | 'updated_at'> & { id?: string },
-  auditedBy?: string
+  auditedBy?: string,
+  snapshot?: KnowledgeSnapshot
 ): KnowledgeDocument {
   if (!doc.title || doc.title.trim().length === 0) {
     throw new AppError('VALIDATION_ERROR', 'Tiêu đề tài liệu không được để trống', 422)
@@ -825,7 +890,11 @@ export function adminCreateDocument(
   const status: KnowledgeDocumentStatus =
     doc.status && validStatuses.includes(doc.status) ? doc.status : 'published'
 
-  const id = doc.id && doc.id.trim().length > 0 ? doc.id.trim() : `doc-${Date.now().toString(36)}`
+  const id = doc.id && doc.id.trim().length > 0 ? doc.id.trim() : `doc-${crypto.randomUUID()}`
+  const documents = snapshot?.documents ?? RESTAURANT_KNOWLEDGE_DOCS
+  if (documents.some(existing => existing.id === id)) {
+    throw new AppError('VALIDATION_ERROR', 'Mã tài liệu đã tồn tại', 422)
+  }
   const newDoc: KnowledgeDocument = {
     id,
     topic: doc.topic.trim(),
@@ -841,16 +910,18 @@ export function adminCreateDocument(
     updated_at: new Date().toISOString(),
   }
 
-  RESTAURANT_KNOWLEDGE_DOCS.push(newDoc)
+  documents.push(newDoc)
+  invalidateKnowledgeCache()
   return newDoc
 }
 
 export function adminUpdateDocument(
   docId: string,
   updates: Partial<KnowledgeDocument>,
-  auditedBy?: string
+  auditedBy?: string,
+  snapshot?: KnowledgeSnapshot
 ): KnowledgeDocument {
-  const doc = RESTAURANT_KNOWLEDGE_DOCS.find((d) => d.id === docId)
+  const doc = (snapshot?.documents ?? RESTAURANT_KNOWLEDGE_DOCS).find((d) => d.id === docId)
   if (!doc) {
     throw new AppError('NOT_FOUND', `Tài liệu tri thức ${docId} không tồn tại`, 404)
   }
@@ -874,16 +945,21 @@ export function adminUpdateDocument(
   doc.approved_by = auditedBy || doc.approved_by || 'admin'
   doc.updated_at = new Date().toISOString()
 
+  invalidateKnowledgeCache()
   return doc
 }
 
-export function adminRetireDocument(docId: string, auditedBy?: string): KnowledgeDocument {
-  return adminUpdateDocument(docId, { status: 'retired' }, auditedBy)
+export function adminRetireDocument(docId: string, auditedBy?: string, snapshot?: KnowledgeSnapshot): KnowledgeDocument {
+  return adminUpdateDocument(docId, { status: 'retired' }, auditedBy, snapshot)
 }
 
-export function adminAuditKnowledge(): KnowledgeAuditReport {
+export function adminAuditKnowledge(snapshot?: KnowledgeSnapshot): KnowledgeAuditReport {
+  const servingProfiles = snapshot?.servingProfiles ?? SERVING_PROFILES
+  const allergenProfiles = snapshot?.allergenProfiles ?? ALLERGEN_PROFILES
+  const documents = snapshot?.documents ?? RESTAURANT_KNOWLEDGE_DOCS
+  const config = snapshot?.config ?? RECOMMENDATION_CONFIG
   const allItemIds = Array.from(
-    new Set([...Object.keys(SERVING_PROFILES), ...Object.keys(ALLERGEN_PROFILES)])
+    new Set([...Object.keys(servingProfiles), ...Object.keys(allergenProfiles)])
   )
 
   let verifiedCount = 0
@@ -891,8 +967,8 @@ export function adminAuditKnowledge(): KnowledgeAuditReport {
   let unverifiedAllergensCount = 0
 
   const details = allItemIds.map((itemId) => {
-    const serving = SERVING_PROFILES[itemId]
-    const allergen = ALLERGEN_PROFILES[itemId]
+    const serving = servingProfiles[itemId]
+    const allergen = allergenProfiles[itemId]
 
     if (allergen?.verified_by_kitchen) {
       verifiedCount++
@@ -911,24 +987,22 @@ export function adminAuditKnowledge(): KnowledgeAuditReport {
     }
   })
 
-  const publishedCount = RESTAURANT_KNOWLEDGE_DOCS.filter((d) => d.status === 'published').length
-  const draftCount = RESTAURANT_KNOWLEDGE_DOCS.filter((d) => d.status === 'draft').length
-  const retiredCount = RESTAURANT_KNOWLEDGE_DOCS.filter((d) => d.status === 'retired').length
+  const publishedCount = documents.filter((d) => d.status === 'published').length
+  const draftCount = documents.filter((d) => d.status === 'draft').length
+  const retiredCount = documents.filter((d) => d.status === 'retired').length
 
   return {
-    total_serving_profiles: Object.keys(SERVING_PROFILES).length,
-    total_allergen_profiles: Object.keys(ALLERGEN_PROFILES).length,
+    total_serving_profiles: Object.keys(servingProfiles).length,
+    total_allergen_profiles: Object.keys(allergenProfiles).length,
     verified_by_kitchen_count: verifiedCount,
     demo_estimate_count: demoEstimateCount,
     unverified_allergens_count: unverifiedAllergensCount,
-    total_documents: RESTAURANT_KNOWLEDGE_DOCS.length,
+    total_documents: documents.length,
     published_documents_count: publishedCount,
     draft_documents_count: draftCount,
     retired_documents_count: retiredCount,
-    config_version: RECOMMENDATION_CONFIG.version,
+    config_version: config.version,
     generated_at: new Date().toISOString(),
     details,
   }
 }
-
-

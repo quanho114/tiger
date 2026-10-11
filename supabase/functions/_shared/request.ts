@@ -19,20 +19,29 @@ export function getOrCreateRequestId(req: Request): string {
   return crypto.randomUUID()
 }
 
+/**
+ * Client IP is used for RATE LIMITING and abuse detection ONLY.
+ * It is NEVER an identity: guest sessions use a cryptographically random
+ * capability (csc_*) and authenticated users use their verified JWT.
+ * Proxy headers are untrusted input — validated, never trusted blindly.
+ */
 export function getClientIp(req: Request): string {
-  const cfIp = req.headers.get('cf-connecting-ip')
-  if (cfIp) return cfIp.trim()
-
-  const realIp = req.headers.get('x-real-ip')
-  if (realIp) return realIp.trim()
-
-  const forwarded = req.headers.get('x-forwarded-for')
-  if (forwarded) {
-    const first = forwarded.split(',')[0]
-    if (first) return first.trim()
+  const candidates = [
+    req.headers.get('cf-connecting-ip'),
+    req.headers.get('x-real-ip'),
+    req.headers.get('x-forwarded-for')?.split(',')[0],
+  ]
+  for (const raw of candidates) {
+    const ip = raw?.trim()
+    if (ip && isPlausibleIp(ip)) return ip
   }
-
   return '127.0.0.1'
+}
+
+function isPlausibleIp(value: string): boolean {
+  if (value.length > 45) return false
+  // IPv4 or IPv6 textual form only — no ports, no garbage.
+  return /^(?:\d{1,3}\.){3}\d{1,3}$/.test(value) || /^[0-9a-fA-F:.]{2,45}$/.test(value)
 }
 
 export async function parseJsonBody<T = unknown>(req: Request): Promise<T> {

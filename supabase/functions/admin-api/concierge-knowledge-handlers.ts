@@ -36,23 +36,47 @@ import { jsonResponse, parseJsonBody } from '../_shared/request.ts'
 import { AppError } from '../_shared/errors.ts'
 import type { AuthActor } from '../_shared/types.ts'
 import {
-  ALLERGEN_PROFILES,
-  RECOMMENDATION_CONFIG,
-  RESTAURANT_KNOWLEDGE_DOCS,
-  SERVING_PROFILES,
   adminAuditKnowledge,
   adminCreateDocument,
   adminRetireDocument,
-  adminUpdateAllergenProfile,
   adminUpdateConfig,
   adminUpdateDocument,
-  adminUpdateServingProfile,
   type KnowledgeDocument,
   type RecommendationConfig,
   type ServingProfile,
   type ItemAllergenProfile,
 } from '../_shared/concierge/knowledge.ts'
+import {
+  getAllergenProfile,
+  getServingProfile,
+  listAllergenProfiles,
+  listServingProfiles,
+  upsertAllergenProfile,
+  upsertServingProfile,
+} from '../_shared/concierge/menu/profile-repository.ts'
+import { upsertTasteProfile } from '../_shared/concierge/menu/taste-repository.ts'
+import {
+  acceptProfileDraft,
+  generateProfileDraft,
+  listProfileDrafts,
+  rejectProfileDraft,
+} from '../_shared/concierge/menu/ai-draft.ts'
+import {
+  coverageReport,
+  findStaleSeedIds,
+  profileStatusOf,
+  profileWarningsOf,
+} from '../_shared/concierge/menu/profile-quality.ts'
+import {
+  snapshotById,
+} from '../_shared/concierge/menu/domain.ts'
+import { loadMenuSnapshot } from '../_shared/concierge/menu/repository.ts'
+import {
+  ALLERGEN_PROFILES,
+  SERVING_PROFILES,
+} from '../_shared/concierge/knowledge.ts'
 import { searchRestaurantKnowledge } from '../_shared/concierge/rag.ts'
+import { loadKnowledgeSnapshot, persistKnowledgeMutation } from '../_shared/concierge/knowledge-repository.ts'
 
 export async function handleConciergeKnowledgeRoutes(
   req: Request,
@@ -70,7 +94,7 @@ export async function handleConciergeKnowledgeRoutes(
 
   // 1. Audit Report
   if (path === '/concierge/knowledge/audit' && req.method === 'GET') {
-    const report = adminAuditKnowledge()
+    const report = adminAuditKnowledge(await loadKnowledgeSnapshot(pool))
     return jsonResponse(report, requestId, req, 200, {
       'Cache-Control': 'no-store',
     })
@@ -78,7 +102,7 @@ export async function handleConciergeKnowledgeRoutes(
 
   // 2. Recommendation Config (GET & PATCH)
   if (path === '/concierge/knowledge/config' && req.method === 'GET') {
-    return jsonResponse(RECOMMENDATION_CONFIG, requestId, req, 200, {
+    return jsonResponse((await loadKnowledgeSnapshot(pool)).config, requestId, req, 200, {
       'Cache-Control': 'no-store',
     })
   }
@@ -88,22 +112,19 @@ export async function handleConciergeKnowledgeRoutes(
     (req.method === 'PATCH' || req.method === 'PUT')
   ) {
     const body = await parseJsonBody<Partial<RecommendationConfig>>(req)
-    const updated = adminUpdateConfig(body, actor.userId ?? undefined)
-
-    await pool.query(
-      `INSERT INTO public.audit_logs (admin_id, actor_kind, action, entity_type, entity_id, metadata)
-       VALUES ($1, 'admin', 'update_recommendation_config', 'recommendation_config', 'global', $2)`,
-      [actor.userId, JSON.stringify({ version: updated.version, updates: body })]
-    )
+    const updated = await persistKnowledgeMutation(pool, { kind: 'config', key: 'global', actorId: actor.userId,
+      action: 'update_recommendation_config', entityType: 'recommendation_config',
+      mutate: snapshot => adminUpdateConfig(body, actor.userId ?? undefined, snapshot),
+      metadata: value => ({ version: value.version, updates: body }) })
 
     return jsonResponse(updated, requestId, req, 200, {
       'Cache-Control': 'no-store',
     })
   }
 
-  // 3. Serving Profiles
+  // 3. Serving Profiles (Phase 5: menu_item_ai_profiles is the truth)
   if (path === '/concierge/knowledge/serving-profiles' && req.method === 'GET') {
-    return jsonResponse(SERVING_PROFILES, requestId, req, 200, {
+    return jsonResponse(await listServingProfiles(pool), requestId, req, 200, {
       'Cache-Control': 'no-store',
     })
   }
@@ -114,24 +135,14 @@ export async function handleConciergeKnowledgeRoutes(
   if (servingMatch) {
     const itemId = servingMatch[1]
     if (req.method === 'GET') {
-      const profile = SERVING_PROFILES[itemId]
-      if (!profile) {
-        throw new AppError('NOT_FOUND', `Không tìm thấy thông tin khẩu phần cho món ${itemId}`, 404)
-      }
-      return jsonResponse(profile, requestId, req, 200, {
+      return jsonResponse(await getServingProfile(pool, itemId), requestId, req, 200, {
         'Cache-Control': 'no-store',
       })
     }
 
     if (req.method === 'PUT' || req.method === 'PATCH') {
       const body = await parseJsonBody<Partial<ServingProfile>>(req)
-      const updated = adminUpdateServingProfile(itemId, body, actor.userId ?? undefined)
-
-      await pool.query(
-        `INSERT INTO public.audit_logs (admin_id, actor_kind, action, entity_type, entity_id, metadata)
-         VALUES ($1, 'admin', 'update_serving_profile', 'serving_profile', $2, $3)`,
-        [actor.userId, itemId, JSON.stringify(body)]
-      )
+      const updated = await upsertServingProfile(pool, itemId, body, actor.userId)
 
       return jsonResponse(updated, requestId, req, 200, {
         'Cache-Control': 'no-store',
@@ -139,9 +150,9 @@ export async function handleConciergeKnowledgeRoutes(
     }
   }
 
-  // 4. Allergen Profiles
+  // 4. Allergen Profiles (Phase 5: menu_item_ai_profiles is the truth)
   if (path === '/concierge/knowledge/allergens' && req.method === 'GET') {
-    return jsonResponse(ALLERGEN_PROFILES, requestId, req, 200, {
+    return jsonResponse(await listAllergenProfiles(pool), requestId, req, 200, {
       'Cache-Control': 'no-store',
     })
   }
@@ -152,24 +163,14 @@ export async function handleConciergeKnowledgeRoutes(
   if (allergenMatch) {
     const itemId = allergenMatch[1]
     if (req.method === 'GET') {
-      const profile = ALLERGEN_PROFILES[itemId]
-      if (!profile) {
-        throw new AppError('NOT_FOUND', `Không tìm thấy thông tin dị ứng cho món ${itemId}`, 404)
-      }
-      return jsonResponse(profile, requestId, req, 200, {
+      return jsonResponse(await getAllergenProfile(pool, itemId), requestId, req, 200, {
         'Cache-Control': 'no-store',
       })
     }
 
     if (req.method === 'PUT' || req.method === 'PATCH') {
       const body = await parseJsonBody<Partial<ItemAllergenProfile>>(req)
-      const updated = adminUpdateAllergenProfile(itemId, body, actor.userId ?? undefined)
-
-      await pool.query(
-        `INSERT INTO public.audit_logs (admin_id, actor_kind, action, entity_type, entity_id, metadata)
-         VALUES ($1, 'admin', 'update_allergen_profile', 'allergen_profile', $2, $3)`,
-        [actor.userId, itemId, JSON.stringify(body)]
-      )
+      const updated = await upsertAllergenProfile(pool, itemId, body, actor.userId)
 
       return jsonResponse(updated, requestId, req, 200, {
         'Cache-Control': 'no-store',
@@ -177,12 +178,126 @@ export async function handleConciergeKnowledgeRoutes(
     }
   }
 
-  // 5. Grounded Knowledge Documents CRUD & Lifecycle
+  // 5. Menu profile governance (Phase 5.5: full profile, taste, verify,
+  //    coverage, AI drafts). Customer agent has no access to these routes.
+  //    Admin reads bypass the in-process snapshot cache so curation always
+  //    sees fresh values (Edge isolates do not share memory; the 45s TTL
+  //    cache remains for the customer runtime path only).
+  if (path === '/concierge/knowledge/profiles/coverage' && req.method === 'GET') {
+    const snapshot = await loadMenuSnapshot(pool)
+    const liveIds = new Set(snapshot.items.map((item) => item.id))
+    const report = coverageReport(snapshot, liveIds)
+    const staleSeedIds = findStaleSeedIds(liveIds, [...Object.keys(SERVING_PROFILES), ...Object.keys(ALLERGEN_PROFILES)])
+    return jsonResponse({
+      ...report,
+      staleSeedIds,
+      staleSeedCount: staleSeedIds.length,
+      items: snapshot.items.map((item) => ({ id: item.id, status: profileStatusOf(item, liveIds) })),
+    }, requestId, req, 200, {
+      'Cache-Control': 'no-store',
+    })
+  }
+
+  const profileMatch = path.match(
+    /^\/concierge\/knowledge\/profiles\/([^/]+)$/
+  )
+  if (profileMatch) {
+    const itemId = profileMatch[1]
+    if (req.method === 'GET') {
+      const snapshot = await loadMenuSnapshot(pool)
+      const item = snapshotById(snapshot, itemId)
+      if (!item) {
+        throw new AppError('NOT_FOUND', `Không tìm thấy món ${itemId} trong thực đơn`, 404)
+      }
+      const liveIds = new Set(snapshot.items.map((entry) => entry.id))
+      return jsonResponse({
+        item,
+        status: profileStatusOf(item, liveIds),
+        warnings: profileWarningsOf(item, liveIds),
+      }, requestId, req, 200, { 'Cache-Control': 'no-store' })
+    }
+  }
+
+  const tasteMatch = path.match(
+    /^\/concierge\/knowledge\/profiles\/([^/]+)\/taste$/
+  )
+  if (tasteMatch) {
+    const itemId = tasteMatch[1]
+    if (req.method === 'PUT' || req.method === 'PATCH') {
+      const body = await parseJsonBody(req)
+      const updated = await upsertTasteProfile(pool, itemId, body as Record<string, unknown>, actor.userId)
+      return jsonResponse(updated, requestId, req, 200, { 'Cache-Control': 'no-store' })
+    }
+  }
+
+  const verifyMatch = path.match(
+    /^\/concierge\/knowledge\/allergens\/([^/]+)\/verify$/
+  )
+  if (verifyMatch) {
+    const itemId = verifyMatch[1]
+    if (req.method === 'POST') {
+      // Explicit kitchen verification op. The safety gate inside
+      // upsertAllergenProfile requires auditor + kitchen notes.
+      const body = await parseJsonBody<{ kitchen_notes?: string; allergens?: Record<string, string> }>(req)
+      const updated = await upsertAllergenProfile(pool, itemId, {
+        ...(body.allergens ? { allergens: body.allergens } : {}),
+        verified_by_kitchen: true,
+        kitchen_notes: body.kitchen_notes ?? '',
+      } as Partial<ItemAllergenProfile>, actor.userId)
+      return jsonResponse(updated, requestId, req, 200, { 'Cache-Control': 'no-store' })
+    }
+  }
+
+  const draftGenMatch = path.match(
+    /^\/concierge\/knowledge\/profiles\/([^/]+)\/drafts\/generate$/
+  )
+  if (draftGenMatch) {
+    const itemId = draftGenMatch[1]
+    if (req.method === 'POST') {
+      const draft = await generateProfileDraft(pool, itemId, actor.userId)
+      return jsonResponse(draft, requestId, req, 200, { 'Cache-Control': 'no-store' })
+    }
+  }
+
+  const draftsMatch = path.match(
+    /^\/concierge\/knowledge\/profiles\/([^/]+)\/drafts$/
+  )
+  if (draftsMatch) {
+    const itemId = draftsMatch[1]
+    if (req.method === 'GET') {
+      return jsonResponse(await listProfileDrafts(pool, itemId), requestId, req, 200, {
+        'Cache-Control': 'no-store',
+      })
+    }
+  }
+
+  const draftDecisionMatch = path.match(
+    /^\/concierge\/knowledge\/drafts\/([^/]+)\/(accept|reject)$/
+  )
+  if (draftDecisionMatch) {
+    const draftId = draftDecisionMatch[1]
+    const decision = draftDecisionMatch[2]
+    if (req.method === 'POST') {
+      if (decision === 'accept') {
+        const body = await parseJsonBody<{ only?: ('serving' | 'taste')[] }>(req)
+        const only = Array.isArray(body.only)
+          ? body.only.filter((s): s is 'serving' | 'taste' => s === 'serving' || s === 'taste')
+          : undefined
+        return jsonResponse(await acceptProfileDraft(pool, draftId, actor.userId, only), requestId, req, 200, {
+          'Cache-Control': 'no-store',
+        })
+      }
+      await rejectProfileDraft(pool, draftId, actor.userId)
+      return jsonResponse({ ok: true }, requestId, req, 200, { 'Cache-Control': 'no-store' })
+    }
+  }
+
+  // 6. Grounded Knowledge Documents CRUD & Lifecycle
   if (path === '/concierge/knowledge/documents' && req.method === 'GET') {
     const statusFilter = url.searchParams.get('status')
     const topicFilter = url.searchParams.get('topic')
 
-    let docs = [...RESTAURANT_KNOWLEDGE_DOCS]
+    let docs = (await loadKnowledgeSnapshot(pool)).documents
     if (statusFilter) {
       docs = docs.filter((d) => d.status === statusFilter)
     }
@@ -199,17 +314,10 @@ export async function handleConciergeKnowledgeRoutes(
     const body = await parseJsonBody<
       Omit<KnowledgeDocument, 'id' | 'version' | 'updated_at'> & { id?: string }
     >(req)
-    const newDoc = adminCreateDocument(body, actor.userId ?? undefined)
-
-    await pool.query(
-      `INSERT INTO public.audit_logs (admin_id, actor_kind, action, entity_type, entity_id, metadata)
-       VALUES ($1, 'admin', 'create_knowledge_document', 'knowledge_document', $2, $3)`,
-      [
-        actor.userId,
-        newDoc.id,
-        JSON.stringify({ title: newDoc.title, topic: newDoc.topic, status: newDoc.status }),
-      ]
-    )
+    const newDoc = await persistKnowledgeMutation(pool, { kind: 'document', actorId: actor.userId,
+      action: 'create_knowledge_document', entityType: 'knowledge_document',
+      mutate: snapshot => adminCreateDocument(body, actor.userId ?? undefined, snapshot),
+      metadata: value => ({ title: value.title, topic: value.topic, status: value.status }) })
 
     return jsonResponse(newDoc, requestId, req, 201, {
       'Cache-Control': 'no-store',
@@ -221,13 +329,10 @@ export async function handleConciergeKnowledgeRoutes(
   )
   if (docRetireMatch && req.method === 'POST') {
     const docId = docRetireMatch[1]
-    const retired = adminRetireDocument(docId, actor.userId ?? undefined)
-
-    await pool.query(
-      `INSERT INTO public.audit_logs (admin_id, actor_kind, action, entity_type, entity_id, metadata)
-       VALUES ($1, 'admin', 'retire_knowledge_document', 'knowledge_document', $2, $3)`,
-      [actor.userId, docId, JSON.stringify({ status: 'retired', version: retired.version })]
-    )
+    const retired = await persistKnowledgeMutation(pool, { kind: 'document', key: docId, actorId: actor.userId,
+      action: 'retire_knowledge_document', entityType: 'knowledge_document',
+      mutate: snapshot => adminRetireDocument(docId, actor.userId ?? undefined, snapshot),
+      metadata: value => ({ status: 'retired', version: value.version }) })
 
     return jsonResponse(retired, requestId, req, 200, {
       'Cache-Control': 'no-store',
@@ -240,7 +345,7 @@ export async function handleConciergeKnowledgeRoutes(
   if (docMatch) {
     const docId = docMatch[1]
     if (req.method === 'GET') {
-      const doc = RESTAURANT_KNOWLEDGE_DOCS.find((d) => d.id === docId)
+      const doc = (await loadKnowledgeSnapshot(pool)).documents.find((d) => d.id === docId)
       if (!doc) {
         throw new AppError('NOT_FOUND', `Không tìm thấy tài liệu tri thức ${docId}`, 404)
       }
@@ -251,17 +356,10 @@ export async function handleConciergeKnowledgeRoutes(
 
     if (req.method === 'PUT' || req.method === 'PATCH') {
       const body = await parseJsonBody<Partial<KnowledgeDocument>>(req)
-      const updated = adminUpdateDocument(docId, body, actor.userId ?? undefined)
-
-      await pool.query(
-        `INSERT INTO public.audit_logs (admin_id, actor_kind, action, entity_type, entity_id, metadata)
-         VALUES ($1, 'admin', 'update_knowledge_document', 'knowledge_document', $2, $3)`,
-        [
-          actor.userId,
-          docId,
-          JSON.stringify({ updates: body, new_version: updated.version }),
-        ]
-      )
+      const updated = await persistKnowledgeMutation(pool, { kind: 'document', key: docId, actorId: actor.userId,
+        action: 'update_knowledge_document', entityType: 'knowledge_document',
+        mutate: snapshot => adminUpdateDocument(docId, body, actor.userId ?? undefined, snapshot),
+        metadata: value => ({ updates: body, new_version: value.version }) })
 
       return jsonResponse(updated, requestId, req, 200, {
         'Cache-Control': 'no-store',
@@ -273,7 +371,7 @@ export async function handleConciergeKnowledgeRoutes(
   if (path === '/concierge/knowledge/search' && req.method === 'GET') {
     const query = url.searchParams.get('query') || ''
     const minScore = Number(url.searchParams.get('min_score')) || 0.25
-    const searchResult = searchRestaurantKnowledge(query, minScore)
+    const searchResult = searchRestaurantKnowledge(query, minScore, new Date(), (await loadKnowledgeSnapshot(pool)).documents)
 
     return jsonResponse(searchResult, requestId, req, 200, {
       'Cache-Control': 'no-store',

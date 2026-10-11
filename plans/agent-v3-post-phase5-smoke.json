@@ -1,0 +1,209 @@
+{
+ "at": "2026-10-11T13:11:17.452Z",
+ "results": [
+  {
+   "input": "xin chào",
+   "http": 503,
+   "latency_ms": 10626,
+   "phase": null,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "error": {
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+   },
+   "sameHttp": false,
+   "samePhase": false
+  },
+  {
+   "input": "quán mở cửa mấy giờ",
+   "http": 503,
+   "latency_ms": 13677,
+   "phase": null,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "error": {
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+   },
+   "sameHttp": false,
+   "samePhase": false
+  },
+  {
+   "input": "địa chỉ quán ở đâu",
+   "http": 200,
+   "latency_ms": 12340,
+   "phase": "DISCOVERY",
+   "message": "Dạ, quán tọa lạc tại số 17, Đường Số 1, Tổ 6, Khu phố 2, thị trấn Vĩnh An, huyện Vĩnh Cửu, tỉnh Đồng Nai. Bạn đang chuẩn bị ghé quán dùng bữa hay cần mình hỗ trợ thêm hướng dẫn đường đi không ạ?",
+   "cards": [],
+   "warnings": [],
+   "error": null,
+   "sameHttp": true,
+   "samePhase": true
+  },
+  {
+   "input": "có chỗ đậu xe không",
+   "http": 200,
+   "latency_ms": 14159,
+   "phase": "DISCOVERY",
+   "message": "Dạ hiện tại em chưa có thông tin xác thực về khu vực đậu xe của nhà hàng. Anh/chị dự định ghé quán bằng xe máy hay ô tô để em hỗ trợ kiểm tra thêm giúp mình ạ?",
+   "cards": [],
+   "warnings": [],
+   "error": null,
+   "sameHttp": true,
+   "samePhase": true
+  },
+  {
+   "input": "quán có món bò không",
+   "http": 500,
+   "latency_ms": 16988,
+   "phase": null,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "error": {
+    "code": "INTERNAL_SAFE_FAILURE",
+    "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+   },
+   "sameHttp": false,
+   "samePhase": true
+  },
+  {
+   "input": "trà đào giá bao nhiêu",
+   "http": 200,
+   "latency_ms": 17429,
+   "phase": "RECOMMENDATION",
+   "message": "Dạ em vừa kiểm tra danh mục nhưng chưa tìm thấy thông tin cho món này trong thực đơn. Bạn có muốn tham khảo các loại trà hoặc thức uống khác đang phục vụ tại quán không ạ?",
+   "cards": [],
+   "warnings": [],
+   "error": null,
+   "sameHttp": true,
+   "samePhase": true
+  },
+  {
+   "input": "gợi ý món cho 4 người khoảng 800k",
+   "http": 503,
+   "latency_ms": 16531,
+   "phase": null,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "error": {
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+   },
+   "sameHttp": true,
+   "samePhase": true
+  },
+  {
+   "input": "4 người, không ăn hải sản, tầm 700k, đừng cay quá",
+   "http": 503,
+   "latency_ms": 16607,
+   "phase": null,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "error": {
+    "code": "DEPENDENCY_UNAVAILABLE",
+    "message": "Dịch vụ trợ lý tạm thời không khả dụng."
+   },
+   "sameHttp": true,
+   "samePhase": true
+  },
+  {
+   "input": "tôi bị dị ứng đậu phộng thì nên tránh món nào",
+   "http": 200,
+   "latency_ms": 16560,
+   "phase": "RECOMMENDATION",
+   "message": "Hiện tại hệ thống chưa có dữ liệu kiểm định thành phần chi tiết và nguy cơ nhiễm chéo đậu phộng cho từng món. Để đảm bảo an toàn tuyệt đối cho sức khỏe của quý khách, nhân viên nhà hàng cần trao đổi trực tiếp với bếp trưởng trước khi phục vụ.\n\nQuý khách đang quan tâm đến nhóm món ăn nào để em hỗ trợ nhờ bếp kiểm tra thành phần chuẩn xác giúp mình ạ?",
+   "cards": [
+    "draft_suggestion",
+    "draft_suggestion",
+    "draft_suggestion",
+    "draft_suggestion",
+    "draft_suggestion",
+    "draft_suggestion",
+    "draft_suggestion",
+    "draft_suggestion"
+   ],
+   "warnings": [
+    "Một số món cần nhân viên nhà hàng xác nhận lại trực tiếp với bếp trưởng để đảm bảo không có nguy cơ nhiễm chéo.",
+    "Một số món cần nhân viên nhà hàng xác nhận lại trực tiếp với bếp trưởng để đảm bảo không có nguy cơ nhiễm chéo."
+   ],
+   "error": null,
+   "sameHttp": false,
+   "samePhase": false
+  },
+  {
+   "input": "thêm 2 trà đào",
+   "http": 200,
+   "latency_ms": 6720,
+   "phase": "DISCOVERY",
+   "message": "Could you let me know which dish caught your eye and how many servings you would like?",
+   "cards": [],
+   "warnings": [],
+   "error": null,
+   "sameHttp": true,
+   "samePhase": true
+  },
+  {
+   "input": "xem giỏ",
+   "http": 500,
+   "latency_ms": 5090,
+   "phase": null,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "error": {
+    "code": "INTERNAL_SAFE_FAILURE",
+    "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+   },
+   "sameHttp": true,
+   "samePhase": true
+  },
+  {
+   "input": "tối mai 7h bàn 4 người còn không",
+   "http": 500,
+   "latency_ms": 8523,
+   "phase": null,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "error": {
+    "code": "INTERNAL_SAFE_FAILURE",
+    "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+   },
+   "sameHttp": false,
+   "samePhase": true
+  },
+  {
+   "input": "quán có gì đặc biệt không",
+   "http": 500,
+   "latency_ms": 14901,
+   "phase": null,
+   "message": null,
+   "cards": [],
+   "warnings": [],
+   "error": {
+    "code": "INTERNAL_SAFE_FAILURE",
+    "message": "Không thể xử lý yêu cầu an toàn. Vui lòng thử lại."
+   },
+   "sameHttp": true,
+   "samePhase": true
+  },
+  {
+   "input": "cảm ơn bạn",
+   "http": 200,
+   "latency_ms": 5725,
+   "phase": "DISCOVERY",
+   "message": "Dạ rất vui được hỗ trợ bạn! Nếu cần thêm gợi ý món ăn hay có dự định đặt bàn, bạn cứ nhắn mình bất cứ lúc nào nhé.",
+   "cards": [],
+   "warnings": [],
+   "error": null,
+   "sameHttp": true,
+   "samePhase": true
+  }
+ ]
+}

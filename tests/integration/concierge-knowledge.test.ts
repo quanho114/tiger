@@ -36,8 +36,6 @@ import { handleAdminApi } from '../../supabase/functions/admin-api/index.js'
 import { seedFixtureUsers, getUserToken } from '../fixtures/auth-users.js'
 import { assertIsolatedTestDatabase } from '../fixtures/test-db-guard.js'
 import {
-  SERVING_PROFILES,
-  ALLERGEN_PROFILES,
   RECOMMENDATION_CONFIG,
   RESTAURANT_KNOWLEDGE_DOCS,
   resetKnowledgeStore,
@@ -49,6 +47,7 @@ import {
   detectPromptInjection,
   isDocumentEffective,
 } from '../../supabase/functions/_shared/concierge/rag.js'
+import { invalidateMenuSnapshot } from '../../supabase/functions/_shared/concierge/menu/domain.js'
 
 const { Pool } = pg
 
@@ -65,8 +64,11 @@ describe('Concierge Knowledge Governance & Grounded RAG (AT07, AT08, Task C03)',
   let supabaseAdmin: SupabaseClient
   let adminToken: string
   let customerToken: string
+  let isolatedDatabaseVerified = false
 
-  const sampleItemId = '10000000-0000-0000-0000-000000000001'
+  // Phase 5: profiles are DB-backed per live menu item; resolve a real one.
+  // The retired 10000000-0000-0000-… seed IDs no longer exist in menu_items.
+  let sampleItemId = ''
 
   async function adminReq(
     token: string | null,
@@ -102,6 +104,7 @@ describe('Concierge Knowledge Governance & Grounded RAG (AT07, AT08, Task C03)',
   beforeAll(async () => {
     pool = new Pool({ connectionString })
     await assertIsolatedTestDatabase(pool)
+    isolatedDatabaseVerified = true
     supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     })
@@ -109,25 +112,37 @@ describe('Concierge Knowledge Governance & Grounded RAG (AT07, AT08, Task C03)',
     await seedFixtureUsers(pool)
     adminToken = getUserToken('admin')
     customerToken = getUserToken('customerA')
+    const menuRes = await pool.query(
+      'SELECT id FROM public.menu_items WHERE published = true ORDER BY id LIMIT 1'
+    )
+    if (!menuRes.rows.length) throw new Error('No published menu items for knowledge tests')
+    sampleItemId = menuRes.rows[0].id as string
   })
 
-  beforeEach(() => {
+  beforeEach(async () => {
     resetKnowledgeStore()
+    await pool.query('DELETE FROM public.concierge_knowledge')
+    await pool.query('DELETE FROM public.menu_item_ai_profiles')
+    invalidateMenuSnapshot()
   })
 
   afterAll(async () => {
     resetKnowledgeStore()
     if (pool) {
-      await pool.query(
-        `DELETE FROM public.audit_logs WHERE action IN (
-          'update_serving_profile',
-          'update_allergen_profile',
-          'update_recommendation_config',
-          'create_knowledge_document',
-          'update_knowledge_document',
-          'retire_knowledge_document'
-        )`
-      )
+      if (isolatedDatabaseVerified) {
+        await pool.query('DELETE FROM public.concierge_knowledge')
+        await pool.query('DELETE FROM public.menu_item_ai_profiles')
+        await pool.query(
+          `DELETE FROM public.audit_logs WHERE action IN (
+            'update_serving_profile',
+            'update_allergen_profile',
+            'update_recommendation_config',
+            'create_knowledge_document',
+            'update_knowledge_document',
+            'retire_knowledge_document'
+          )`
+        )
+      }
       await pool.end()
     }
   })
@@ -239,9 +254,8 @@ describe('Concierge Knowledge Governance & Grounded RAG (AT07, AT08, Task C03)',
       expect(res.body.data.provenance).toContain('admin_audit')
       expect(res.body.data.updated_by).toBeDefined()
 
-      // Verify in-memory state updated
-      expect(SERVING_PROFILES[sampleItemId]?.people_min).toBe(2)
-      expect(SERVING_PROFILES[sampleItemId]?.people_max).toBe(3)
+      const reloaded = await adminReq(adminToken, 'GET', `/concierge/knowledge/serving-profiles/${sampleItemId}`)
+      expect(reloaded.body.data.contributions.protein).toBe(0.8)
 
       // Verify row in public.audit_logs
       const auditRes = await pool.query(
@@ -309,9 +323,9 @@ describe('Concierge Knowledge Governance & Grounded RAG (AT07, AT08, Task C03)',
       expect(res.body.data.source).toBe('kitchen_audited')
       expect(res.body.data.kitchen_notes).toContain('Đã kiểm tra chảo riêng')
 
-      // Verify in-memory state reflects the update
-      expect(ALLERGEN_PROFILES[sampleItemId]?.verified_by_kitchen).toBe(true)
-      expect(ALLERGEN_PROFILES[sampleItemId]?.source).toBe('kitchen_audited')
+      const reloaded = await adminReq(adminToken, 'GET', `/concierge/knowledge/allergens/${sampleItemId}`)
+      expect(reloaded.body.data.verified_by_kitchen).toBe(true)
+      expect(reloaded.body.data.source).toBe('kitchen_audited')
 
       // Verify audit log
       const auditRes = await pool.query(
