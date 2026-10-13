@@ -1,6 +1,6 @@
 # V13 - Idempotent handoff to existing real cart
 
-Status: TODO
+Status: DONE
 Dependencies: V12
 Deliverable: implementation + applicable tests + ../reports/V13.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Create review/handoff action with session/actor/version/request binding, short expiry and authoritative line snapshot.
-- [ ] 2. Recheck price, availability, mode and allergy verification. Changed prices demand explicit refreshed acceptance; blocked items remain visible.
-- [ ] 3. Implement atomic client cart merge with handoff-ID deduplication tied to the cart lifecycle; repeated response/click/network retry adds zero duplicates.
-- [ ] 4. Preserve existing lines/notes and disclose merge behavior. Commit cart update and applied handoff marker together in existing cart persistence where applicable.
-- [ ] 5. On lost client acknowledgement, server retry returns the same handoff ID; keep the applied-ID marker atomic with cart lines and durable for the ordinary cart lifetime. Record exported draft version and follow V01 new-set rules after export. Auth/reset/late-response guards apply before any cart mutation.
-- [ ] 6. Remove/gate V2 access to concierge confirm_quote submission; CTA opens existing cart/order flow without creating orders. Existing checkout performs final validation.
+- [x] 1. Create review/handoff action with session/actor/version/request binding, short expiry and authoritative line snapshot.
+- [x] 2. Recheck price, availability, mode and allergy verification. Changed prices demand explicit refreshed acceptance; blocked items remain visible.
+- [x] 3. Implement atomic client cart merge with handoff-ID deduplication tied to the cart lifecycle; repeated response/click/network retry adds zero duplicates.
+- [x] 4. Preserve existing lines/notes and disclose merge behavior. Commit cart update and applied handoff marker together in existing cart persistence where applicable.
+- [x] 5. On lost client acknowledgement, server retry returns the same handoff ID; keep the applied-ID marker atomic with cart lines and durable for the ordinary cart lifetime. Record exported draft version and follow V01 new-set rules after export. Auth/reset/late-response guards apply before any cart mutation.
+- [x] 6. Remove/gate V2 access to concierge confirm_quote submission; CTA opens existing cart/order flow without creating orders. Existing checkout performs final validation.
 
 ## Exit criteria
 

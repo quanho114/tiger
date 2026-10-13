@@ -1,6 +1,6 @@
 # V08 - Verified menu and food-safety retrieval
 
-Status: TODO
+Status: DONE
 Dependencies: V01
 Deliverable: implementation + applicable tests + ../reports/V08.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Inventory actual category, ingredient, spice, allergen, cross-contact, kitchen verification and ordering-mode fields. Do not invent safe values for missing fields.
-- [ ] 2. Reuse or extend the existing admin knowledge source with verified_at/source metadata and invalidate caches when updated.
-- [ ] 3. Filter available/mode/budget/hard constraints first, rank next, return 5-8 compact candidates with stable IDs, current prices and provenance.
-- [ ] 4. Return explicit unknown/unverified/conflict safety states. Allergy-related recommendation blocks unsafe or unverified claims and suggests staff confirmation.
-- [ ] 5. Keep price/availability authoritative and shared with existing quote/cart validation. Do not add a parallel pricing engine.
-- [ ] 6. Test empty catalog, unknown allergy data, changed prices, unavailable items and malicious menu descriptions.
+- [x] 1. Inventory actual category, ingredient, spice, allergen, cross-contact, kitchen verification and ordering-mode fields. Do not invent safe values for missing fields.
+- [x] 2. Reuse or extend the existing admin knowledge source with verified_at/source metadata and invalidate caches when updated.
+- [x] 3. Filter available/mode/budget/hard constraints first, rank next, return 5-8 compact candidates with stable IDs, current prices and provenance.
+- [x] 4. Return explicit unknown/unverified/conflict safety states. Allergy-related recommendation blocks unsafe or unverified claims and suggests staff confirmation.
+- [x] 5. Keep price/availability authoritative and shared with existing quote/cart validation. Do not add a parallel pricing engine.
+- [x] 6. Test empty catalog, unknown allergy data, changed prices, unavailable items and malicious menu descriptions.
 
 ## Exit criteria
 

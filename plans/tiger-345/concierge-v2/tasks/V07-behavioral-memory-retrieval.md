@@ -1,6 +1,6 @@
 # V07 - Behavioral aggregates and selective retrieval
 
-Status: TODO
+Status: DONE
 Dependencies: V05
 Deliverable: implementation + applicable tests + ../reports/V07.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Aggregate eligible completed orders from the last 90 days by item/category; distinguish frequency per order from quantity.
-- [ ] 2. Exclude cancelled and ineligible refunded/test data using V01 rules. Do not infer party size, allergies or dietary restrictions from weak behavior.
-- [ ] 3. Bound queries and results, add appropriate indexes if evidence requires them, and use a refresh schedule/invalidations suitable for one restaurant.
-- [ ] 4. Retrieve facts only for relevant food/draft intents; no personal lookup for parking/hours. Dietary constraints outrank inferred favorites; current explicit constraints outrank defaults.
-- [ ] 5. Produce source-tagged compact facts within 200-400 tokens and 12 facts. Never include address/phone/order transcript in model memory.
-- [ ] 6. Honor consent/epoch/deletion and expiry; allow serving without personalization during repository failures.
+- [x] 1. Aggregate eligible completed orders from the last 90 days by item/category; distinguish frequency per order from quantity.
+- [x] 2. Exclude cancelled and ineligible refunded/test data using V01 rules. Do not infer party size, allergies or dietary restrictions from weak behavior.
+- [x] 3. Bound queries and results, add appropriate indexes if evidence requires them, and use a refresh schedule/invalidations suitable for one restaurant.
+- [x] 4. Retrieve facts only for relevant food/draft intents; no personal lookup for parking/hours. Dietary constraints outrank inferred favorites; current explicit constraints outrank defaults.
+- [x] 5. Produce source-tagged compact facts within 200-400 tokens and 12 facts. Never include address/phone/order transcript in model memory.
+- [x] 6. Honor consent/epoch/deletion and expiry; allow serving without personalization during repository failures.
 
 ## Exit criteria
 

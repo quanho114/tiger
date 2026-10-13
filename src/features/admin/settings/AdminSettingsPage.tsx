@@ -12,7 +12,7 @@ import {
   ExternalLink,
   Bot,
 } from 'lucide-react'
-import { adminApi } from '../../../lib/api/client'
+import { adminApi } from '@/shared/lib/api/client'
 import { useAdmin } from '../layout/AdminContext'
 import type {
   AdminRestaurantSettings,
@@ -84,14 +84,14 @@ export const AdminSettingsPage: FC = () => {
         auditRes,
       ] = await Promise.all([
         adminApi.get<AdminRestaurantSettings>('/settings'),
-        adminApi.get<{ items: AdminCategory[] } | AdminCategory[]>('/categories').catch(() => ({ data: [] })),
-        adminApi.get<{ items: AdminMenuItem[] } | AdminMenuItem[]>('/menu-items').catch(() => ({ data: [] })),
-        adminApi.get<{ items: AdminBusinessHour[] } | AdminBusinessHour[]>('/settings/hours').catch(() => ({ data: [] })),
-        adminApi.get<{ items: AdminBusinessClosure[] } | AdminBusinessClosure[]>('/settings/closures').catch(() => ({ data: [] })),
-        adminApi.get<{ items: AdminSeatingArea[] } | AdminSeatingArea[]>('/seating-areas').catch(() => ({ data: [] })),
-        adminApi.get<{ items: AdminDeliveryZone[] } | AdminDeliveryZone[]>('/delivery-zones').catch(() => ({ data: [] })),
-        adminApi.get<{ data: AdminConciergeFeedback[] } | AdminConciergeFeedback[]>('/concierge/feedback').catch(() => ({ data: [] })),
-        adminApi.get<{ items: AdminAuditLog[] } | AdminAuditLog[]>('/audit').catch(() => ({ data: [] })),
+        adminApi.get<{ items: AdminCategory[] } | AdminCategory[]>('/categories'),
+        adminApi.get<{ items: AdminMenuItem[] } | AdminMenuItem[]>('/menu-items'),
+        adminApi.get<{ items: AdminBusinessHour[] } | AdminBusinessHour[]>('/settings/hours'),
+        adminApi.get<{ items: AdminBusinessClosure[] } | AdminBusinessClosure[]>('/settings/closures'),
+        adminApi.get<{ items: AdminSeatingArea[] } | AdminSeatingArea[]>('/seating-areas'),
+        adminApi.get<{ items: AdminDeliveryZone[] } | AdminDeliveryZone[]>('/delivery-zones'),
+        adminApi.get<{ data: AdminConciergeFeedback[] } | AdminConciergeFeedback[]>('/concierge/feedback'),
+        adminApi.get<{ items: AdminAuditLog[] } | AdminAuditLog[]>('/audit'),
       ])
 
       setSettings(settingsRes.data)
@@ -115,7 +115,7 @@ export const AdminSettingsPage: FC = () => {
   }, [loadData, refreshKey])
 
   if (isLoading && !settings) {
-    return <AdminLoading variant="screen" label="Đang tải cấu hình & danh mục quán..." />
+    return <AdminLoading variant="block" label="Đang tải cấu hình quán..." />
   }
 
   const newFeedbackCount = feedbacks.filter((f) => f.status === 'NEW').length

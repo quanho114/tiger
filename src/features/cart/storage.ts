@@ -46,15 +46,17 @@ export function getStoredCart(): PersistedCartState | null {
     }
 
     // Validate item shapes safely
-    const validItems = parsed.items.filter((item) => (
-      item &&
-      typeof item === 'object' &&
-      typeof item.dishId === 'string' &&
-      typeof item.quantity === 'number' &&
-      item.quantity > 0
-    ))
+    const validItems = parsed.items.filter(
+      (item) =>
+        item &&
+        typeof item === 'object' &&
+        typeof item.dishId === 'string' &&
+        typeof item.quantity === 'number' &&
+        item.quantity > 0
+    )
 
     return {
+      appliedHandoffs: Array.isArray(parsed.appliedHandoffs) ? parsed.appliedHandoffs.filter((id): id is string => typeof id === 'string' && /^handoff_[A-Za-z0-9_-]{16,256}$/.test(id)).slice(0, 500) : [],
       version: 1,
       updatedAt: parsed.updatedAt,
       context: parsed.context as CartOrderContext,
@@ -71,12 +73,13 @@ export function getStoredCart(): PersistedCartState | null {
   }
 }
 
-export function setStoredCart(cart: PersistedCartState): void {
+export function setStoredCart(cart: PersistedCartState, requirePersistence = false): void {
   if (typeof window === 'undefined') return
 
   try {
     window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart))
   } catch {
+    if (requirePersistence) throw new Error('Không thể lưu giỏ hàng. Hãy kiểm tra bộ nhớ trình duyệt rồi thử chuyển món lại.')
     // Ignore quota or disabled storage error
   }
 }

@@ -1,6 +1,6 @@
 import { useState, type FC, type ChangeEvent, type FormEvent } from 'react'
-import { adminApi } from '../../../lib/api/client'
-import { ApiError } from '../../../lib/api/types'
+import { adminApi } from '@/shared/lib/api/client'
+import { ApiError } from '@/shared/lib/api/types'
 import type { AdminCategory, AdminMenuItem } from '../types'
 
 interface MenuContentSectionProps {

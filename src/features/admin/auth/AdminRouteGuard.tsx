@@ -12,7 +12,7 @@ export const AdminRouteGuard: FC<AdminRouteGuardProps> = ({ children }) => {
   const location = useLocation()
 
   if (isLoading) {
-    return <AdminLoading variant="screen" label="Đang xác thực quyền Quản trị..." />
+    return <AdminLoading variant="screen" label="Đang tải trang quản trị..." />
   }
 
   // Not signed in or not an active admin

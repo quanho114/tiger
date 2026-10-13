@@ -4,7 +4,7 @@
  * Enforces Invariant V04 (Private DTO Whitelist) and V20/V21.
  */
 
-import { customerApi } from '@/lib/api/client'
+import { customerApi } from '@/shared/lib/api/client'
 import type {
   CustomerProfile,
   CustomerProfilePatch,

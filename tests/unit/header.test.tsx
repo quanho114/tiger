@@ -3,9 +3,9 @@ import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { Header } from '@/components/Header'
+import { Header } from '@/app/layout/Header'
 import { AuthContext, type AuthState } from '@/features/auth/AuthContext'
-import { CartProvider } from '@/store/CartProvider'
+import { CartProvider } from '@/features/cart'
 import { TableSessionProvider } from '@/features/table-session/TableSessionContext'
 
 function createMockAuthState(overrides?: Partial<AuthState>): AuthState {

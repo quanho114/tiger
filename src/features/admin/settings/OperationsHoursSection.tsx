@@ -10,8 +10,8 @@ import {
   Calendar,
   UtensilsCrossed,
 } from 'lucide-react'
-import { adminApi } from '../../../lib/api/client'
-import { ApiError } from '../../../lib/api/types'
+import { adminApi } from '@/shared/lib/api/client'
+import { ApiError } from '@/shared/lib/api/types'
 import type {
   AdminRestaurantSettings,
   AdminBusinessHour,
@@ -168,7 +168,7 @@ export const OperationsHoursSection: FC<OperationsHoursSectionProps> = ({
           open_time: h.open_time,
           close_time: h.close_time,
         })),
-        expected_version: settings.version,
+        expected_settings_version: settings.version,
       })
       onNotify('Đã lưu toàn bộ khung giờ hoạt động nguyên tử!', 'success')
       await onReload()
@@ -224,7 +224,7 @@ export const OperationsHoursSection: FC<OperationsHoursSectionProps> = ({
           service_type: c.service_type,
           reason: c.reason,
         })),
-        expected_version: settings.version,
+        expected_settings_version: settings.version,
       })
       onNotify('Đã lưu danh sách ngày đóng cửa nguyên tử!', 'success')
       await onReload()

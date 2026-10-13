@@ -24,6 +24,8 @@ export function getOrCreateRequestId(req: Request): string {
  * It is NEVER an identity: guest sessions use a cryptographically random
  * capability (csc_*) and authenticated users use their verified JWT.
  * Proxy headers are untrusted input — validated, never trusted blindly.
+ * Missing/unresolvable IP returns a non-loopback sentinel so callers never
+ * grant elevated (local-test) rate limits to unknown clients.
  */
 export function getClientIp(req: Request): string {
   const candidates = [
@@ -35,7 +37,7 @@ export function getClientIp(req: Request): string {
     const ip = raw?.trim()
     if (ip && isPlausibleIp(ip)) return ip
   }
-  return '127.0.0.1'
+  return '0.0.0.0'
 }
 
 function isPlausibleIp(value: string): boolean {

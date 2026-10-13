@@ -3,7 +3,7 @@
  * Based on plans/tiger-345/09-concierge-agent-design.md (§14, AT07, AT08)
  *
  * Importers / Callers:
- * - supabase/functions/_shared/concierge/tools.ts (toolLookupRestaurantInfo)
+ * - supabase/functions/_shared/concierge/orchestrator.ts (restaurant information lookup)
  * - supabase/functions/admin-api/concierge-knowledge-handlers.ts
  * - tests/integration/concierge-knowledge.test.ts
  *
@@ -23,6 +23,7 @@ import {
   RESTAURANT_KNOWLEDGE_DOCS,
   type KnowledgeDocument,
 } from './knowledge.ts'
+import { normalizeIntent } from './draft-intent.ts'
 
 export interface RAGSearchResult {
   document: KnowledgeDocument
@@ -81,9 +82,10 @@ export function isDocumentEffective(doc: KnowledgeDocument, asOfDate = new Date(
 export function searchRestaurantKnowledge(
   query: string,
   minScore = 0.25,
-  asOfDate = new Date()
+  asOfDate = new Date(),
+  documents: KnowledgeDocument[] = RESTAURANT_KNOWLEDGE_DOCS,
 ): RAGSearchResponse {
-  const normalizedQuery = query.toLowerCase().trim()
+  const normalizedQuery = normalizeIntent(query)
   const injectionDetected = detectPromptInjection(query)
 
   if (!normalizedQuery) {
@@ -95,22 +97,24 @@ export function searchRestaurantKnowledge(
     }
   }
 
-  const queryWords = normalizedQuery.split(/\s+/).filter((w) => w.length >= 2)
+  const queryWords = normalizedQuery.split(/\s+/).filter((word) => word.length >= 2 &&
+    !['co', 'khong', 'cho', 'minh', 'ban', 'thong', 'tin'].includes(word))
   const scoredResults: RAGSearchResult[] = []
 
   // Filter only active and effective documents
-  const candidateDocs = RESTAURANT_KNOWLEDGE_DOCS.filter((doc) =>
+  const candidateDocs = documents.filter((doc) =>
     isDocumentEffective(doc, asOfDate)
   )
 
   for (const doc of candidateDocs) {
     let score = 0
     const matched: string[] = []
-    const docText = `${doc.title} ${doc.content}`.toLowerCase()
+    const docText = normalizeIntent(`${doc.title} ${doc.content}`)
 
     // 1. Keyword hits (weighted 0.35 per keyword)
     for (const kw of doc.keywords) {
-      if (normalizedQuery.includes(kw.toLowerCase())) {
+      const normalizedKeyword = normalizeIntent(kw)
+      if (` ${normalizedQuery} `.includes(` ${normalizedKeyword} `)) {
         score += 0.35
         matched.push(kw)
       }

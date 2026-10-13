@@ -1,3 +1,4 @@
+import { handleMemoryRoute } from './memory-handlers.ts'
 /**
  * Tiger 345 - Customer API Edge Function Gateway
  * Handles customer-only endpoints: /me, /me/home, /me/orders, /me/reservations, /me/addresses, /me/favorites.
@@ -5,6 +6,7 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import pg from 'pg'
+import { configuredValue } from '../_shared/environment.ts'
 import { handleCorsPreflight } from '../_shared/cors.ts'
 import { getOrCreateRequestId, getClientIp, jsonResponse } from '../_shared/request.ts'
 import { toErrorResponse, AppError } from '../_shared/errors.ts'
@@ -46,8 +48,8 @@ function getPool(): pg.Pool {
         ? Deno.env.get('DATABASE_URL') || Deno.env.get('SUPABASE_DB_URL')
         : (typeof process !== 'undefined' ? process.env?.DATABASE_URL : undefined)
     const connectionString =
-      envUrl || 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-    cachedPool = new Pool({ connectionString })
+      configuredValue('DATABASE_URL', envUrl, 'postgresql://postgres:postgres@127.0.0.1:54322/postgres')
+    cachedPool = new Pool({ connectionString, max: 3, connectionTimeoutMillis: 5000, statement_timeout: 10000, idleTimeoutMillis: 30000 })
   }
   return cachedPool
 }
@@ -59,14 +61,13 @@ function getSupabaseAdmin(): SupabaseClient {
       typeof Deno !== 'undefined'
         ? Deno.env.get('SUPABASE_URL')
         : (typeof process !== 'undefined' ? process.env?.SUPABASE_URL : undefined)
-    const url = envUrl || 'http://127.0.0.1:54321'
+    const url = configuredValue('SUPABASE_URL', envUrl, 'http://127.0.0.1:54321')
     const envKey =
       typeof Deno !== 'undefined'
         ? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
         : (typeof process !== 'undefined' ? process.env?.SUPABASE_SERVICE_ROLE_KEY : undefined)
     const serviceRoleKey =
-      envKey ||
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+      configuredValue('SUPABASE_SERVICE_ROLE_KEY', envKey, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU')
     cachedAdmin = createClient(url, serviceRoleKey, {
       auth: { persistSession: false },
     })
@@ -109,6 +110,9 @@ export async function handleCustomerApi(
       .replace(/^\/customer\//, '/me/')
       .replace(/^\/customer$/, '/me')
     const path = normalizedRawPath.replace(/\/+$/, '') || '/'
+
+    const memoryResponse = await handleMemoryRoute(req, path, actor, pool, requestId)
+    if (memoryResponse) return memoryResponse
 
     // 4. Routing
 

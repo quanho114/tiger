@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AlertCircle, ArrowRight, Loader2, Utensils } from 'lucide-react'
-import { useCart } from '@/store/cart'
+import { useCart } from '@/features/cart'
 import { useTableSession } from './useTableSession'
 import type { TableSession } from './types'
 
@@ -49,7 +49,7 @@ export function TableResolvePage() {
         const hasCartItems = cartItems.length > 0
         const isDifferentTable =
           cartContext.mode === 'dine-in' && cartContext.tableId !== session.tableId
-        const isDifferentMode = cartContext.mode === 'delivery'
+        const isDifferentMode = cartContext.mode !== 'dine-in'
 
         if (hasCartItems && (isDifferentTable || isDifferentMode)) {
           setPendingSession(session)
@@ -119,7 +119,9 @@ export function TableResolvePage() {
     const currentTableLabel =
       cartContext.mode === 'dine-in'
         ? `Bàn ${cartContext.tableName}`
-        : 'Giao tận nơi'
+        : cartContext.mode === 'takeaway'
+          ? 'Mang đi'
+          : 'Giao tận nơi'
 
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">

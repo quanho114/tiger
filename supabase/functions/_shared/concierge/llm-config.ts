@@ -6,11 +6,13 @@
  * per turn so every user shares the same AI backend without redeploys.
  *
  * Fail-closed: any error, missing row, disabled flag, or missing key
- * falls back to the default orchestrator (env/stub), never throws.
+ * uses the environment provider; missing provider configuration is rejected.
  */
 
 import type pg from 'pg'
 import { ConciergeLlmOrchestrator, type LlmProvider } from './llm.ts'
+import { AppError } from '../errors.ts'
+import { validateProviderBaseUrl } from './provider-url.ts'
 
 export interface DbLlmConfig {
   provider: LlmProvider
@@ -24,13 +26,12 @@ const VALID_PROVIDERS: LlmProvider[] = ['stub', 'openai', 'anthropic', 'gemini']
 
 function sanitizeBaseUrl(raw: unknown): string {
   if (typeof raw !== 'string') return ''
-  // Strip trailing slashes so adapters can safely append paths.
-  return raw.trim().replace(/\/+$/, '')
+  return validateProviderBaseUrl(raw.trim())
 }
 
 /**
  * Load the shared LLM config from DB. Returns null when the chatbot
- * should keep using env/stub defaults.
+ * should use the environment provider.
  */
 export async function loadDbLlmConfig(pool?: pg.Pool): Promise<DbLlmConfig | null> {
   if (!pool) return null
@@ -64,15 +65,22 @@ export async function loadDbLlmConfig(pool?: pg.Pool): Promise<DbLlmConfig | nul
 
 /**
  * Build the orchestrator for a turn: DB config wins when present and
- * complete, otherwise default (env/stub) behavior.
+ * complete, otherwise use the environment provider. Scripted stub replies
+ * are never used for customer conversations.
  */
 export async function createTurnOrchestrator(
   pool?: pg.Pool,
-  fallback?: ConciergeLlmOrchestrator
+  fallback?: ConciergeLlmOrchestrator,
 ): Promise<ConciergeLlmOrchestrator> {
   if (fallback) return fallback
   const dbConfig = await loadDbLlmConfig(pool)
-  if (!dbConfig) return new ConciergeLlmOrchestrator()
+  if (!dbConfig) {
+    const orchestrator = new ConciergeLlmOrchestrator()
+    if (orchestrator.getProvider() === 'stub') {
+      throw new AppError('SERVICE_UNAVAILABLE', 'Dịch vụ trợ lý chưa được cấu hình.', 503)
+    }
+    return orchestrator
+  }
   return new ConciergeLlmOrchestrator({
     provider: dbConfig.provider,
     apiKey: dbConfig.apiKey,

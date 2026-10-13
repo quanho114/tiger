@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   ConciergeV2CompletionEnvelopeSchema,
+  ConciergeV2CardSchema,
+  ConciergeV2PageContextSchema,
   ConciergeV2ErrorEnvelopeSchema,
   ConciergeV2ErrorSchema,
   ConciergeV2HandoffResultSchema,
@@ -8,6 +10,7 @@ import {
   ConciergeV2SessionCreateInputSchema,
   ConciergeV2SessionRecordSchema,
   ConciergeV2SessionReferenceSchema,
+  ConciergeV2TurnRequestSchema,
 } from '../../supabase/functions/_shared/contracts/concierge-v2.js'
 
 const SESSION_ID = '11111111-1111-4111-8111-111111111111'
@@ -65,6 +68,26 @@ function createCompletionEnvelope() {
 }
 
 describe('Concierge V2 canonical contract', () => {
+  it('rejects unrecognized cards and stale item context on another page', () => {
+    expect(ConciergeV2CardSchema.safeParse({ type: 'html', content: '<button>Order</button>' }).success).toBe(false)
+    expect(ConciergeV2CompletionEnvelopeSchema.safeParse({ ...createCompletionEnvelope(),
+      cards: [{ type: 'service_link', destination: 'payments' }] }).success).toBe(false)
+    expect(ConciergeV2PageContextSchema.safeParse({ page: 'home', menu_item_id: SESSION_ID }).success).toBe(false)
+  })
+  it('rejects retired direct cart actions and response fields', () => {
+    const request = {
+      protocol_version: 'concierge-v2',
+      request_id: REQUEST_ID,
+      session: { session_id: SESSION_ID, session_capability: 'csc_4d6f2a8e7b9c1d3f5a6b7c8d9e0f1234' },
+      expected_state_version: 3,
+      action: { type: 'add_proposal_to_cart', proposal_id: DRAFT_ID },
+    }
+    expect(ConciergeV2TurnRequestSchema.safeParse(request).success).toBe(false)
+    expect(ConciergeV2CompletionEnvelopeSchema.safeParse({
+      ...createCompletionEnvelope(), cart_addition: { items: [] },
+    }).success).toBe(false)
+  })
+
   it('uses the same completion payload for JSON and SSE', () => {
     const envelope = createCompletionEnvelope()
 
@@ -73,6 +96,17 @@ describe('Concierge V2 canonical contract', () => {
       event: 'complete',
       data: envelope,
     })
+  })
+
+  it('accepts verified menu details and bounded contextual follow-ups', () => {
+    const envelope = { ...createCompletionEnvelope(), suggested_actions: ['Gợi ý món không cay'],
+      cards: [{ type: 'menu_item_detail', item: { id: SESSION_ID, name: 'Cá theo ngày',
+        price_vnd: 0, pricing_mode: 'market', is_available: true, is_signature: false,
+        safety_state: 'allergen_unknown', provenance: 'catalog:live_menu', tags: [] },
+        description: 'Cá tươi theo ngày' }] }
+    expect(ConciergeV2CompletionEnvelopeSchema.parse(envelope)).toMatchObject(envelope)
+    expect(ConciergeV2CompletionEnvelopeSchema.safeParse({ ...envelope,
+      suggested_actions: Array.from({ length: 4 }, () => 'Gợi ý khác') }).success).toBe(false)
   })
 
   it('requires both session ID and opaque capability for an existing session', () => {

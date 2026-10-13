@@ -11,8 +11,8 @@ import {
   EyeOff,
   CheckCircle2,
 } from 'lucide-react'
-import { adminApi } from '../../../lib/api/client'
-import { ApiError } from '../../../lib/api/types'
+import { adminApi } from '@/shared/lib/api/client'
+import { ApiError } from '@/shared/lib/api/types'
 import { AdminLoading } from '../components/AdminLoading'
 
 interface ConciergeLlmSectionProps {
@@ -27,13 +27,15 @@ interface LlmConfig {
   version: number
   has_key: boolean
   api_key_masked: string
+  configuration_valid: boolean
+  local_gateway_enabled: boolean
 }
 
 const PROVIDERS = [
   { id: 'openai', label: 'OpenAI (hoặc cổng tương thích)' },
   { id: 'anthropic', label: 'Anthropic Claude' },
   { id: 'gemini', label: 'Google Gemini' },
-  { id: 'stub', label: 'Tắt AI (chế độ mẫu)' },
+  { id: 'stub', label: 'Tắt AI (chatbot không trả lời)' },
 ]
 
 const MODEL_HINTS: Record<string, string> = {
@@ -152,31 +154,37 @@ export const ConciergeLlmSection: FC<ConciergeLlmSectionProps> = ({ onNotify }) 
     return <AdminLoading label="Đang tải cấu hình chatbot..." />
   }
 
+  const isConfigured = Boolean(config?.enabled && config.provider !== 'stub' && config.has_key && config.configuration_valid)
+
   return (
     <form onSubmit={handleSave} className="space-y-5">
       {/* Status banner */}
       <div
         className={`rounded-2xl border p-4 flex items-center gap-3 shadow-2xs ${
-          enabled && provider !== 'stub' && (config?.has_key || apiKey.trim() !== '')
+          isConfigured
             ? 'bg-emerald-50/70 border-emerald-200'
             : 'bg-slate-50 border-slate-200'
         }`}
       >
         <div
           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-            enabled && provider !== 'stub' ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-white'
+            isConfigured ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-white'
           }`}
         >
           <Bot className="w-4.5 h-4.5" />
         </div>
         <div className="min-w-0">
           <div className="text-xs font-bold text-slate-900">
-            {enabled && provider !== 'stub'
-              ? `Chatbot đang dùng AI chung (${provider})`
-              : 'Chatbot đang ở chế độ mẫu (không gọi AI)'}
+            {isConfigured
+              ? `Đã lưu cấu hình AI chung (${config?.provider})`
+              : config?.enabled && !config.configuration_valid
+                ? 'URL đã lưu không được server chấp nhận'
+                : 'Chưa lưu cấu hình AI cho chatbot'}
           </div>
           <div className="text-[11px] text-slate-600">
-            Mọi khách trên hệ thống dùng chung cấu hình này. Key lưu ở server, không bao giờ lộ ra browser.
+            {isConfigured
+              ? 'Cấu hình hợp lệ, chưa xác minh kết nối. Bấm Kiểm tra kết nối để thử model từ server.'
+              : 'Chọn nhà cung cấp, nhập API key, bật chatbot rồi lưu để khách có thể trò chuyện.'}
           </div>
         </div>
         <button
@@ -240,7 +248,9 @@ export const ConciergeLlmSection: FC<ConciergeLlmSectionProps> = ({ onNotify }) 
           className="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder:text-slate-400"
         />
         <span className="block text-[11px] text-slate-500 mt-1">
-          Dùng khi đi qua cổng trung gian (VD: 9Router) hoặc model server nội bộ chuẩn OpenAI.
+          {config?.local_gateway_enabled
+            ? 'Gateway local: chỉ đúng URL cấu hình trên server dev; production vẫn yêu cầu HTTPS được cho phép.'
+            : 'Chỉ dùng HTTPS trên tên miền đã được máy chủ cho phép. Gateway local cần được bật riêng trên server dev.'}
         </span>
       </label>
 

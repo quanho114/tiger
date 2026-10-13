@@ -1,6 +1,6 @@
 # V03 - Move runtime sessions and repair legacy retention
 
-Status: TODO
+Status: DONE
 Dependencies: V02
 Deliverable: implementation + applicable tests + ../reports/V03.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Route V2 session reads/transitions/resets through SessionStore. Round-trip every state field including pending_reservation, active_quote and action_waiting; do not lose fields between turns.
-- [ ] 2. Keep recommendation proposals and draft versions in ephemeral storage. Update revalidation/feedback lookup paths to avoid an implicit permanent proposal archive.
-- [ ] 3. Remove raw chat/event persistence from the V2 path for both identities. Guest feedback may produce anonymous aggregates only; never preserve guest transcript or identifying session linkage.
-- [ ] 4. Fix retention SQL to the actual schema; inventory legacy authenticated and guest records plus FK effects. Add dry-run counts and guarded batching; document auth deletion implications.
-- [ ] 5. Use read-time expiry and distinct expired/conflict/unavailable errors. Preserve existing auth checks and reservation transaction safety.
-- [ ] 6. Search all API, telemetry and error paths for bypass persistence. Include legacy chat/action/feedback clients: reject or adapt them at V2 activation so old contract versions cannot keep storing guest transcripts. Verify guest and logged-in chat create zero transcript SQL rows.
+- [x] 1. Route V2 session reads/transitions/resets through SessionStore. Round-trip every state field including pending_reservation, active_quote and action_waiting; do not lose fields between turns.
+- [x] 2. Keep recommendation proposals and draft versions in ephemeral storage. Update revalidation/feedback lookup paths to avoid an implicit permanent proposal archive.
+- [x] 3. Remove raw chat/event persistence from the V2 path for both identities. Guest feedback may produce anonymous aggregates only; never preserve guest transcript or identifying session linkage.
+- [x] 4. Fix retention SQL to the actual schema; inventory legacy authenticated and guest records plus FK effects. Add dry-run counts and guarded batching; document auth deletion implications.
+- [x] 5. Use read-time expiry and distinct expired/conflict/unavailable errors. Preserve existing auth checks and reservation transaction safety.
+- [x] 6. Search all API, telemetry and error paths for bypass persistence. Include legacy chat/action/feedback clients: reject or adapt them at V2 activation so old contract versions cannot keep storing guest transcripts. Verify guest and logged-in chat create zero transcript SQL rows.
 
 ## Exit criteria
 

@@ -15,7 +15,7 @@ import { fetchCustomerOrders, reorderCustomerOrder } from './api'
 import type { CustomerOrderSummary, ReorderResponse } from './types'
 import { OrderDetailModal } from './OrderDetailModal'
 import { ReorderWarningModal } from './ReorderWarningModal'
-import { useCart } from '@/store/cart'
+import { useCart } from '@/features/cart'
 
 function formatVnd(amount: number): string {
   return new Intl.NumberFormat('vi-VN', {
@@ -109,6 +109,7 @@ export function AccountOrdersPage() {
   }, [statusFilter, page])
 
   const handleReorder = async (order: CustomerOrderSummary) => {
+    if (order.order_type === 'takeaway') return
     try {
       setIsReorderingId(order.id)
       const res = await reorderCustomerOrder(order.id, order.order_type)
@@ -124,6 +125,10 @@ export function AccountOrdersPage() {
             tableCode: '',
             tableName: 'Bàn tại quán',
             visitId: '',
+          })
+        } else if (res.target_order_type === 'takeaway') {
+          setContext({
+            mode: 'takeaway',
           })
         } else {
           setContext({
@@ -143,7 +148,7 @@ export function AccountOrdersPage() {
                 description: '',
                 image: '/images/bo-nuong.jpg',
                 available: item.available,
-                modes: ['dine-in', 'delivery'],
+                modes: ['dine-in', 'delivery', 'takeaway'],
               },
               item.note || undefined
             )
@@ -242,7 +247,7 @@ export function AccountOrdersPage() {
                       #{order.code}
                     </span>
                     <span className="text-xs font-semibold text-slate-500">
-                      {order.order_type === 'delivery' ? '• Giao tận nơi' : '• Tại bàn'}
+                      {order.order_type === 'delivery' ? '• Giao tận nơi' : order.order_type === 'takeaway' ? '• Mang đi' : '• Tại bàn'}
                     </span>
                     <span
                       className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${badge.bg}`}
@@ -287,7 +292,7 @@ export function AccountOrdersPage() {
                       <span>Xem</span>
                     </button>
 
-                    {order.status === 'completed' && (
+                    {order.status === 'completed' && order.order_type !== 'takeaway' && (
                       <button
                         type="button"
                         disabled={isReorderingId === order.id}

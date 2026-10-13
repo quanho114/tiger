@@ -81,7 +81,7 @@ test.describe('F09: Real Browser -> Edge HTTP -> Database -> Admin E2E Suite (Ze
     await page.goto('/admin/login')
 
     await expect(page.getByText('TIGER 345')).toBeVisible()
-    await expect(page.getByRole('heading', { name: /đăng nhập hệ thống điều phối/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /TIGER 345.*Bếp.*Quán/i })).toBeVisible()
 
     // Fill in real active admin credentials (seeded in auth-users.ts)
     await page.getByLabel(/email quản trị/i).fill('admin_active@tiger345.vn')
@@ -96,15 +96,15 @@ test.describe('F09: Real Browser -> Edge HTTP -> Database -> Admin E2E Suite (Ze
     )
 
     // Click submit
-    await page.getByRole('button', { name: /đăng nhập vào hệ thống/i }).click()
+    await page.getByRole('button', { name: /đăng nhập hệ thống/i }).click()
 
     await Promise.all([authResponsePromise, profileResponsePromise])
 
     // Should successfully redirect to /admin dashboard
-    await expect(page).toHaveURL(/\/admin/)
+    await expect(page).toHaveURL(/\/admin\/?$/)
 
     // Verify admin layout is loaded (Admin dashboard heading or navigation)
-    await expect(page.getByText(/quản lý/i).first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Tổng quan vận hành/i })).toBeVisible()
   })
 
   test('3. Real Admin Security: Disabled admin is rejected by admin_profiles check and signed out', async ({
@@ -116,7 +116,7 @@ test.describe('F09: Real Browser -> Edge HTTP -> Database -> Admin E2E Suite (Ze
     await page.getByLabel(/email quản trị/i).fill('admin_disabled@tiger345.vn')
     await page.getByLabel(/^mật khẩu/i).fill('TestPassword123!')
 
-    await page.getByRole('button', { name: /đăng nhập vào hệ thống/i }).click()
+    await page.getByRole('button', { name: /đăng nhập hệ thống/i }).click()
 
     // Must display error message indicating disabled / no permission
     await expect(
@@ -133,7 +133,7 @@ test.describe('F09: Real Browser -> Edge HTTP -> Database -> Admin E2E Suite (Ze
     await page.getByLabel(/email quản trị/i).fill('admin_unknown@tiger345.vn')
     await page.getByLabel(/^mật khẩu/i).fill('WrongPassword123!')
 
-    await page.getByRole('button', { name: /đăng nhập vào hệ thống/i }).click()
+    await page.getByRole('button', { name: /đăng nhập hệ thống/i }).click()
 
     // Must display invalid credentials message
     await expect(page.getByText(/email hoặc mật khẩu không chính xác/i)).toBeVisible()
@@ -275,12 +275,12 @@ test.describe('F09: Real Browser -> Edge HTTP -> Database -> Admin E2E Suite (Ze
         (res) => res.url().includes('/rest/v1/admin_profiles') && res.status() === 200
       )
 
-      await page.getByRole('button', { name: /đăng nhập vào hệ thống/i }).click()
+      await page.getByRole('button', { name: /đăng nhập hệ thống/i }).click()
       await Promise.all([authResponsePromise, profileResponsePromise])
 
       // Wait until admin dashboard is fully loaded
       await expect(page).toHaveURL(/\/admin(\/)?$/)
-      await expect(page.getByText(/quản lý/i).first()).toBeVisible()
+      await expect(page.getByRole('heading', { name: /Tổng quan vận hành/i })).toBeVisible()
 
       // Navigate to /admin/orders
       await page.goto('/admin/orders')

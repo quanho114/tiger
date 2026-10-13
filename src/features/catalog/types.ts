@@ -1,3 +1,6 @@
+export type PricingMode = 'fixed' | 'range' | 'market' | 'unknown'
+export type ImageSource = 'restaurant' | 'illustration' | 'none'
+
 export interface Category {
   id: string
   name: string
@@ -12,6 +15,11 @@ export interface MenuItem {
   slug: string
   description: string
   price_vnd: number
+  pricing_mode?: PricingMode
+  price_min?: number | null
+  price_max?: number | null
+  image_source?: ImageSource
+  review_note?: string | null
   image_path: string
   image_url: string
   available: boolean
@@ -33,7 +41,7 @@ export interface MenuItem {
 export interface BusinessHour {
   id: string
   weekday: number
-  service_type: 'dine_in' | 'delivery' | 'both'
+  service_type: 'restaurant' | 'delivery' | 'reservation' | 'dine_in' | 'both'
   open_time: string
   close_time: string
 }

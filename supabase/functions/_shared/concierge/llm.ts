@@ -1,10 +1,11 @@
+import type { BoundedContext } from './context.ts'
 /**
  * Tiger 345 - Single LLM Orchestration & Multi-Provider Adapter
  * Defined according to plans/tiger-345/09-concierge-agent-design.md
  *
  * Guarantees:
  * - Single LLM runtime (no multi-agent or supervisor)
- * - Multi-provider support: 'openai' | 'anthropic' | 'gemini' | 'stub'
+ * - Multi-provider support: 'openai' | 'anthropic' | 'gemini'
  * - Strict tool allowlist enforcement
  * - Tool call budget (max 3 per turn) & token budget (max 1024 tokens)
  * - Runtime schema validation for tool calls
@@ -17,18 +18,52 @@ import type {
   ChatMessage,
   CustomerConstraints,
 } from './types.ts'
-import { extractReservationDetails } from './date-resolver.ts'
 import { AppError } from '../errors.ts'
+import { assertPublicProviderDestination, validateProviderBaseUrl } from './provider-url.ts'
+
+async function readProviderStream(response: Response, onEvent: (event: string, data: any) => void): Promise<void> {
+  if (!response.body) throw new Error('PROVIDER_STREAM_MISSING')
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let received = 0
+  try {
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (value) received += value.byteLength
+      if (received > 1_048_576) throw new Error('PROVIDER_STREAM_TOO_LARGE')
+      buffer += done ? decoder.decode() : decoder.decode(value, { stream: true })
+      buffer = buffer.replace(/\r\n/g, '\n')
+      let boundary: number
+      while ((boundary = buffer.indexOf('\n\n')) >= 0) {
+        const block = buffer.slice(0, boundary)
+        buffer = buffer.slice(boundary + 2)
+        const event = block.split('\n').find(line => line.startsWith('event:'))?.slice(6).trim() ?? 'message'
+        const data = block.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n')
+        if (!data || data === '[DONE]') continue
+        onEvent(event, JSON.parse(data))
+      }
+      if (done) break
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
 
 export type LlmProvider = 'stub' | 'openai' | 'anthropic' | 'gemini'
 
 export const TOOL_ALLOWLIST = [
+  'add_draft_item', 'remove_draft_item', 'update_draft_quantity', 'get_draft_cart', 'calculate_draft_total',
   'search_menu_items',
+  'get_menu_item',
   'recommend_meal',
   'create_order_quote',
   'prepare_reservation_summary',
   'lookup_restaurant_info',
   'get_customer_context',
+  'get_recent_orders',
+  'get_saved_addresses',
+  'check_reservation_availability',
 ] as const
 
 export type AllowedToolName = (typeof TOOL_ALLOWLIST)[number]
@@ -224,6 +259,10 @@ export type CustomLlmAdapter = (
   userMessage: string,
   history: ChatMessage[],
   context: {
+    bounded?: BoundedContext
+    onTextDelta?: (delta: string) => void
+    signal?: AbortSignal
+    requestId?: string
     constraints?: CustomerConstraints
     customerUserId?: string | null
     actorScope?: string
@@ -265,7 +304,7 @@ export class ConciergeLlmOrchestrator {
     this.provider = config?.provider || envProvider || 'stub'
     this.apiKey = config?.apiKey || this.resolveApiKey(this.provider)
     this.model = config?.model || this.defaultModel(this.provider)
-    this.baseUrl = config?.baseUrl?.trim().replace(/\/+$/, '') || undefined
+    this.baseUrl = config?.baseUrl ? validateProviderBaseUrl(config.baseUrl) || undefined : undefined
     this.maxTokens = Math.min(config?.maxTokens || DEFAULT_MAX_TOKENS, 2048)
     this.maxToolCalls = config?.maxToolCalls || DEFAULT_MAX_TOOL_CALLS
     this.timeoutMs = config?.timeoutMs || DEFAULT_TIMEOUT_MS
@@ -379,14 +418,9 @@ export class ConciergeLlmOrchestrator {
   public async orchestrateTurn(
     userMessage: string,
     history: ChatMessage[] = [],
-    context: {
-      constraints?: CustomerConstraints
-      customerUserId?: string | null
-      actorScope?: string
-      currentStep?: string
-      pendingReservation?: Record<string, unknown>
-    } = {}
+    context: Parameters<CustomLlmAdapter>[2] = {}
   ): Promise<LlmResponse> {
+    context.signal?.throwIfAborted()
     if (!this.circuitBreaker.canExecute()) {
       throw new AppError(
         'SERVICE_UNAVAILABLE',
@@ -399,6 +433,7 @@ export class ConciergeLlmOrchestrator {
     if (this.customAdapter) {
       try {
         const rawRes = await this.customAdapter(userMessage, history, context)
+        context.signal?.throwIfAborted()
         this.circuitBreaker.recordSuccess()
         return {
           reply_text: stripReasoningBlocks(rawRes.reply_text),
@@ -410,20 +445,16 @@ export class ConciergeLlmOrchestrator {
           },
         }
       } catch (err: unknown) {
+        context.signal?.throwIfAborted()
         this.circuitBreaker.recordFailure()
         throw err
       }
     }
 
-    // 2. Deterministic stub provider
+    // Never fabricate a conversation when no model provider is configured.
     if (this.provider === 'stub') {
-      const res = this.orchestrateStubTurn(userMessage, context)
-      this.circuitBreaker.recordSuccess()
-      return {
-        reply_text: stripReasoningBlocks(res.reply_text),
-        tool_calls: this.validateToolCalls(res.tool_calls),
-        tokens_used: res.tokens_used,
-      }
+      this.circuitBreaker.recordFailure()
+      throw new AppError('SERVICE_UNAVAILABLE', 'Trợ lý chưa được cấu hình nhà cung cấp mô hình.', 503)
     }
 
     // 3. For real external providers: MUST fail-closed if API key is missing
@@ -463,201 +494,29 @@ export class ConciergeLlmOrchestrator {
         tool_calls: this.validateToolCalls(res.tool_calls),
         tokens_used: res.tokens_used,
       }
-    } catch (err: unknown) {
+    } catch (error) {
+      context.signal?.throwIfAborted()
       this.circuitBreaker.recordFailure()
-      if (this.circuitBreaker.getState() === 'OPEN') {
-        throw new AppError(
-          'SERVICE_UNAVAILABLE',
-          `Dịch vụ LLM (${this.provider}) tạm ngừng do lỗi kết nối lặp lại (Circuit Breaker OPEN). Vui lòng thử lại sau giây lát.`,
-          503
-        )
+      const message = error instanceof Error ? error.message : ''
+      const statusMatch = message.match(/(?:API error:?\s*)([45]\d{2})/i)
+      const knownFailures: Record<string, string> = {
+        INVALID_PROVIDER_URL: 'invalid_provider_url',
+        UNSAFE_PROVIDER_DESTINATION: 'provider_destination_rejected',
+        PROVIDER_STREAM_MISSING: 'provider_stream_missing',
+        PROVIDER_STREAM_TOO_LARGE: 'provider_stream_too_large',
+        UNEXPECTED_STREAM_TOOL: 'unexpected_tool_call_in_stream',
       }
-      // Single transient failure: fallback to deterministic stub while breaker tracks failure
-      const fallback = this.orchestrateStubTurn(userMessage, context)
-      return {
-        reply_text: stripReasoningBlocks(fallback.reply_text),
-        tool_calls: this.validateToolCalls(fallback.tool_calls),
-        tokens_used: fallback.tokens_used,
-      }
-    }
-  }
-
-  /**
-   * Deterministic Stub Orchestrator for offline testing and fallback
-   */
-  private orchestrateStubTurn(
-    userMessage: string,
-    context: {
-      constraints?: CustomerConstraints
-      customerUserId?: string | null
-      currentStep?: string
-      pendingReservation?: Record<string, unknown>
-    }
-  ): LlmResponse {
-    const lower = userMessage.toLowerCase()
-    const toolCalls: LlmToolCall[] = []
-    let replyText = ''
-
-    // 1. Check info lookup (contact, hotline, address, hours, policies)
-    if (
-      lower.includes('số điện thoại') ||
-      lower.includes('hotline') ||
-      lower.includes('liên hệ') ||
-      lower.includes('địa chỉ') ||
-      lower.includes('ở đâu') ||
-      lower.includes('mấy giờ') ||
-      lower.includes('giờ') ||
-      lower.includes('mở cửa') ||
-      lower.includes('đóng cửa') ||
-      lower.includes('bãi xe') ||
-      lower.includes('đỗ xe') ||
-      lower.includes('đậu xe') ||
-      lower.includes('gửi xe') ||
-      lower.includes('vị trí') ||
-      lower.includes('wifi') ||
-      lower.includes('thanh toán') ||
-      lower.includes('giữ bàn tối đa') ||
-      lower.includes('chính sách') ||
-      lower.includes('phí ship') ||
-      lower.includes('phí giao') ||
-      lower.includes('phòng riêng') ||
-      lower.includes('phòng vip') ||
-      lower.includes('quản lý')
-    ) {
-      toolCalls.push({
-        id: 'stub_info_1',
-        name: 'lookup_restaurant_info',
-        arguments: { query: userMessage },
-      })
-    }
-    // 2. Check reservation intent or ongoing reservation collection
-    else if (
-      lower.includes('đặt bàn') ||
-      lower.includes('giữ chỗ') ||
-      lower.includes('tóm tắt thông tin đặt bàn') ||
-      lower.includes('phiếu giữ chỗ') ||
-      lower.includes('đổi giờ') ||
-      lower.includes('đổi số lượng') ||
-      lower.includes('đổi ngày') ||
-      context.currentStep === 'RESERVING_COLLECTING' ||
-      context.currentStep === 'RESERVING_CONFIRMING'
-    ) {
-      const extracted = extractReservationDetails(
-        userMessage,
-        context.pendingReservation as any
-      )
-
-      toolCalls.push({
-        id: 'stub_resv_1',
-        name: 'prepare_reservation_summary',
-        arguments: {
-          customer_name: extracted.customer_name,
-          phone: extracted.phone,
-          guest_count: extracted.guest_count,
-          starts_at_iso: extracted.starts_at_iso,
-          seating_area_name: extracted.seating_area_name,
-          note: extracted.note,
-        },
-      })
-    }
-    // 2. Check food recommendation intent (including modifications: rau, thêm món, đổi món)
-    else if (
-      lower.includes('gợi ý') ||
-      lower.includes('tư vấn') ||
-      lower.includes('mâm') ||
-      lower.includes('combo') ||
-      lower.includes('thêm món') ||
-      lower.includes('bổ sung') ||
-      lower.includes('món rau') ||
-      lower.includes('thêm rau') ||
-      lower.includes('bớt món') ||
-      lower.includes('đổi món') ||
-      lower.includes('thay món') ||
-      lower.includes('ăn gì') ||
-      (lower.includes('cho') && (lower.includes('người') || lower.includes('khách'))) ||
-      lower.includes('ngân sách')
-    ) {
-      toolCalls.push({
-        id: 'stub_rec_1',
-        name: 'recommend_meal',
-        arguments: {
-          adults: context.constraints?.adults || 2,
-          children: context.constraints?.children || 0,
-          appetite: context.constraints?.appetite || 'normal',
-          budget_vnd: context.constraints?.budget_vnd || null,
-          allergies: context.constraints?.allergies || [],
-        },
-      })
-    }
-    // 3. Check order / quote intent
-    else if (
-      lower.includes('báo giá') ||
-      lower.includes('tính tiền') ||
-      lower.includes('lên đơn') ||
-      lower.includes('giao về') ||
-      lower.includes('ship') ||
-      lower.includes('đặt giao') ||
-      lower.includes('giao hàng') ||
-      lower.includes('đặt món') ||
-      lower.includes('đặt hàng')
-    ) {
-      replyText =
-        'Để lên đơn giao hàng tận nơi hoặc đặt món trước, bạn vui lòng chọn các món ưa thích vào giỏ hàng hoặc cho mình biết danh sách món để mình tạo báo giá chính xác kèm phí vận chuyển nhé!'
-    }
-    // 4. Check customer context / history intent
-    else if (
-      lower.includes('lịch sử') || lower.includes('món quen') || lower.includes('đặt lại') || lower.includes('đơn cũ')
-    ) {
-      if (context.customerUserId) {
-        toolCalls.push({
-          id: 'stub_ctx_1',
-          name: 'get_customer_context',
-          arguments: {
-            customer_user_id: context.customerUserId,
-          },
-        })
-      } else {
-        replyText =
-          'Để xem lịch sử đơn hàng hoặc đặt lại các món quen thuộc, bạn vui lòng đăng nhập tài khoản nhé!'
-      }
-    }
-    // 5. Default menu lookup
-    else if (
-      lower.includes('món') ||
-      lower.includes('giá') ||
-      lower.includes('menu') ||
-      lower.includes('thực đơn') ||
-      lower.includes('bán gì') ||
-      lower.includes('quán có') ||
-      lower.includes('có bán') ||
-      lower.includes('nướng') ||
-      lower.includes('lẩu') ||
-      lower.includes('gỏi') ||
-      lower.includes('cơm niêu') ||
-      lower.includes('đặc sản')
-    ) {
-      toolCalls.push({
-        id: 'stub_search_1',
-        name: 'search_menu_items',
-        arguments: {
-          query:
-            userMessage
-              .replace(/(thực đơn|menu|món|giá|quán có|có bán|quán|không|\?)/gi, '')
-              .trim() || 'đặc sản',
-        },
-      })
-    } else {
-      replyText = 'Chào bạn! Mình là Tiger Concierge. Mình có thể giúp bạn tư vấn mâm ăn, tra cứu thực đơn hoặc hỗ trợ đặt bàn.'
-    }
-
-    return {
-      reply_text: replyText,
-      tool_calls: toolCalls,
-      tokens_used: {
-        prompt_tokens: Math.ceil(userMessage.length / 4),
-        completion_tokens: Math.ceil(replyText.length / 4),
-        total_tokens: Math.ceil((userMessage.length + replyText.length) / 4),
-      },
+      const failureClass = statusMatch ? 'upstream_http_error'
+        : knownFailures[message] ?? (error instanceof Error && ['AbortError', 'TimeoutError'].includes(error.name)
+          ? 'provider_timeout'
+          : error instanceof TypeError ? 'network_or_response_type_error' : 'provider_request_failed')
+      const requestId = typeof context.requestId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.requestId)
+        ? context.requestId : undefined
+      console.error(JSON.stringify({ event: 'concierge_provider_failure', provider: this.provider,
+        failure_class: failureClass, ...(statusMatch ? { upstream_status: Number(statusMatch[1]) } : {}),
+        ...(requestId ? { request_id: requestId } : {}) }))
+      throw new AppError('SERVICE_UNAVAILABLE', 'Dịch vụ trợ lý tạm thời không khả dụng.', 503)
     }
   }
 
@@ -669,7 +528,9 @@ export class ConciergeLlmOrchestrator {
     history: ChatMessage[],
     _context: Record<string, unknown>
   ): Promise<LlmResponse> {
-    const messages = [
+    const bounded = _context.bounded as BoundedContext | undefined
+    const onTextDelta = _context.onTextDelta as ((delta: string) => void) | undefined
+    const messages: unknown[] = bounded ? [{ role: 'system', content: bounded.system }, ...bounded.messages] : [
       {
         role: 'system',
         content:
@@ -682,7 +543,12 @@ export class ConciergeLlmOrchestrator {
       { role: 'user', content: userMessage },
     ]
 
-    const tools = CONCIERGE_TOOL_DEFINITIONS.map((t) => ({
+    for (const exchange of bounded?.exchanges ?? []) {
+      messages.push({ role: 'assistant', content: null, tool_calls: [{ id: exchange.id, type: 'function',
+        function: { name: exchange.name, arguments: JSON.stringify(exchange.arguments) } }] })
+      messages.push({ role: 'tool', tool_call_id: exchange.id, content: JSON.stringify(exchange.result) })
+    }
+    const tools = (bounded?.tools ?? CONCIERGE_TOOL_DEFINITIONS).map((t) => ({
       type: 'function',
       function: {
         name: t.name,
@@ -698,8 +564,11 @@ export class ConciergeLlmOrchestrator {
       const endpoint = this.baseUrl
         ? `${this.baseUrl}/chat/completions`
         : 'https://api.openai.com/v1/chat/completions'
+      if (this.baseUrl) await assertPublicProviderDestination(endpoint)
+      const stream = Boolean(onTextDelta)
       const res = await fetch(endpoint, {
         method: 'POST',
+        redirect: 'error',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.apiKey}`,
@@ -707,17 +576,30 @@ export class ConciergeLlmOrchestrator {
         body: JSON.stringify({
           model: this.model,
           messages,
-          tools,
-          tool_choice: 'auto',
+          ...(tools.length ? { tools, tool_choice: 'auto' } : {}),
           max_tokens: this.maxTokens,
+          stream,
+          ...(stream ? { stream_options: { include_usage: true } } : {}),
         }),
-        signal: controller.signal,
+        signal: _context.signal instanceof AbortSignal ? AbortSignal.any([controller.signal, _context.signal]) : controller.signal,
       })
 
       if (!res.ok) {
-        throw new Error(`OpenAI API error: ${res.status} ${await res.text()}`)
+        throw new Error(`OpenAI API error: ${res.status}`)
       }
 
+      if (stream) {
+        let reply = ''
+        let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+        await readProviderStream(res, (_event, data) => {
+          const delta = data.choices?.[0]?.delta?.content
+          if (typeof delta === 'string') { reply += delta; onTextDelta?.(delta) }
+          if (data.usage) usage = { prompt_tokens: data.usage.prompt_tokens || 0,
+            completion_tokens: data.usage.completion_tokens || 0, total_tokens: data.usage.total_tokens || 0 }
+          if (data.choices?.[0]?.delta?.tool_calls?.length) throw new Error('UNEXPECTED_STREAM_TOOL')
+        })
+        return { reply_text: reply, tool_calls: [], tokens_used: usage }
+      }
       const data = await res.json()
       const choice = data.choices?.[0]?.message
       const rawToolCalls = (choice?.tool_calls || []).map((tc: any) => ({
@@ -748,7 +630,9 @@ export class ConciergeLlmOrchestrator {
     history: ChatMessage[],
     _context: Record<string, unknown>
   ): Promise<LlmResponse> {
-    const messages = [
+    const bounded = _context.bounded as BoundedContext | undefined
+    const onTextDelta = _context.onTextDelta as ((delta: string) => void) | undefined
+    const messages: unknown[] = bounded ? [...bounded.messages] : [
       ...history.slice(-6).map((m) => ({
         role: m.sender === 'user' ? ('user' as const) : ('assistant' as const),
         content: m.text,
@@ -756,7 +640,11 @@ export class ConciergeLlmOrchestrator {
       { role: 'user' as const, content: userMessage },
     ]
 
-    const tools = CONCIERGE_TOOL_DEFINITIONS.map((t) => ({
+    for (const exchange of bounded?.exchanges ?? []) {
+      messages.push({ role: 'assistant', content: [{ type: 'tool_use', id: exchange.id, name: exchange.name, input: exchange.arguments }] })
+      messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: exchange.id, content: JSON.stringify(exchange.result) }] })
+    }
+    const tools = (bounded?.tools ?? CONCIERGE_TOOL_DEFINITIONS).map((t) => ({
       name: t.name,
       description: t.description,
       input_schema: t.parameters,
@@ -767,6 +655,7 @@ export class ConciergeLlmOrchestrator {
 
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
+        redirect: 'error',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -775,19 +664,37 @@ export class ConciergeLlmOrchestrator {
         },
         body: JSON.stringify({
           model: this.model,
-          system:
+          system: bounded?.system ??
             'Bạn là Tiger Concierge - trợ lý ẩm thực tại nhà hàng Tiger 345. Hãy sử dụng tools được cung cấp để hỗ trợ khách.',
           messages,
-          tools,
+          ...(tools.length ? { tools } : {}),
           max_tokens: this.maxTokens,
+          ...(onTextDelta ? { stream: true } : {}),
         }),
-        signal: controller.signal,
+        signal: _context.signal instanceof AbortSignal ? AbortSignal.any([controller.signal, _context.signal]) : controller.signal,
       })
 
       if (!res.ok) {
         throw new Error(`Anthropic API error: ${res.status}`)
       }
 
+      if (onTextDelta) {
+        let reply = ''
+        let inputTokens = 0
+        let outputTokens = 0
+        await readProviderStream(res, (event, data) => {
+          if (event === 'error') throw new Error('PROVIDER_STREAM_ERROR')
+          if (event === 'message_start') inputTokens = data.message?.usage?.input_tokens || 0
+          if (event === 'message_delta') outputTokens = data.usage?.output_tokens || outputTokens
+          if (event === 'content_block_start' && data.content_block?.type === 'tool_use') throw new Error('UNEXPECTED_STREAM_TOOL')
+          if (event === 'content_block_delta' && data.delta?.type === 'text_delta') {
+            const delta = data.delta.text
+            if (typeof delta === 'string') { reply += delta; onTextDelta(delta) }
+          }
+        })
+        return { reply_text: reply, tool_calls: [], tokens_used: { prompt_tokens: inputTokens,
+          completion_tokens: outputTokens, total_tokens: inputTokens + outputTokens } }
+      }
       const data = await res.json()
       const toolBlocks = (data.content || []).filter((c: any) => c.type === 'tool_use')
       const textBlocks = (data.content || []).filter((c: any) => c.type === 'text')
@@ -824,14 +731,17 @@ export class ConciergeLlmOrchestrator {
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
 
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`
-      const functionDeclarations = CONCIERGE_TOOL_DEFINITIONS.map((t) => ({
+      const onTextDelta = _context.onTextDelta as ((delta: string) => void) | undefined
+      const method = onTextDelta ? 'streamGenerateContent' : 'generateContent'
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:${method}?key=${this.apiKey}${onTextDelta ? '&alt=sse' : ''}`
+      const bounded = _context.bounded as BoundedContext | undefined
+      const functionDeclarations = (bounded?.tools ?? CONCIERGE_TOOL_DEFINITIONS).map((t) => ({
         name: t.name,
         description: t.description,
         parameters: t.parameters,
       }))
 
-      const contents = [
+      const contents: unknown[] = bounded ? bounded.messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })) : [
         ...history.slice(-6).map((m) => ({
           role: m.sender === 'user' ? 'user' : 'model',
           parts: [{ text: m.text }],
@@ -839,23 +749,44 @@ export class ConciergeLlmOrchestrator {
         { role: 'user', parts: [{ text: userMessage }] },
       ]
 
+      for (const exchange of bounded?.exchanges ?? []) {
+        contents.push({ role: 'model', parts: [{ functionCall: { id: exchange.id, name: exchange.name, args: exchange.arguments } }] })
+        contents.push({ role: 'user', parts: [{ functionResponse: { id: exchange.id, name: exchange.name, response: { result: exchange.result } } }] })
+      }
+
       const res = await fetch(url, {
+        redirect: 'error',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents,
-          tools: [{ functionDeclarations }],
+          systemInstruction: bounded ? { parts: [{ text: bounded.system }] } : undefined,
+          ...(functionDeclarations.length ? { tools: [{ functionDeclarations }] } : {}),
           generationConfig: {
             maxOutputTokens: this.maxTokens,
           },
         }),
-        signal: controller.signal,
+        signal: _context.signal instanceof AbortSignal ? AbortSignal.any([controller.signal, _context.signal]) : controller.signal,
       })
 
       if (!res.ok) {
         throw new Error(`Gemini API error: ${res.status}`)
       }
 
+      if (onTextDelta) {
+        let reply = ''
+        let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+        await readProviderStream(res, (_event, data) => {
+          const parts = data.candidates?.[0]?.content?.parts ?? []
+          if (parts.some((part: { functionCall?: unknown }) => part.functionCall)) throw new Error('UNEXPECTED_STREAM_TOOL')
+          const text = parts.map((part: { text?: string }) => part.text ?? '').join('')
+          if (text) { reply += text; onTextDelta(text) }
+          if (data.usageMetadata) usage = { prompt_tokens: data.usageMetadata.promptTokenCount || 0,
+            completion_tokens: data.usageMetadata.candidatesTokenCount || 0,
+            total_tokens: data.usageMetadata.totalTokenCount || 0 }
+        })
+        return { reply_text: reply, tool_calls: [], tokens_used: usage }
+      }
       const data = await res.json()
       const candidate = data.candidates?.[0]?.content
       const parts = candidate?.parts || []

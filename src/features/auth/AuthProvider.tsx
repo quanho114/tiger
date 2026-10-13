@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '@/shared/lib/supabase'
 import {
   AuthContext,
   type AuthRole,
@@ -21,7 +21,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const profileSequence = useRef(0)
+  const profileUserId = useRef<string | null>(null)
+
   const resolveUserProfile = useCallback(async (currentSession: Session | null) => {
+    const sequence = ++profileSequence.current
+    const nextUserId = currentSession?.user.id || null
+    if (nextUserId && profileUserId.current !== nextUserId) setIsLoading(true)
+    profileUserId.current = nextUserId
+    setError(null)
     if (!currentSession?.user) {
       setSession(null)
       setUser(null)
@@ -44,6 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         .eq('user_id', currentUser.id)
         .maybeSingle()
 
+      if (sequence !== profileSequence.current) return
       if (adminData && adminData.active) {
         setRole('admin')
         setAdminProfile({
@@ -63,6 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         .eq('user_id', currentUser.id)
         .maybeSingle()
 
+      if (sequence !== profileSequence.current) return
       if (customerData) {
         if (customerData.deletion_requested_at) {
           setError('Tài khoản đã được yêu cầu xóa và bị vô hiệu hóa.')
@@ -97,9 +107,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       })
       setAdminProfile(null)
     } catch (err: unknown) {
+      if (sequence !== profileSequence.current) return
       setError(err instanceof Error ? err.message : 'Không thể tải thông tin tài khoản')
     } finally {
-      setIsLoading(false)
+      if (sequence === profileSequence.current) setIsLoading(false)
     }
   }, [])
 
@@ -107,13 +118,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     let mounted = true
 
     async function initAuth() {
+      const sequence = profileSequence.current
       try {
         const { data } = await supabase.auth.getSession()
-        if (mounted) {
+        if (mounted && sequence === profileSequence.current) {
           await resolveUserProfile(data.session)
         }
       } catch (err: unknown) {
-        if (mounted) {
+        if (mounted && sequence === profileSequence.current) {
           setError(err instanceof Error ? err.message : 'Lỗi xác thực')
           setIsLoading(false)
         }
@@ -132,6 +144,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       mounted = false
+      profileSequence.current++
       subscription.unsubscribe()
     }
   }, [resolveUserProfile])
@@ -142,6 +155,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch {
       // Ignore network errors on signout
     } finally {
+      profileSequence.current++
+      profileUserId.current = null
       setSession(null)
       setUser(null)
       setRole('guest')

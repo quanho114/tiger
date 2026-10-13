@@ -14,6 +14,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    globalSetup: ['./tests/fixtures/database-global-setup.ts'],
+    fileParallelism: false,
     testTimeout: 30000,
     include: ['tests/policies/**/*.{test,spec}.ts'],
   },

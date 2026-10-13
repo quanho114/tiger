@@ -1,4 +1,4 @@
-import { publicApi, adminApi } from '@/lib/api/client'
+import { publicApi, adminApi } from '@/shared/lib/api/client'
 import type {
   CreateReservationRequest,
   ReservationReceipt,
@@ -50,31 +50,31 @@ export async function transitionReservation(
   id: string,
   payload: ReservationTransitionRequest
 ): Promise<AdminReservationItem> {
-  const res = await adminApi.post<AdminReservationItem>(
+  await adminApi.post<AdminReservationItem>(
     `/reservations/${id}/transition`,
     payload
   )
-  return res.data
+  return getAdminReservation(id)
 }
 
 export async function updateReservationContact(
   id: string,
   payload: ReservationContactRequest
 ): Promise<AdminReservationItem> {
-  const res = await adminApi.patch<AdminReservationItem>(
+  await adminApi.patch<AdminReservationItem>(
     `/reservations/${id}/contact`,
     payload
   )
-  return res.data
+  return getAdminReservation(id)
 }
 
 export async function updateReservationNote(
   id: string,
   payload: ReservationNoteRequest
 ): Promise<AdminReservationItem> {
-  const res = await adminApi.patch<AdminReservationItem>(
+  await adminApi.patch<AdminReservationItem>(
     `/reservations/${id}/note`,
     payload
   )
-  return res.data
+  return getAdminReservation(id)
 }

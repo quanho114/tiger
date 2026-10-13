@@ -1,6 +1,6 @@
 # V16 - Content-free observability and safe rollout
 
-Status: TODO
+Status: DONE
 Dependencies: V03, V10, V13, V15
 Deliverable: implementation + applicable tests + ../reports/V16.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Record per-turn latency, tokens including follow-ups, tool counts, summary use, safety blocks, CAS conflicts, draft/handoff success and reason codes.
-- [ ] 2. No raw user messages, extracted values, addresses, prompts, tool payloads, API keys or session bearer tokens in logs/errors/provider failure bodies.
-- [ ] 3. Add bounded rate/cost limits per actor/session/IP and caps on concurrent work. Scope circuit breakers appropriately for serverless execution.
-- [ ] 4. Test Redis/DB/provider failures, missing keys, summary failures and budget exhaustion; manual menu/cart remains available with clear error state.
-- [ ] 5. Implement versioned feature flags, TTL expiry/retention scheduled verification, content-free trace expiry and kill switch. No paid live eval in CI.
-- [ ] 6. Document rollout prerequisites, credentials placement, migration order, legacy cleanup dry run and safe disable paths.
+- [x] 1. Record per-turn latency, tokens including follow-ups, tool counts, summary use, safety blocks, CAS conflicts, draft/handoff success and reason codes.
+- [x] 2. No raw user messages, extracted values, addresses, prompts, tool payloads, API keys or session bearer tokens in logs/errors/provider failure bodies.
+- [x] 3. Add bounded rate/cost limits per actor/session/IP and caps on concurrent work. Scope circuit breakers appropriately for serverless execution.
+- [x] 4. Test Redis/DB/provider failures, missing keys, summary failures and budget exhaustion; manual menu/cart remains available with clear error state.
+- [x] 5. Implement versioned feature flags, TTL expiry/retention scheduled verification, content-free trace expiry and kill switch. No paid live eval in CI.
+- [x] 6. Document rollout prerequisites, credentials placement, migration order, legacy cleanup dry run and safe disable paths.
 
 ## Exit criteria
 

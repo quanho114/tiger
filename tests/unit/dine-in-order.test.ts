@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useDineInOrder } from '@/features/ordering/dine-in/useDineInOrder'
 import * as api from '@/features/ordering/dine-in/api'
-import { ApiError } from '@/lib/api/types'
+import { ApiError } from '@/shared/lib/api/types'
 import type { DineInOrderReceipt, DineInQuoteResponse } from '@/features/ordering/dine-in/types'
 
 vi.mock('@/features/ordering/dine-in/api', () => ({
@@ -13,6 +13,7 @@ vi.mock('@/features/ordering/dine-in/api', () => ({
 describe('Dine-In Order Workflow & Idempotency (Invariant V24)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
   })
 
   it('performs two-step quote generation and assigns an idempotency key', async () => {

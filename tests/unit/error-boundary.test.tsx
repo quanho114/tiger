@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 
 const ThrowingComponent = ({ message = 'Lỗi render giả lập' }: { message?: string }) => {
   throw new Error(message)

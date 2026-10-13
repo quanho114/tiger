@@ -13,7 +13,7 @@
  * 5. On successful claim, client clears claim secret from storage.
  */
 
-import { customerApi } from '@/lib/api/client'
+import { customerApi } from '@/shared/lib/api/client'
 
 export interface PendingClaim {
   orderId: string

@@ -4,7 +4,7 @@ import {
   validatePhoneNumber,
   getVietnamNow,
   validateReservationDateTime,
-} from '@/lib/validation';
+} from '@/shared/lib/validation';
 import { normalizeVietnamPhone, VIETNAM_PHONE_REGEX } from '@contracts/common';
 
 describe('Vietnam Phone Validation and Normalization', () => {

@@ -16,6 +16,7 @@
  */
 
 import type pg from 'pg'
+import { AppError } from '../errors.ts'
 
 export interface ConciergeFeatureFlags {
   concierge_disabled: boolean
@@ -34,7 +35,7 @@ export function setConciergeFeatureFlagsForTesting(flags: Partial<ConciergeFeatu
   testOverrides = flags
 }
 
-export async function getConciergeFeatureFlags(pool?: pg.Pool): Promise<ConciergeFeatureFlags> {
+export async function getConciergeFeatureFlags(pool?: pg.Pool, requireAvailable = false): Promise<ConciergeFeatureFlags> {
   const defaults: ConciergeFeatureFlags = {
     concierge_disabled: process.env.CONCIERGE_DISABLED === 'true',
     ordering_disabled: process.env.CONCIERGE_ORDERING_DISABLED === 'true',
@@ -69,6 +70,7 @@ export async function getConciergeFeatureFlags(pool?: pg.Pool): Promise<Concierg
         }
       }
     } catch {
+      if (requireAvailable) throw new AppError('SERVICE_UNAVAILABLE', 'Không thể kiểm tra cấu hình trợ lý.', 503)
       // Table may not exist in test/mock environment; fall back safely
     }
   }

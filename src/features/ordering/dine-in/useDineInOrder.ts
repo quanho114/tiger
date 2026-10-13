@@ -1,10 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
-import { ApiError } from '@/lib/api/types'
+import { ApiError } from '@/shared/lib/api/types'
 import { requestDineInQuote, submitDineInOrder } from './api'
-import {
-  getOrCreateCheckoutClaimSecret,
-  storeOrderClaimSecret,
-} from '../claims/claimStorage'
+import { storeOrderClaimSecret } from '../claims/claimStorage'
+import { CheckoutRecoveryError, beginCheckout, finishCheckout, isDefinitiveCheckoutRejection, readPendingCheckout, recoverCheckout } from '../pendingCheckout'
 import type {
   DineInOrderReceipt,
   DineInQuoteItem,
@@ -12,9 +10,7 @@ import type {
 } from './types'
 
 function generateIdempotencyKey(): string {
-  const timestamp = Date.now()
-  const randomStr = Math.random().toString(36).substring(2, 12)
-  return `idemp-dinein-${timestamp}-${randomStr}`
+  return `idemp-dinein-${crypto.randomUUID()}`
 }
 
 export function useDineInOrder() {
@@ -29,6 +25,7 @@ export function useDineInOrder() {
 
   // Retain idempotency key across retries for the same order submission
   const idempotencyKeyRef = useRef<string | null>(null)
+  const submittingRef = useRef(false)
   const lastQuoteItemsRef = useRef<DineInQuoteItem[]>([])
 
   const getQuote = useCallback(
@@ -41,6 +38,19 @@ export function useDineInOrder() {
       setOrderError(null)
 
       try {
+        const pending = readPendingCheckout('dine_in')
+        if (pending) {
+          const recovered = await recoverCheckout<DineInOrderReceipt>(pending)
+          if (recovered) {
+            storeOrderClaimSecret(recovered.id, pending.claimSecret)
+            setReceipt(recovered)
+            setQuote(null)
+            finishCheckout('dine_in', pending.key)
+            idempotencyKeyRef.current = null
+            setIdempotencyKey(null)
+            return null
+          }
+        }
         const quoteRes = await requestDineInQuote({
           order_type: 'dine_in',
           visit_capability: visitCapability,
@@ -50,7 +60,7 @@ export function useDineInOrder() {
         setQuote(quoteRes)
         lastQuoteItemsRef.current = items
         // Generate new idempotency key for new quote
-        const newKey = generateIdempotencyKey()
+        const newKey = pending?.key || generateIdempotencyKey()
         idempotencyKeyRef.current = newKey
         setIdempotencyKey(newKey)
         return quoteRes
@@ -69,7 +79,7 @@ export function useDineInOrder() {
             setQuoteError(err.message || 'Không thể tính giá đơn món. Vui lòng thử lại.')
           }
         } else {
-          setQuoteError('Lỗi kết nối khi tải bảng giá. Vui lòng kiểm tra mạng.')
+          setQuoteError(err instanceof CheckoutRecoveryError ? err.message : 'Lỗi kết nối khi tải bảng giá. Vui lòng kiểm tra mạng.')
         }
         return null
       } finally {
@@ -92,13 +102,21 @@ export function useDineInOrder() {
         idempotencyKeyRef.current = generated
         setIdempotencyKey(generated)
       }
-      const key = idempotencyKeyRef.current
+      if (submittingRef.current) return null
+      submittingRef.current = true
+      let key = idempotencyKeyRef.current
+      let hadPendingAttempt = true
 
       setIsSubmittingOrder(true)
       setOrderError(null)
 
       try {
-        const claimSecret = getOrCreateCheckoutClaimSecret(key)
+        hadPendingAttempt = Boolean(readPendingCheckout('dine_in'))
+        const pending = beginCheckout('dine_in', key)
+        key = pending.key
+        idempotencyKeyRef.current = key
+        setIdempotencyKey(key)
+        const claimSecret = pending.claimSecret
         const orderReceipt = await submitDineInOrder(
           {
             quote_token: quote.quote_token,
@@ -113,6 +131,7 @@ export function useDineInOrder() {
           storeOrderClaimSecret(orderReceipt.id, claimSecret)
         }
 
+        finishCheckout('dine_in', key)
         setReceipt(orderReceipt)
         setQuote(null)
         // Order succeeded: can reset idempotency key for future new orders
@@ -120,7 +139,8 @@ export function useDineInOrder() {
         setIdempotencyKey(null)
         return orderReceipt
       } catch (err) {
-        // DO NOT reset idempotencyKeyRef on failure, so that retry uses the exact same key!
+        // An older ambiguous attempt must remain recoverable even if this retry fails.
+        if (!hadPendingAttempt && isDefinitiveCheckoutRejection(err)) finishCheckout('dine_in', key)
         if (err instanceof ApiError) {
           if (err.code === 'QUOTE_EXPIRED') {
             setOrderError('Bảng giá đã hết hạn (quá 5 phút). Vui lòng cập nhật lại giỏ hàng.')
@@ -135,10 +155,11 @@ export function useDineInOrder() {
             setOrderError(err.message || 'Không thể tạo đơn đặt món. Vui lòng thử lại.')
           }
         } else {
-          setOrderError('Lỗi kết nối mạng khi gửi đơn. Nhấn "Thử lại" để gửi lại.')
+          setOrderError(err instanceof CheckoutRecoveryError ? err.message : 'Lỗi kết nối mạng khi gửi đơn. Nhấn "Thử lại" để gửi lại.')
         }
         return null
       } finally {
+        submittingRef.current = false
         setIsSubmittingOrder(false)
       }
     },

@@ -1,8 +1,8 @@
-import { publicApi } from '@/lib/api/client'
+import { publicApi } from '@/shared/lib/api/client'
 import type { MenuResponse, RestaurantSettings } from './types'
 
 export interface GetMenuParams {
-  mode?: 'dine_in' | 'delivery'
+  mode?: 'dine_in' | 'delivery' | 'takeaway'
   category?: string
 }
 

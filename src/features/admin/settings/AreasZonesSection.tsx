@@ -1,7 +1,7 @@
 import { useState, type FC, type FormEvent } from 'react'
 import { Building2, Truck, Plus, Edit2, Trash2, X, Check } from 'lucide-react'
-import { adminApi } from '../../../lib/api/client'
-import { ApiError } from '../../../lib/api/types'
+import { adminApi } from '@/shared/lib/api/client'
+import { ApiError } from '@/shared/lib/api/types'
 import type { AdminSeatingArea, AdminDeliveryZone } from '../types'
 
 interface AreasZonesSectionProps {

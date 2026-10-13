@@ -1,3 +1,4 @@
+import { MemoryControls } from './MemoryControls'
 import { useEffect, useState } from 'react'
 import {
   User,
@@ -16,7 +17,7 @@ import {
 import { fetchCustomerProfile, updateCustomerProfile, requestDeleteAccount } from './api'
 import type { CustomerProfile } from './types'
 import { useAuth } from '@/features/auth/useAuth'
-import { ApiError } from '@/lib/api/types'
+import { ApiError } from '@/shared/lib/api/types'
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr)
@@ -151,6 +152,7 @@ export function AccountProfilePage() {
         </p>
       </div>
 
+      {user && <MemoryControls key={user.id} />}
       {isLoading ? (
         <div className="py-20 flex flex-col items-center justify-center text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin text-amber-500 mb-3" />

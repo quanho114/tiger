@@ -1,3 +1,9 @@
+/**
+ * Importers/Callers: vitest test runner (tests/unit)
+ * Affected API: CatalogProvider, useCatalog, refreshMenu recovery
+ * Data schemas: Category, MenuItem, RestaurantSettings
+ * User verbatim instruction: "Không thể tải danh mục món ăn - Lỗi hệ thống (502)" / "ủa sao tên món lạ z ko giống tui đưa á"
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { type ReactNode } from 'react'
@@ -237,5 +243,38 @@ describe('useCatalog & CatalogProvider unit tests', () => {
     })
 
     expect(fetchMenuSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('refreshMenu also recovers settings if settings previously failed', async () => {
+    vi.spyOn(api, 'fetchMenu').mockResolvedValue({
+      categories: mockCategories,
+      items: mockItems,
+    })
+    const fetchSettingsSpy = vi.spyOn(api, 'fetchSettings')
+      .mockRejectedValueOnce(new Error('502 Bad Gateway'))
+      .mockResolvedValueOnce(mockSettings)
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <CatalogProvider>{children}</CatalogProvider>
+    )
+
+    const { result } = renderHook(() => useCatalog(), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.settingsError).toContain('502 Bad Gateway')
+    expect(result.current.items).toHaveLength(3)
+
+    // Trigger refreshMenu - should re-fetch both menu and settings
+    await act(async () => {
+      await result.current.refreshMenu()
+    })
+
+    expect(fetchSettingsSpy).toHaveBeenCalledTimes(2)
+    expect(result.current.settingsError).toBeNull()
+    expect(result.current.isError).toBe(false)
+    expect(result.current.settings).toEqual(mockSettings)
   })
 })

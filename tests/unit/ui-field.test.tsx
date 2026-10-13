@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Field } from '@/components/ui/Field';
+import { Field } from '@/shared/ui/Field';
 
 describe('Accessible Field Component', () => {
   it('connects label to input via generated htmlFor and id', () => {

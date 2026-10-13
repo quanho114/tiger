@@ -92,6 +92,56 @@ test.describe('Customer Delivery Ordering Flow (T11, V10, V13, V14, V24)', () =>
     })
   })
 
+  test('recovers a committed order after a lost response and page reload', async ({ page }) => {
+    let orderRequests = 0
+    let quoteRequests = 0
+    let pendingKey = ''
+    let pendingSecret = ''
+    await page.route('**/functions/v1/public-api/order-quotes', async (route) => {
+      quoteRequests++
+      await route.fulfill({ json: { data: {
+        quote_token: 'recovery-quote', expires_at: new Date(Date.now() + 300000).toISOString(),
+        subtotal_vnd: 240000, shipping_fee_vnd: 0, total_vnd: 240000,
+        items: [{ menu_item_id: 'item-ga-hap', quantity: 1, unit_price_vnd: 240000, line_total_vnd: 240000 }],
+      } } })
+    })
+    await page.route('**/functions/v1/public-api/orders', async (route) => {
+      orderRequests++
+      pendingKey = route.request().headers()['idempotency-key']
+      pendingSecret = route.request().postDataJSON().claim_secret
+      await route.abort('failed')
+    })
+    await page.route('**/functions/v1/public-api/orders/recover', async (route) => {
+      expect(route.request().postDataJSON()).toEqual({ idempotency_key: pendingKey, claim_secret: pendingSecret })
+      await route.fulfill({ json: { data: { receipt: {
+        id: 'recovered-order-1', code: 'TG-RECOVERED', order_type: 'delivery', status: 'pending',
+        payment_status: 'unpaid', subtotal_vnd: 240000, shipping_fee_vnd: 0, total_vnd: 240000,
+        created_at: new Date().toISOString(),
+      } } } })
+    })
+
+    const openAndQuote = async () => {
+      await page.locator('button[aria-label*="giỏ hàng"], button:has-text("Xem giỏ hàng")').first().click()
+      const drawer = page.getByRole('dialog')
+      await drawer.locator('input[placeholder*="Nguyễn Văn A"]').fill('Khách Test')
+      await drawer.locator('input[placeholder*="090"]').fill('0901234567')
+      await drawer.locator('select').selectOption('40000000-0000-0000-0000-000000000001')
+      await drawer.locator('input[placeholder*="Số nhà"]').fill('17 Đường Số 1')
+      await drawer.getByRole('button', { name: 'Xem bảng giá & Phí giao hàng' }).click()
+    }
+    await page.goto('/thuc-don?mode=delivery')
+    await page.getByRole('button', { name: /Thêm vào giỏ/ }).first().click()
+    await openAndQuote()
+    await page.getByRole('button', { name: 'Xác nhận đặt giao ngay' }).click()
+    await expect(page.getByRole('dialog').getByText(/Lỗi kết nối mạng/)).toBeVisible()
+    await page.reload()
+    await openAndQuote()
+    await expect(page.getByRole('dialog').getByText('TG-RECOVERED')).toBeVisible()
+    expect(orderRequests).toBe(1)
+    expect(quoteRequests).toBe(1)
+    expect(await page.evaluate(() => sessionStorage.getItem('tiger_pending_checkout_delivery'))).toBeNull()
+  })
+
   test('executes complete delivery checkout flow: quote generation, review, and honest order receipt', async ({
     page,
   }) => {

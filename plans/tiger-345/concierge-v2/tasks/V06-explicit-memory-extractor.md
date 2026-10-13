@@ -1,6 +1,6 @@
 # V06 - Durable explicit fact extraction
 
-Status: TODO
+Status: DONE
 Dependencies: V05
 Deliverable: implementation + applicable tests + ../reports/V06.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Implement strict structured extraction for food preferences, dislikes and dietary constraints, with schema validation and fact/token caps.
-- [ ] 2. Reject temporary statements such as today/eating with a friend, hypothetical/quoted text, negations and assistant claims. Resolve corrections without accumulating contradictions.
-- [ ] 3. Require opt-in/auth before extraction persistence. Explicit allergy text creates a food constraint only, not medical inference.
-- [ ] 4. Use cheap configured model only when deterministic extraction is insufficient; bound timeout/cost and expose failure status. Main chat remains useful when extraction fails.
-- [ ] 5. Use selected reliable bounded execution mechanism. If queued, encrypt/protect short-lived payloads, enforce TTL and no logs; if synchronous, bound latency. No unawaited Edge fire-and-forget.
-- [ ] 6. Check account/consent/epoch again at commit. Suppress duplicates and replayed requests. Never extract durable facts from rolling summaries.
+- [x] 1. Implement strict structured extraction for food preferences, dislikes and dietary constraints, with schema validation and fact/token caps.
+- [x] 2. Reject temporary statements such as today/eating with a friend, hypothetical/quoted text, negations and assistant claims. Resolve corrections without accumulating contradictions.
+- [x] 3. Require opt-in/auth before extraction persistence. Explicit allergy text creates a food constraint only, not medical inference.
+- [x] 4. Use cheap configured model only when deterministic extraction is insufficient; bound timeout/cost and expose failure status. Main chat remains useful when extraction fails.
+- [x] 5. Use selected reliable bounded execution mechanism. If queued, encrypt/protect short-lived payloads, enforce TTL and no logs; if synchronous, bound latency. No unawaited Edge fire-and-forget.
+- [x] 6. Check account/consent/epoch again at commit. Suppress duplicates and replayed requests. Never extract durable facts from rolling summaries.
 
 ## Exit criteria
 

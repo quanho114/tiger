@@ -1,11 +1,9 @@
 import { useCallback, useRef, useState } from 'react'
-import { ApiError } from '@/lib/api/types'
-import { validatePhoneNumber } from '@/lib/validation'
+import { ApiError } from '@/shared/lib/api/types'
+import { validatePhoneNumber } from '@/shared/lib/validation'
 import { requestDeliveryQuote, submitDeliveryOrder } from './api'
-import {
-  getOrCreateCheckoutClaimSecret,
-  storeOrderClaimSecret,
-} from '../claims/claimStorage'
+import { storeOrderClaimSecret } from '../claims/claimStorage'
+import { CheckoutRecoveryError, beginCheckout, finishCheckout, isDefinitiveCheckoutRejection, readPendingCheckout, recoverCheckout } from '../pendingCheckout'
 import type {
   DeliveryFieldErrors,
   DeliveryFormState,
@@ -23,9 +21,7 @@ const INITIAL_FORM_STATE: DeliveryFormState = {
 }
 
 function generateDeliveryIdempotencyKey(): string {
-  const timestamp = Date.now()
-  const randomStr = Math.random().toString(36).substring(2, 12)
-  return `idemp-deliv-${timestamp}-${randomStr}`
+  return `idemp-deliv-${crypto.randomUUID()}`
 }
 
 export function useDeliveryOrder() {
@@ -43,6 +39,7 @@ export function useDeliveryOrder() {
 
   // Retain idempotency key across retries for the same delivery submission
   const idempotencyKeyRef = useRef<string | null>(null)
+  const submittingRef = useRef(false)
   const lastQuoteItemsRef = useRef<DeliveryQuoteItem[]>([])
 
   const setFormField = useCallback((field: keyof DeliveryFormState, value: string) => {
@@ -95,6 +92,19 @@ export function useDeliveryOrder() {
       setOrderError(null)
 
       try {
+        const pending = readPendingCheckout('delivery')
+        if (pending) {
+          const recovered = await recoverCheckout<DeliveryOrderReceipt>(pending)
+          if (recovered) {
+            storeOrderClaimSecret(recovered.id, pending.claimSecret)
+            setReceipt(recovered)
+            setQuote(null)
+            finishCheckout('delivery', pending.key)
+            idempotencyKeyRef.current = null
+            setIdempotencyKey(null)
+            return null
+          }
+        }
         const quoteRes = await requestDeliveryQuote({
           order_type: 'delivery',
           delivery_zone_id: zoneId,
@@ -104,7 +114,7 @@ export function useDeliveryOrder() {
         setQuote(quoteRes)
         lastQuoteItemsRef.current = items
         // Generate new idempotency key for new quote
-        const newKey = generateDeliveryIdempotencyKey()
+        const newKey = pending?.key || generateDeliveryIdempotencyKey()
         idempotencyKeyRef.current = newKey
         setIdempotencyKey(newKey)
         return quoteRes
@@ -143,7 +153,7 @@ export function useDeliveryOrder() {
             setQuoteError(err.message || 'Không thể tính bảng giá giao hàng. Vui lòng thử lại.')
           }
         } else {
-          setQuoteError('Lỗi kết nối khi tính bảng giá giao hàng. Vui lòng kiểm tra mạng.')
+          setQuoteError(err instanceof CheckoutRecoveryError ? err.message : 'Lỗi kết nối khi tính bảng giá giao hàng. Vui lòng kiểm tra mạng.')
         }
         return null
       } finally {
@@ -171,13 +181,21 @@ export function useDeliveryOrder() {
       idempotencyKeyRef.current = generated
       setIdempotencyKey(generated)
     }
-    const key = idempotencyKeyRef.current
+    if (submittingRef.current) return null
+    submittingRef.current = true
+    let key = idempotencyKeyRef.current
+    let hadPendingAttempt = true
 
     setIsSubmittingOrder(true)
     setOrderError(null)
 
     try {
-      const claimSecret = getOrCreateCheckoutClaimSecret(key)
+      hadPendingAttempt = Boolean(readPendingCheckout('delivery'))
+      const pending = beginCheckout('delivery', key)
+      key = pending.key
+      idempotencyKeyRef.current = key
+      setIdempotencyKey(key)
+      const claimSecret = pending.claimSecret
       const orderReceipt = await submitDeliveryOrder(
         {
           quote_token: quote.quote_token,
@@ -195,6 +213,7 @@ export function useDeliveryOrder() {
         storeOrderClaimSecret(orderReceipt.id, claimSecret)
       }
 
+      finishCheckout('delivery', key)
       setReceipt(orderReceipt)
       setQuote(null)
       // Order succeeded: reset key for future new orders
@@ -202,7 +221,8 @@ export function useDeliveryOrder() {
       setIdempotencyKey(null)
       return orderReceipt
     } catch (err) {
-      // DO NOT reset idempotencyKeyRef on failure, so retry sends identical key!
+      // An older ambiguous attempt must remain recoverable even if this retry fails.
+      if (!hadPendingAttempt && isDefinitiveCheckoutRejection(err)) finishCheckout('delivery', key)
       if (err instanceof ApiError) {
         if (err.code === 'QUOTE_EXPIRED') {
           setOrderError('Bảng giá đã hết hạn (quá 5 phút). Vui lòng tính lại bảng giá mới.')
@@ -241,10 +261,11 @@ export function useDeliveryOrder() {
           setOrderError(err.message || 'Không thể tạo đơn đặt giao. Vui lòng thử lại.')
         }
       } else {
-        setOrderError('Lỗi kết nối mạng khi gửi đơn. Nhấn "Thử lại" để gửi lại đơn hàng.')
+        setOrderError(err instanceof CheckoutRecoveryError ? err.message : 'Lỗi kết nối mạng khi gửi đơn. Nhấn "Thử lại" để gửi lại đơn hàng.')
       }
       return null
     } finally {
+      submittingRef.current = false
       setIsSubmittingOrder(false)
     }
   }, [quote, formState, validateForm])

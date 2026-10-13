@@ -1,4 +1,4 @@
-import { publicApi } from '@/lib/api/client'
+import { publicApi } from '@/shared/lib/api/client'
 import type {
   CreateDineInOrderRequest,
   DineInOrderReceipt,

@@ -1,6 +1,6 @@
 import { AlertTriangle, Check, X, AlertCircle } from 'lucide-react'
 import type { ReorderResponse } from './types'
-import { useCart } from '@/store/cart'
+import { useCart } from '@/features/cart'
 
 interface ReorderWarningModalProps {
   isOpen: boolean
@@ -34,6 +34,10 @@ export function ReorderWarningModal({
         tableName: 'Bàn tại quán',
         visitId: '',
       })
+    } else if (reorderData.target_order_type === 'takeaway') {
+      setContext({
+        mode: 'takeaway',
+      })
     } else {
       setContext({
         mode: 'delivery',
@@ -54,7 +58,7 @@ export function ReorderWarningModal({
             description: '',
             image: '/images/bo-nuong.jpg',
             available: item.available,
-            modes: ['dine-in', 'delivery'],
+            modes: ['dine-in', 'delivery', 'takeaway'],
           },
           item.note || undefined
         )

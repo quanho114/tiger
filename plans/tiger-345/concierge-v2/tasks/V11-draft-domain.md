@@ -1,6 +1,6 @@
 # V11 - Draft cart domain and atomic operations
 
-Status: TODO
+Status: DONE
 Dependencies: V02, V08
 Deliverable: implementation + applicable tests + ../reports/V11.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Implement add/remove/set quantity/read/total operations with bounded quantities, line count and stable item+note identity.
-- [ ] 2. Accept only validated command objects from trusted runtime; preserve candidate recommendations separately.
-- [ ] 3. Price and availability come from catalog; quantities and notes validated. Store currency as integer VND and never accept model prices.
-- [ ] 4. Apply a turn batch atomically with session version/request ID. Duplicate or stale calls cannot add twice or overwrite concurrent updates.
-- [ ] 5. Track pending suggestion, reviewed/exported versions and blocked items. Draft expiry follows the session.
-- [ ] 6. Provide explicit state transitions for review and handoff eligibility without performing real-cart writes.
+- [x] 1. Implement add/remove/set quantity/read/total operations with bounded quantities, line count and stable item+note identity.
+- [x] 2. Accept only validated command objects from trusted runtime; preserve candidate recommendations separately.
+- [x] 3. Price and availability come from catalog; quantities and notes validated. Store currency as integer VND and never accept model prices.
+- [x] 4. Apply a turn batch atomically with session version/request ID. Duplicate or stale calls cannot add twice or overwrite concurrent updates.
+- [x] 5. Track pending suggestion, reviewed/exported versions and blocked items. Draft expiry follows the session.
+- [x] 6. Provide explicit state transitions for review and handoff eligibility without performing real-cart writes.
 
 ## Exit criteria
 

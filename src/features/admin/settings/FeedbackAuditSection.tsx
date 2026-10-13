@@ -1,6 +1,6 @@
 import { useState, type FC, type FormEvent } from 'react'
 import { Bot, ScrollText, X, Check, Filter } from 'lucide-react'
-import { adminApi } from '../../../lib/api/client'
+import { adminApi } from '@/shared/lib/api/client'
 import type { AdminConciergeFeedback, AdminAuditLog } from '../types'
 
 interface FeedbackAuditSectionProps {

@@ -23,12 +23,13 @@ test.describe('Tiger 345 Route Smoke Tests', () => {
     const dishCards = page.locator('[data-dish-id], img[alt]');
     await expect(dishCards.first()).toBeVisible();
 
-    // Mode switch check
-    const deliveryTab = page.getByRole('tab', { name: /giao tận nơi/i }).first();
-    if (await deliveryTab.isVisible()) {
-      await deliveryTab.click();
-      await expect(page).toHaveURL(/mode=delivery/);
-    }
+    const orderModeGroup = page.getByRole('group', { name: 'Chọn hình thức thưởng thức' });
+    const deliveryMode = orderModeGroup.getByRole('radio', { name: 'Giao tận nơi' });
+    await expect(deliveryMode).toBeVisible();
+    await expect(deliveryMode).not.toBeChecked();
+    await orderModeGroup.getByText('Giao tận nơi', { exact: true }).click();
+    await expect(page).toHaveURL(/\/menu\?mode=delivery$/);
+    await expect(deliveryMode).toBeChecked();
   });
 
   test('Reservation page (/reservation) displays booking form and rules', async ({ page }) => {

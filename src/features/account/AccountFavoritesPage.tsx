@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { fetchCustomerFavorites, removeCustomerFavorite } from './api'
 import type { CustomerFavoriteItem } from './types'
-import { useCart } from '@/store/cart'
+import { useCart } from '@/features/cart'
 
 function formatVnd(amount: number): string {
   return new Intl.NumberFormat('vi-VN', {
@@ -66,7 +66,7 @@ export function AccountFavoritesPage() {
       description: '',
       image: item.image_path || '/images/bo-nuong.jpg',
       available: item.available,
-      modes: ['dine-in', 'delivery'],
+      modes: ['dine-in', 'delivery', 'takeaway'],
     })
     setCartOpen(true)
   }

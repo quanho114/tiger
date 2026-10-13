@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { fetchCustomerHome } from './api'
 import type { CustomerHomeSummary } from './types'
-import { useCart } from '@/store/cart'
+import { useCart } from '@/features/cart'
 
 function formatVnd(amount: number): string {
   return new Intl.NumberFormat('vi-VN', {
@@ -264,7 +264,11 @@ export function AccountOverviewPage() {
                         #{order.code}
                       </span>
                       <span className="text-xs font-semibold text-slate-500">
-                        {order.order_type === 'delivery' ? '• Giao tận nơi' : '• Tại bàn'}
+                        {order.order_type === 'delivery'
+                          ? '• Giao tận nơi'
+                          : order.order_type === 'takeaway'
+                          ? '• Mang đi'
+                          : '• Tại bàn'}
                       </span>
                       <span
                         className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${badge.bg}`}
@@ -338,7 +342,7 @@ export function AccountOverviewPage() {
                       description: '',
                       image: item.image_path || '/images/bo-nuong.jpg',
                       available: item.available,
-                      modes: ['dine-in', 'delivery'],
+                      modes: ['dine-in', 'delivery', 'takeaway'],
                     })
                     setCartOpen(true)
                   }}

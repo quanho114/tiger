@@ -61,7 +61,7 @@ export interface CustomerHomeSummary {
 export interface CustomerOrderSummary {
   id: string
   code: string
-  order_type: 'dine_in' | 'delivery'
+  order_type: 'dine_in' | 'delivery' | 'takeaway'
   status:
     | 'pending'
     | 'confirmed'
@@ -201,7 +201,7 @@ export interface ReorderItemDto {
 export interface ReorderResponse {
   source_order_id: string
   source_order_code: string
-  target_order_type: 'dine_in' | 'delivery'
+  target_order_type: 'dine_in' | 'delivery' | 'takeaway'
   items: ReorderItemDto[]
   warnings: ReorderWarning[]
   subtotal_vnd: number

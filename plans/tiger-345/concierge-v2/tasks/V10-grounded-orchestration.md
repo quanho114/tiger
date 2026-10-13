@@ -1,6 +1,6 @@
 # V10 - Grounded tool loop and provider adapters
 
-Status: TODO
+Status: DONE
 Dependencies: V09
 Deliverable: implementation + applicable tests + ../reports/V10.md
 
@@ -22,13 +22,13 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Implement strict typed tool registry, authorization/read-mutation policy, schema validation, timeout and total-turn budgets.
-- [ ] 2. Wire OpenAI/Anthropic/Gemini to shared context. Feed actual tool results back before generating descriptive prose; preserve correct provider call/result IDs.
-- [ ] 3. Enforce grounding for factual intents even when model returns zero tools. A safe cannot-verify response is valid; unchecked factual prose is not.
-- [ ] 4. Separate grounded structured numeric/safety fields from optional natural phrasing. Reject contradictory or unsupported operational claims via explicit contract/templates.
-- [ ] 5. Merge validated preferences/dislikes as well as adults/budget/allergies; distinguish unset from default 2 adults and ask limited clarifications.
-- [ ] 6. Bound loop to 3 calls/6 tools, serialize dependencies, disable silent success-like stub fallback in production and provide transparent safe degradation.
-- [ ] 7. Maintain reservation state/confirmation barriers, including FAQ interruptions. Do not expose create-order/checkout/confirmation tools.
+- [x] 1. Implement strict typed tool registry, authorization/read-mutation policy, schema validation, timeout and total-turn budgets.
+- [x] 2. Wire OpenAI/Anthropic/Gemini to shared context. Feed actual tool results back before generating descriptive prose; preserve correct provider call/result IDs.
+- [x] 3. Enforce grounding for factual intents even when model returns zero tools. A safe cannot-verify response is valid; unchecked factual prose is not.
+- [x] 4. Separate grounded structured numeric/safety fields from optional natural phrasing. Reject contradictory or unsupported operational claims via explicit contract/templates.
+- [x] 5. Merge validated preferences/dislikes as well as adults/budget/allergies; distinguish unset from default 2 adults and ask limited clarifications.
+- [x] 6. Bound loop to 3 calls/6 tools, serialize dependencies, disable silent success-like stub fallback in production and provide transparent safe degradation.
+- [x] 7. Maintain reservation state/confirmation barriers, including FAQ interruptions. Do not expose create-order/checkout/confirmation tools.
 
 ## Exit criteria
 

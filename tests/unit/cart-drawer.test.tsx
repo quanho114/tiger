@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { CartDrawer, type CartItem } from '@/components/CartDrawer';
-import { CartProvider } from '@/store/CartProvider';
+import { CartDrawer, type CartItem } from '@/features/ordering/checkout/CartDrawer';
+import { CartProvider } from '@/features/cart';
 import { TableSessionProvider } from '@/features/table-session';
 import { AuthContext, type AuthState } from '@/features/auth/AuthContext';
-import type { MenuItem } from '@/data/restaurantData';
+import type { MenuItem } from '@/features/catalog/legacyMenuItem';
 import * as deliveryApi from '@/features/ordering/delivery/api';
 
 vi.mock('@/features/ordering/delivery/api', () => ({
@@ -228,7 +228,7 @@ describe('CartDrawer Component', () => {
     });
     expect(screen.getByText('TG-DELIV-123')).toBeInTheDocument();
     expect(screen.getByText('Chờ nhà hàng xác nhận')).toBeInTheDocument();
-    expect(onClearCart).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onClearCart).toHaveBeenCalledTimes(1));
   });
 
   it('auto-invalidates active delivery quote when cart items or quantities change', async () => {

@@ -9,104 +9,21 @@ import {
   ShoppingBag,
   Armchair,
 } from 'lucide-react'
-import { adminApi } from '../../../lib/api/client'
+import { adminApi } from '@/shared/lib/api/client'
 import { useAdmin } from '../layout/AdminContext'
 import { ReceiptModal } from '../components/ReceiptModal'
-import type { AdminOrderSummary, AdminInvoiceItem } from '../types'
-
-const MOCK_SAMPLE_INVOICES: AdminInvoiceItem[] = [
-  {
-    id: 'inv-001',
-    code: 'HD-1092',
-    order_id: 'ord-1092',
-    order_type: 'dine_in',
-    table_name: 'Bàn B02 (Tầng 1)',
-    customer_name: 'Bàn B02',
-    created_at: new Date(Date.now() - 35 * 60000).toISOString(),
-    paid_at: new Date(Date.now() - 15 * 60000).toISOString(),
-    payment_method: 'bank_transfer',
-    subtotal_vnd: 285000,
-    discount_vnd: 0,
-    total_vnd: 285000,
-    cashier_name: 'Nguyễn Văn A',
-    items: [
-      { name: 'Bún Bò Huế Đặc Biệt', quantity: 2, unit_price_vnd: 65000, line_total_vnd: 130000 },
-      { name: 'Gỏi Cuốn Tôm Thịt (4c)', quantity: 1, unit_price_vnd: 45000, line_total_vnd: 45000 },
-      { name: 'Trà Tắc Hạt Chia Khổng Lồ', quantity: 2, unit_price_vnd: 25000, line_total_vnd: 50000 },
-      { name: 'Khăn lạnh & Nước khoáng', quantity: 3, unit_price_vnd: 5000, line_total_vnd: 15000 },
-      { name: 'Trứng gà ta lòng đào', quantity: 3, unit_price_vnd: 15000, line_total_vnd: 45000 },
-    ],
-  },
-  {
-    id: 'inv-002',
-    code: 'HD-1091',
-    order_id: 'ord-1091',
-    order_type: 'dine_in',
-    table_name: 'Bàn A05 (Sân vườn)',
-    customer_name: 'Anh Hoàng',
-    customer_phone: '0988 123 456',
-    created_at: new Date(Date.now() - 85 * 60000).toISOString(),
-    paid_at: new Date(Date.now() - 40 * 60000).toISOString(),
-    payment_method: 'cash',
-    subtotal_vnd: 420000,
-    discount_vnd: 20000,
-    total_vnd: 400000,
-    cashier_name: 'Nguyễn Văn A',
-    items: [
-      { name: 'Lẩu Bò Nhúng Dấm (Nhỏ)', quantity: 1, unit_price_vnd: 280000, line_total_vnd: 280000 },
-      { name: 'Bò Tái Chanh Thính Gạo', quantity: 1, unit_price_vnd: 90000, line_total_vnd: 90000 },
-      { name: 'Bia Tiger Bạc (Lon)', quantity: 2, unit_price_vnd: 25000, line_total_vnd: 50000 },
-    ],
-  },
-  {
-    id: 'inv-003',
-    code: 'HD-1090',
-    order_id: 'ord-1090',
-    order_type: 'delivery',
-    customer_name: 'Chị Mai Lan',
-    customer_phone: '0912 345 678',
-    created_at: new Date(Date.now() - 140 * 60000).toISOString(),
-    paid_at: new Date(Date.now() - 90 * 60000).toISOString(),
-    payment_method: 'bank_transfer',
-    subtotal_vnd: 195000,
-    shipping_fee_vnd: 20000,
-    total_vnd: 215000,
-    cashier_name: 'Thu ngân online',
-    items: [
-      { name: 'Cơm Rang Dưa Bò Giòn Rụm', quantity: 2, unit_price_vnd: 70000, line_total_vnd: 140000 },
-      { name: 'Canh Chua Thịt Bò Lá Giang', quantity: 1, unit_price_vnd: 55000, line_total_vnd: 55000 },
-    ],
-  },
-  {
-    id: 'inv-004',
-    code: 'HD-1089',
-    order_id: 'ord-1089',
-    order_type: 'dine_in',
-    table_name: 'Bàn VIP 01 (Phòng lạnh)',
-    customer_name: 'Bác Thành',
-    customer_phone: '0903 888 999',
-    created_at: new Date(Date.now() - 210 * 60000).toISOString(),
-    paid_at: new Date(Date.now() - 150 * 60000).toISOString(),
-    payment_method: 'bank_transfer',
-    subtotal_vnd: 890000,
-    discount_vnd: 50000,
-    total_vnd: 840000,
-    cashier_name: 'Nguyễn Văn A',
-    items: [
-      { name: 'Lẩu Riêu Cua Bắp Bò Sườn Sụn (Lớn)', quantity: 1, unit_price_vnd: 450000, line_total_vnd: 450000 },
-      { name: 'Nõn Đuôi Nướng Ngũ Vị', quantity: 2, unit_price_vnd: 120000, line_total_vnd: 240000 },
-      { name: 'Khoai Tây Chiên Bơ Tỏi', quantity: 2, unit_price_vnd: 40000, line_total_vnd: 80000 },
-      { name: 'Trà Chanh Sả Nha Đam', quantity: 4, unit_price_vnd: 30000, line_total_vnd: 120000 },
-    ],
-  },
-]
+import { AdminLoading } from '../components/AdminLoading'
+import type { AdminInvoiceItem } from '../types'
+import { downloadCsv } from '../utils/downloadCsv'
 
 export const AdminInvoicesPage: FC = () => {
   const { refreshKey } = useAdmin()
 
-  const [invoices, setInvoices] = useState<AdminInvoiceItem[]>(MOCK_SAMPLE_INVOICES)
+  const [error, setError] = useState<string | null>(null)
+  const [invoices, setInvoices] = useState<AdminInvoiceItem[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(true)
   const [searchTerm, setSearchTerm] = useState<string>('')
-  const [orderTypeFilter, setOrderTypeFilter] = useState<'all' | 'dine_in' | 'delivery'>('all')
+  const [orderTypeFilter, setOrderTypeFilter] = useState<'all' | 'dine_in' | 'delivery' | 'takeaway'>('all')
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'bank_transfer'>('all')
   const [dateRange, setDateRange] = useState<'today' | 'yesterday' | 'week'>('today')
 
@@ -118,42 +35,25 @@ export const AdminInvoicesPage: FC = () => {
 
     async function loadInvoices() {
       try {
-        const res = await adminApi.get<{ items: AdminOrderSummary[] }>('/orders?limit=100').catch(() => ({ data: { items: [] } }))
-        if (mounted && res?.data?.items) {
-          const paidOrders = res.data.items.filter(
-            (o) => o.payment_status === 'paid' || o.status === 'completed'
-          )
-
-          if (paidOrders.length > 0) {
-            const mappedInvoices: AdminInvoiceItem[] = paidOrders.map((o) => ({
-              id: o.id,
-              code: `HD-${o.code.replace(/\D/g, '') || o.code}`,
-              order_id: o.id,
-              order_type: o.order_type,
-              table_name: o.table_name_snapshot,
-              customer_name: o.customer_name,
-              customer_phone: o.customer_phone,
-              created_at: o.created_at,
-              paid_at: o.completed_at || o.updated_at || o.created_at,
-              payment_method: 'bank_transfer',
-              subtotal_vnd: o.subtotal_vnd || o.total_vnd,
-              shipping_fee_vnd: o.shipping_fee_vnd,
-              total_vnd: o.total_vnd,
-              cashier_name: 'Thu ngân',
-              items: [
-                {
-                  name: o.note ? `Phần ăn (${o.item_count} món - ${o.note.slice(0, 20)})` : `Phần ăn (${o.item_count} món)`,
-                  quantity: o.item_count || 1,
-                  unit_price_vnd: o.total_vnd,
-                  line_total_vnd: o.total_vnd,
-                },
-              ],
-            }))
-            setInvoices([...mappedInvoices, ...MOCK_SAMPLE_INVOICES])
-          }
+        setIsLoading(true)
+        setError(null)
+        const items: AdminInvoiceItem[] = []
+        let more = true
+        while (more && mounted) {
+          const res = await adminApi.get<{ items: AdminInvoiceItem[]; has_more: boolean }>(`/invoices?range=${dateRange}&limit=100&offset=${items.length}`)
+          items.push(...res.data.items)
+          more = res.data.has_more
         }
-      } catch {
-        // Fallback to sample data
+        if (mounted) setInvoices(items)
+      } catch (err) {
+        if (mounted) {
+          setInvoices([])
+          setError(err instanceof Error ? err.message : 'Không thể tải hóa đơn')
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false)
+        }
       }
     }
 
@@ -162,7 +62,7 @@ export const AdminInvoicesPage: FC = () => {
     return () => {
       mounted = false
     }
-  }, [refreshKey])
+  }, [refreshKey, dateRange])
 
   // Filtering
   const filteredInvoices = useMemo(() => {
@@ -203,8 +103,13 @@ export const AdminInvoicesPage: FC = () => {
     setReceiptModalOpen(true)
   }
 
+  if (isLoading && invoices.length === 0) {
+    return <AdminLoading variant="block" label="Đang đối soát dữ liệu hóa đơn..." />
+  }
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200">
+      {error && <p role="alert" className="text-rose-600">{error}</p>}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -219,11 +124,12 @@ export const AdminInvoicesPage: FC = () => {
         <div className="flex items-center space-x-2.5">
           <button
             type="button"
-            onClick={() => alert('Đã xuất báo cáo hóa đơn ca hiện tại (file CSV/Excel)!')}
+            disabled={isLoading || !!error}
+            onClick={() => downloadCsv('hoa-don.csv', [['Mã đơn', 'Thanh toán lúc', 'Phương thức', 'Tổng tiền'], ...filteredInvoices.map(i => [i.code, i.paid_at, i.payment_method, i.total_vnd])])}
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 transition shadow-2xs"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Xuất file Excel</span>
+            <span>Xuất CSV</span>
           </button>
         </div>
       </div>
@@ -354,7 +260,16 @@ export const AdminInvoicesPage: FC = () => {
                 orderTypeFilter === 'delivery' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              Mang về / Giao hàng
+              Giao hàng
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrderTypeFilter('takeaway')}
+              className={`px-2.5 py-1 text-[11px] font-medium border-l border-slate-200 transition ${
+                orderTypeFilter === 'takeaway' ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Mang đi
             </button>
           </div>
 
@@ -449,10 +364,15 @@ export const AdminInvoicesPage: FC = () => {
                               <Armchair className="w-3.5 h-3.5 text-blue-600" />
                               <span>{inv.table_name || 'Bàn chưa đặt'}</span>
                             </>
+                          ) : inv.order_type === 'takeaway' ? (
+                            <>
+                              <ShoppingBag className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Mang đi</span>
+                            </>
                           ) : (
                             <>
                               <ShoppingBag className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Giao hàng / Mang về</span>
+                              <span>Giao hàng</span>
                             </>
                           )}
                         </span>

@@ -32,11 +32,16 @@ The legacy frontend and server Concierge DTOs are separately defined and already
 
 ## V02 session-store decision
 
-- Production adapter: Upstash Redis REST over HTTPS/TLS, selected only by `CONCIERGE_SESSION_STORE=upstash`.
-- Required server-only configuration names: `CONCIERGE_REDIS_REST_URL`, `CONCIERGE_REDIS_REST_TOKEN`, and an isolated local/test key prefix. No values belong in source, Vite variables, traces, or test fixtures.
-- Missing configuration, failed TLS transport, unavailable Redis, missing atomic CAS support, or failed TTL operation returns `DEPENDENCY_UNAVAILABLE`; V2 must not fall back to PostgreSQL, Edge-isolate RAM, or a success-looking stub.
-- Tests may inject an in-memory adapter and deterministic clock only. Local integration uses a disposable shared Redis-compatible service and a unique key prefix; tests must never flush a shared Redis namespace.
+- Current production adapter: the existing Supabase PostgreSQL pool and private
+  `public.concierge_v2_sessions` table. The original Redis adapter was removed
+  on 2026-09-23; historical V02 reports retain the earlier design evidence.
+- Missing table or unavailable database returns `DEPENDENCY_UNAVAILABLE`;
+  production never falls back to Edge-isolate RAM or a success-looking stub.
+- Tests may inject an in-memory backend and deterministic clock. Real session
+  integration tests use an isolated, marked PostgreSQL database.
 - One atomic session record contains messages, summary, constraints, pending suggestion identities, draft, version, expiries, actor binding, and bounded idempotency records. It expires after 45 minutes of idle time or four hours absolute lifetime, checked on read and mutation.
+- The existing retention endpoint physically deletes expired rows. PostgreSQL
+  backup retention must account for session text after row deletion.
 
 ## V05 memory and extraction decisions
 
@@ -87,3 +92,63 @@ The legacy frontend and server Concierge DTOs are separately defined and already
 - V03 wires protocol negotiation, legacy writer sunset, session expiry behavior, and retention repair.
 - V13 implements the handoff endpoint and cart-side atomic application.
 - V16 implements flags, content-free trace retention, and provider accounting.
+
+## V03 integration additions (2026-09-22)
+
+The shared turn schema adds only reset_conversation and feedback_proposal actions;
+legacy checkout/order/reservation-confirmation actions remain invalid in V2. Existing
+session/version are mandatory for actions. The ephemeral record adds bounded runtime
+phase/proposal/pending-action metadata so the existing runtime can round-trip without
+SQL. Serialized sessions including replay results are capped at 256 KiB. Oversize
+writes fail safely; V09 owns trimming/summary behavior. V04 consumes the raw JSON V2
+envelope and matching SSE complete payload.
+
+V08 adds explicit absent allergen evidence; missing entries are unknown, never an
+implicit negative. V03 adds server-only feature flags and anonymous daily feedback
+counters through two additive migrations. These additions affect V04/V09/V10/V15/V16
+and acceptance A01/A04/A16/A18/A19/A20/A21. They do not activate the feature.
+
+## Full-plan integration decisions (2026-09-22)
+
+- V10 replaces the temporary V03 legacy runtime bridge with the grounded V2
+  orchestrator. Protocol dispatch lives in `public-api/concierge-protocol-handlers.ts`
+  under the current gateway/handler architecture. App-shell provider paths follow
+  `src/app`, `src/features` and `src/shared`; older task paths are historical.
+- Shared actions now include refresh_session, review_draft, accept_prices and
+  handoff_draft. Exactly one message/action/draft operation is accepted per turn.
+  V2 still rejects confirm_quote and reservation confirmation.
+- Ephemeral pending_items tie suggestions to item IDs/version. Handoff is stored
+  with the exported draft and idempotency result. Blocks preserve line IDs, notes,
+  quantities and old prices; current_unit_price_vnd is the exact displayed offer
+  the user accepts. A second price change asks again. A blocked handoff returns
+  committed review state with warnings and no handoff, not a misleading export.
+- Handoff allergy_status is verified_safe only when declared allergies have been
+  verified; not_requested means no declared allergy check. It is not an allergy
+  safety guarantee. No arbitrary unknown/conflict handoff status is accepted.
+- Model-facing tools are a deliberately small read-only routing surface. Search
+  and recommendation cover item/availability retrieval; direct draft operations
+  use server-validated customer intent. V2 booking queries open the existing
+  explicit reservation UI. Numeric and safety claims use deterministic server
+  templates; optional model prose is currently entirely discarded.
+- The default adults=2 is not a confirmed party size. party_size_confirmed records
+  explicit input; a food recommendation asks party size while unset. Explicit
+  max_spice_level survives later turns. Oversized allergy sets retain an unknown
+  sentinel, blocking unchecked safety rather than dropping hard constraints.
+- Input budgeting uses UTF-8 bytes plus provider framing as a conservative upper
+  bound. This may trim earlier than a provider tokenizer. Actual provider usage is
+  recorded separately. No measured production cost/latency target is claimed.
+- V15 adds migration 00004 for epoch-fenced fact correction/deletion and immediate
+  purge on account-deleting transition. Extraction captures the original consent
+  epoch before the turn. Suppressions survive epoch changes until explicit restore.
+- V16 adds migration 00005 for shared content-free circuit state. Turn concurrency
+  is guarded by a PostgreSQL transaction advisory lock plus Redis CAS. Metric
+  fields intentionally omit arbitrary model names/values to avoid accidental
+  content capture; provider version is tracked in release configuration evidence.
+- Staged rollout uses CONCIERGE_V2_ROLLOUT_PERCENT after protocol negotiation.
+  Nonselected cohorts cannot fall back to legacy writes. Emergency stop keeps V2
+  protocol enabled and sets CONCIERGE_V2_DISABLED=true. See release-runbook.md.
+- Normal cart lines and opaque dedup IDs persist in one storage write. If that
+  required write fails, handoff application fails visibly and can retry the same
+  request. Manual additions batched with handoff are included in the merge.
+- Local offline readiness, independent review, human assistive-technology checks,
+  live-provider quality and production operations are separate evidence gates.

@@ -1,5 +1,4 @@
 import type { FC } from 'react'
-import { Sparkles } from 'lucide-react'
 
 interface SuggestedActionsProps {
   actions: string[]
@@ -15,18 +14,14 @@ export const SuggestedActions: FC<SuggestedActionsProps> = ({
   if (!actions || actions.length === 0) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-      <span className="text-[10px] font-semibold text-stone-600 uppercase tracking-wider flex items-center gap-1">
-        <Sparkles className="w-3 h-3 text-amber-500" />
-        Gợi ý:
-      </span>
+    <div className="flex items-center gap-2">
       {actions.map((action, idx) => (
         <button
           key={idx}
           type="button"
           disabled={disabled}
           onClick={() => onSelectAction(action)}
-          className="text-xs px-2.5 py-1 rounded-full bg-stone-100 hover:bg-amber-100 hover:text-amber-900 text-stone-700 font-medium transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-stone-200/60"
+          className="shrink-0 rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-[#173866] transition-colors hover:border-[#ed7328] hover:bg-[#fff7ef] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#173866] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {action}
         </button>

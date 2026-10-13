@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FC } from 'react'
+import type { FC } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   Clock,
@@ -10,52 +10,33 @@ import {
   Eye,
   RefreshCw,
 } from 'lucide-react'
-import { adminApi } from '../../../lib/api/client'
+import { useAdminOrders } from './useAdminOrders'
 import { useAdmin } from '../layout/AdminContext'
+import { AdminCreateOrder } from './AdminCreateOrder'
 import { AdminOrderDetailModal } from './AdminOrderDetailModal'
 import { AdminLoading } from '../components/AdminLoading'
-import type { AdminOrderSummary, OrderStatus, OrderType } from '../types'
+import type { OrderStatus, OrderType } from '../types'
 
 export const AdminOrdersPage: FC = () => {
   const { refreshKey, triggerRefresh } = useAdmin()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const [orders, setOrders] = useState<AdminOrderSummary[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
+  const page = Math.max(0, Number(searchParams.get('page')) || 0)
 
   // Selected order for modal
+  const search = searchParams.get('q') || ''
   const selectedOrderId = searchParams.get('orderId')
   const typeFilter = (searchParams.get('type') as OrderType | 'all') || 'all'
   const statusFilter = (searchParams.get('status') as OrderStatus | 'all') || 'all'
 
-  const loadOrders = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const params = new URLSearchParams()
-      if (typeFilter !== 'all') params.set('type', typeFilter)
-      if (statusFilter !== 'all') params.set('status', statusFilter)
-
-      const queryString = params.toString() ? `?${params.toString()}` : ''
-      const res = await adminApi.get<any>(`/orders${queryString}`)
-      const items = Array.isArray(res.data)
-        ? res.data
-        : res.data?.items || res.data?.orders || []
-      setOrders(items)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể tải danh sách đơn hàng')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [typeFilter, statusFilter])
-
-  useEffect(() => {
-    void loadOrders()
-  }, [loadOrders, refreshKey])
+  const { orders, total, isLoading, error, loadOrders } = useAdminOrders(
+    { type: typeFilter, status: statusFilter, search, page },
+    refreshKey,
+  )
 
   const setType = (type: OrderType | 'all') => {
     const newParams = new URLSearchParams(searchParams)
+    newParams.delete('page')
     if (type === 'all') {
       newParams.delete('type')
     } else {
@@ -66,6 +47,7 @@ export const AdminOrdersPage: FC = () => {
 
   const setStatus = (status: OrderStatus | 'all') => {
     const newParams = new URLSearchParams(searchParams)
+    newParams.delete('page')
     if (status === 'all') {
       newParams.delete('status')
     } else {
@@ -146,7 +128,7 @@ export const AdminOrdersPage: FC = () => {
   }
 
   if (isLoading && orders.length === 0) {
-    return <AdminLoading variant="screen" label="Đang tải danh sách đơn hàng..." />
+    return <AdminLoading variant="block" label="Đang tải hàng đợi đơn hàng..." />
   }
 
   return (
@@ -190,6 +172,7 @@ export const AdminOrdersPage: FC = () => {
               { key: 'all', label: 'Tất cả' },
               { key: 'dine_in', label: 'Tại bàn' },
               { key: 'delivery', label: 'Giao hàng' },
+              { key: 'takeaway', label: 'Mang đi' },
             ].map((item) => (
               <button
                 key={item.key}
@@ -276,10 +259,16 @@ export const AdminOrdersPage: FC = () => {
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-medium ${
                           order.order_type === 'dine_in'
                             ? 'bg-[#e4f7c6] text-[#3e6300] border border-[#c4e899]'
+                            : order.order_type === 'takeaway'
+                            ? 'bg-[#fff7ed] text-[#c2410c] border border-[#fed7aa]'
                             : 'bg-[#f3e8ff] text-[#7e22ce] border border-[#e1c5fc]'
                         }`}
                       >
-                        {order.order_type === 'dine_in' ? 'Tại bàn' : 'Giao hàng'}
+                        {order.order_type === 'dine_in'
+                          ? 'Tại bàn'
+                          : order.order_type === 'takeaway'
+                          ? 'Mang đi'
+                          : 'Giao hàng'}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 font-medium text-[#171a17]">
@@ -331,6 +320,17 @@ export const AdminOrdersPage: FC = () => {
         )}
       </div>
 
+      <div className="flex items-center justify-between text-sm">
+        <span>{total} đơn · Trang {page + 1}</span>
+        <div className="flex gap-2">{[-1, 1].map(delta => <button key={delta} className="elera-btn-secondary" disabled={isLoading || (delta < 0 ? page === 0 : (page + 1) * 50 >= total)} onClick={() => {
+          const next = new URLSearchParams(searchParams); next.set('page', String(page + delta)); setSearchParams(next)
+        }}>{delta < 0 ? 'Trang trước' : 'Trang sau'}</button>)}</div>
+      </div>
+      {searchParams.get('action') === 'new' && <AdminCreateOrder initialType={typeFilter === 'delivery' ? 'delivery' : 'dine_in'} onClose={() => {
+        const next = new URLSearchParams(searchParams); next.delete('action'); setSearchParams(next)
+      }} onCreated={id => {
+        const next = new URLSearchParams(searchParams); next.delete('action'); next.set('orderId', id); setSearchParams(next); triggerRefresh()
+      }} />}
       {/* Order Detail Modal */}
       {selectedOrderId && (
         <AdminOrderDetailModal

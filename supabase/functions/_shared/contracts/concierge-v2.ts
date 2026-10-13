@@ -2,7 +2,12 @@ import { z } from 'zod';
 
 export const CONCIERGE_V2_PROTOCOL_VERSION = 'concierge-v2' as const;
 
-const UuidSchema = z.string().uuid();
+const UuidSchema = z
+  .string()
+  .regex(
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+    'Invalid UUID'
+  );
 const IsoTimestampSchema = z.string().datetime({ offset: true });
 const PositiveIntegerSchema = z.number().int().positive();
 const NonNegativeIntegerSchema = z.number().int().nonnegative();
@@ -34,6 +39,7 @@ export const ConciergeV2ErrorCodeSchema = z.enum([
   'ITEM_UNAVAILABLE',
   'INVALID_HANDOFF',
   'INTERNAL_SAFE_FAILURE',
+  'TURN_CANCELLED',
 ]);
 export type ConciergeV2ErrorCode = z.infer<typeof ConciergeV2ErrorCodeSchema>;
 
@@ -99,6 +105,7 @@ const ConciergeV2BlockedDraftItemSchema = z
     line_id: UuidSchema,
     menu_item_id: UuidSchema,
     reason: z.enum(['ALLERGY_UNVERIFIED', 'PRICE_CHANGED', 'ITEM_UNAVAILABLE']),
+    current_unit_price_vnd: NonNegativeIntegerSchema.optional(),
     message: z.string().trim().min(1).max(500),
   })
   .strict();
@@ -156,25 +163,114 @@ export const ConciergeV2ClarificationSchema = z
   .strict();
 export type ConciergeV2Clarification = z.infer<typeof ConciergeV2ClarificationSchema>;
 
+export const ConciergeV2PageContextSchema = z.object({
+  page: z.enum(['home', 'menu', 'cart', 'reservation', 'orders', 'account', 'other']),
+  menu_item_id: UuidSchema.optional(),
+  order_mode: z.enum(['dine_in', 'delivery']).optional(),
+}).strict().refine(value => !value.menu_item_id || value.page === 'menu', 'menu_item_id requires menu page');
+export type ConciergeV2PageContext = z.infer<typeof ConciergeV2PageContextSchema>;
+
 export const ConciergeV2TurnRequestSchema = z
   .object({
     protocol_version: z.literal(CONCIERGE_V2_PROTOCOL_VERSION),
     request_id: UuidSchema,
     session: ConciergeV2SessionReferenceSchema.optional(),
+    resume_session: ConciergeV2SessionReferenceSchema.optional(),
+    recover_only: z.boolean().optional(),
     expected_state_version: PositiveIntegerSchema.optional(),
+    page_context: ConciergeV2PageContextSchema.optional(),
     message: z.string().trim().min(1).max(2000).optional(),
     draft_operation: ConciergeV2DraftOperationSchema.optional(),
+    action: z.discriminatedUnion('type', [
+      z.object({ type: z.literal('open_conversation') }).strict(),
+      z.object({ type: z.literal('reset_conversation') }).strict(),
+      z.object({ type: z.literal('refresh_session') }).strict(),
+      z.object({ type: z.literal('review_draft') }).strict(),
+      z.object({ type: z.literal('accept_meal_plan'), plan_id: UuidSchema,
+        suggestion_ids: z.array(UuidSchema).min(2).max(3) }).strict(),
+      z.object({ type: z.literal('accept_prices'), draft_version: PositiveIntegerSchema }).strict(),
+      z.object({ type: z.literal('handoff_draft'), draft_id: UuidSchema, draft_version: PositiveIntegerSchema,
+        order_mode: z.enum(['dine_in', 'delivery']) }).strict(),
+      z.object({ type: z.literal('answer_clarification'), choice_field: z.enum(['guests', 'appetite']),
+        choice_value: z.string().min(1).max(10),
+      }).strict(),
+      z.object({ type: z.literal('feedback_proposal'), proposal_id: z.string().min(1).max(100),
+        proposal_version: PositiveIntegerSchema,
+        rating: z.enum(['perfect', 'too_much', 'too_little', 'too_expensive', 'dislike']),
+      }).strict(),
+    ]).optional(),
   })
   .strict()
   .superRefine((value, context) => {
-    if (!value.message && !value.draft_operation) {
+    if (value.resume_session && (value.session || (value.action && value.action.type !== 'open_conversation'))) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid first-turn recovery' });
+    }
+    if (value.recover_only && !value.session && !value.resume_session) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Recovery requires a session' });
+    }
+    if (value.action?.type === 'answer_clarification' && !(value.action.choice_field === 'guests'
+      ? /^(?:[1-9]|[12][0-9]|30)$/.test(value.action.choice_value)
+      : ['light', 'normal', 'heavy'].includes(value.action.choice_value))) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid clarification' });
+    }
+    if ([value.message, value.draft_operation, value.action].filter(Boolean).length !== 1) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'message hoặc draft_operation là bắt buộc' });
     }
     if (value.session && !value.expected_state_version) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: 'expected_state_version là bắt buộc cho phiên hiện có' });
     }
+    if (value.action && ((value.action.type !== 'open_conversation' && !value.session) || value.message || value.draft_operation)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'Hành động cần phiên hiện có và không kèm tin nhắn.' });
+    }
   });
 export type ConciergeV2TurnRequest = z.infer<typeof ConciergeV2TurnRequestSchema>;
+
+const ConciergeV2HandoffLineSchema = z
+  .object({
+    menu_item_id: UuidSchema,
+    name: z.string().trim().min(1).max(200),
+    quantity: z.number().int().min(1).max(99),
+    note: z.string().trim().max(250),
+    price_vnd: NonNegativeIntegerSchema,
+    availability: z.literal('available'),
+    price_status: z.literal('current'),
+    allergy_status: z.enum(['verified_safe', 'not_requested']),
+  })
+  .strict();
+
+export const ConciergeV2HandoffResultSchema = z
+  .object({
+    handoff_id: HandoffIdSchema,
+    draft_id: UuidSchema,
+    draft_version: PositiveIntegerSchema,
+    expires_at: IsoTimestampSchema,
+    replay: z.boolean(),
+    lines: z.array(ConciergeV2HandoffLineSchema).max(30),
+  })
+  .strict();
+export type ConciergeV2HandoffResult = z.infer<typeof ConciergeV2HandoffResultSchema>;
+
+export const ConciergeV2CardSchema = z.lazy(() => z.discriminatedUnion('type', [
+  z.object({ type: z.literal('menu_item_detail'), item: ConciergeV2MenuCandidateSchema,
+    description: z.string().trim().max(700).nullable() }).strict(),
+  z.object({ type: z.literal('draft_suggestion'), item: ConciergeV2MenuCandidateSchema,
+    suggestion_id: UuidSchema }).strict(),
+  z.object({ type: z.literal('meal_plan'), plan_id: UuidSchema,
+    lines: z.array(z.object({ item: ConciergeV2MenuCandidateSchema, quantity: z.number().int().min(1).max(99),
+      suggestion_id: UuidSchema }).strict()).min(2).max(3),
+    subtotal_vnd: NonNegativeIntegerSchema, validation_status: z.enum(['PASS', 'WARNING']),
+    warnings: z.array(z.string().trim().max(200)).max(3) }).strict(),
+  z.object({ type: z.literal('service_link'), destination: z.enum(['cart', 'reservations', 'orders']) }).strict(),
+  z.object({ type: z.literal('reservation_option'), starts_at: IsoTimestampSchema,
+    guest_count: z.number().int().min(1).max(30), status: z.enum(['available', 'unavailable', 'unverified']) }).strict(),
+  z.object({ type: z.literal('order_status'), order_id: UuidSchema, code: z.string().trim().min(1).max(30),
+    status: z.string().trim().min(1).max(30), order_type: z.enum(['dine_in', 'delivery', 'takeaway']),
+    created_at: IsoTimestampSchema }).strict(),
+  z.object({ type: z.literal('saved_address'), address_id: UuidSchema, label: z.string().trim().min(1).max(50),
+    address_line: z.string().trim().min(1).max(255), ward: z.string().nullable(), district: z.string().nullable(),
+    province: z.string().nullable(), is_default: z.boolean() }).strict(),
+]));
+export type ConciergeV2Card = z.infer<typeof ConciergeV2CardSchema>;
 
 export const ConciergeV2CompletionPayloadSchema = z
   .object({
@@ -184,12 +280,54 @@ export const ConciergeV2CompletionPayloadSchema = z
     session: ConciergeV2SessionMetadataSchema,
     phase: ConciergeV2PhaseSchema,
     message: z.string().trim().max(2000),
-    cards: z.array(z.unknown()).max(12),
+    cards: z.array(ConciergeV2CardSchema).max(12),
+    suggested_actions: z.array(z.string().trim().min(1).max(100)).max(3).optional(),
     warnings: z.array(z.string().trim().max(500)).max(12),
     draft: ConciergeV2DraftSchema.optional(),
+    handoff: ConciergeV2HandoffResultSchema.optional(),
     clarification: ConciergeV2ClarificationSchema.optional(),
   })
   .strict();
+
+export type ConciergeV2CompletionPayload = z.infer<typeof ConciergeV2CompletionPayloadSchema>;
+
+export const ConciergeV2ActivitySchema = z.enum(['thinking', 'checking_menu', 'checking_info']);
+export type ConciergeV2Activity = z.infer<typeof ConciergeV2ActivitySchema>;
+
+const StreamIdentity = {
+  stream_version: z.literal(2), request_id: UuidSchema, stream_id: UuidSchema,
+  seq: PositiveIntegerSchema,
+};
+export const ConciergeStreamFrameSchema = z.discriminatedUnion('type', [
+  z.object({ ...StreamIdentity, type: z.literal('start'), data: z.object({
+    session: ConciergeV2SessionReferenceSchema,
+  }).strict() }).strict(),
+  z.object({ ...StreamIdentity, type: z.literal('status'), data: z.object({ phase: ConciergeV2ActivitySchema }).strict() }).strict(),
+  z.object({ ...StreamIdentity, type: z.literal('text_delta'), data: z.object({
+    message_id: UuidSchema, index: NonNegativeIntegerSchema, text: z.string().min(1).max(2000),
+  }).strict() }).strict(),
+  z.object({ ...StreamIdentity, type: z.literal('card'), data: z.object({
+    message_id: UuidSchema, index: NonNegativeIntegerSchema, card: ConciergeV2CardSchema,
+  }).strict() }).strict(),
+  z.object({ ...StreamIdentity, type: z.literal('complete'), data: ConciergeV2CompletionPayloadSchema }).strict(),
+  z.object({ ...StreamIdentity, type: z.literal('error'), data: ConciergeV2ErrorEnvelopeSchema }).strict(),
+]);
+export type ConciergeStreamFrame = z.infer<typeof ConciergeStreamFrameSchema>;
+
+export const ConciergeV2SseStatusEventSchema = z.object({
+  event: z.literal('status'),
+  data: z.object({ phase: ConciergeV2ActivitySchema }).strict(),
+}).strict();
+
+export const ConciergeV2SseTextEventSchema = z.object({
+  event: z.literal('text'),
+  data: z.object({ text: z.string().min(1).max(700) }).strict(),
+}).strict();
+
+export const ConciergeV2SseErrorEventSchema = z.object({
+  event: z.literal('error'),
+  data: ConciergeV2ErrorEnvelopeSchema,
+}).strict();
 
 export const ConciergeV2SseCompletionEventSchema = z
   .object({
@@ -223,33 +361,86 @@ export const ConciergeV2HandoffRequestSchema = z
   .strict();
 export type ConciergeV2HandoffRequest = z.infer<typeof ConciergeV2HandoffRequestSchema>;
 
-const ConciergeV2HandoffLineSchema = z
-  .object({
-    menu_item_id: UuidSchema,
-    name: z.string().trim().min(1).max(200),
-    quantity: z.number().int().min(1).max(99),
-    note: z.string().trim().max(250),
-    price_vnd: NonNegativeIntegerSchema,
-    availability: z.literal('available'),
-    price_status: z.literal('current'),
-    allergy_status: z.literal('verified_safe'),
-  })
-  .strict();
+export const ConciergeV2FoodSafetyStateSchema = z.enum([
+  'verified_safe',
+  'contains_allergen',
+  'cross_contact_risk',
+  'allergen_unverified',
+  'allergen_unknown',
+  'conflict',
+]);
+export type ConciergeV2FoodSafetyState = z.infer<typeof ConciergeV2FoodSafetyStateSchema>;
 
-export const ConciergeV2HandoffResultSchema = z
+export const ConciergeV2FoodSafetyEvaluationSchema = z
   .object({
-    handoff_id: HandoffIdSchema,
-    draft_id: UuidSchema,
-    draft_version: PositiveIntegerSchema,
-    expires_at: IsoTimestampSchema,
-    replay: z.boolean(),
-    lines: z.array(ConciergeV2HandoffLineSchema).max(30),
+    safety_state: ConciergeV2FoodSafetyStateSchema,
+    matched_allergens: z.array(z.string().trim().max(100)).default([]),
+    staff_confirmation_required: z.boolean().default(false),
+    notes: z.string().trim().max(500).optional(),
+    verified_at: IsoTimestampSchema.optional(),
   })
   .strict();
-export type ConciergeV2HandoffResult = z.infer<typeof ConciergeV2HandoffResultSchema>;
+export type ConciergeV2FoodSafetyEvaluation = z.infer<typeof ConciergeV2FoodSafetyEvaluationSchema>;
+
+export const ConciergeV2MenuCandidateSchema = z
+  .object({
+    id: UuidSchema,
+    name: z.string().trim().min(1).max(120),
+    price_vnd: NonNegativeIntegerSchema,
+    pricing_mode: z.enum(['fixed', 'range', 'market', 'unknown']).default('fixed'),
+    price_min: NonNegativeIntegerSchema.nullable().optional(),
+    price_max: NonNegativeIntegerSchema.nullable().optional(),
+    category_id: UuidSchema.optional(),
+    category_name: z.string().trim().max(120).optional(),
+    image_url: z.string().trim().max(500).nullable().optional(),
+    serving_size: z.string().trim().max(120).nullable().optional(),
+    meal_role: z.string().trim().max(50).optional(),
+    spice_level: z.number().int().min(0).max(2).nullable().optional(),
+    is_signature: z.boolean().default(false),
+    is_available: z.boolean().default(true),
+    safety_state: ConciergeV2FoodSafetyStateSchema,
+    safety_notes: z.string().trim().max(500).optional(),
+    provenance: z.string().trim().max(100),
+    tags: z.array(z.string().trim().max(50)).max(10).default([]),
+  })
+  .strict();
+export type ConciergeV2MenuCandidate = z.infer<typeof ConciergeV2MenuCandidateSchema>;
+
+export const ConciergeV2MenuRetrievalQuerySchema = z
+  .object({
+    query: z.string().trim().max(200).optional(),
+    category_id: UuidSchema.optional(),
+    order_mode: z.enum(['dine_in', 'delivery']).optional(),
+    is_signature: z.boolean().optional(),
+    max_spice_level: z.number().int().min(0).max(2).optional(),
+    max_budget_vnd: NonNegativeIntegerSchema.optional(),
+    diversify_categories: z.boolean().optional(),
+    dislikes: z.array(z.string().trim().max(120)).max(12).optional(),
+    allergies: z.array(z.string().trim().max(120)).max(12).optional(),
+    limit: z.number().int().min(1).max(8).default(8),
+  })
+  .strict();
+export type ConciergeV2MenuRetrievalQuery = z.infer<typeof ConciergeV2MenuRetrievalQuerySchema>;
+
+export const ConciergeV2MenuRetrievalResultSchema = z
+  .object({
+    candidates: z.array(ConciergeV2MenuCandidateSchema).min(0).max(8),
+    total_matching: NonNegativeIntegerSchema,
+    relaxed_filters: z.array(z.string().trim().max(100)).max(5).default([]),
+    staff_confirmation_required: z.boolean().default(false),
+    allergy_warning: z.string().trim().max(500).nullable().optional(),
+  })
+  .strict();
+export type ConciergeV2MenuRetrievalResult = z.infer<typeof ConciergeV2MenuRetrievalResultSchema>;
 
 export const ConciergeV2ToolResultSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('menu_items'), item_ids: z.array(UuidSchema).max(8) }).strict(),
+  z
+    .object({
+      kind: z.literal('menu_items'),
+      item_ids: z.array(UuidSchema).max(8),
+      candidates: z.array(ConciergeV2MenuCandidateSchema).max(8).optional(),
+    })
+    .strict(),
   z.object({ kind: z.literal('restaurant_info'), reference_ids: z.array(UuidSchema).max(8) }).strict(),
   z.object({ kind: z.literal('clarification'), clarification: ConciergeV2ClarificationSchema }).strict(),
 ]);
@@ -274,6 +465,8 @@ export type ConciergeV2ContentFreeTrace = z.infer<typeof ConciergeV2ContentFreeT
 export const ConciergeV2SessionConstraintsSchema = z
   .object({
     adults: z.number().int().min(1).max(30),
+    party_size_confirmed: z.boolean().optional(),
+    max_spice_level: z.number().int().min(0).max(5).optional(),
     children: z.number().int().min(0).max(30),
     appetite: z.enum(['light', 'normal', 'heavy']),
     budget_vnd: NonNegativeIntegerSchema.nullable().optional(),
@@ -299,9 +492,11 @@ export const ConciergeV2StoredTurnResultSchema = z
     response_id: UuidSchema,
     phase: ConciergeV2PhaseSchema,
     message: z.string().trim().max(2000),
-    cards: z.array(z.unknown()).max(12),
+    cards: z.array(ConciergeV2CardSchema).max(12),
+    suggested_actions: z.array(z.string().trim().min(1).max(100)).max(3).optional(),
     warnings: z.array(z.string().trim().max(500)).max(12),
     draft: ConciergeV2DraftSchema.optional(),
+    handoff: ConciergeV2HandoffResultSchema.optional(),
     clarification: ConciergeV2ClarificationSchema.optional(),
   })
   .strict();
@@ -322,6 +517,10 @@ export const ConciergeV2SessionMutableStateSchema = z
     constraints: ConciergeV2SessionConstraintsSchema,
     draft: ConciergeV2DraftSchema.nullable(),
     pending_suggestion_ids: z.array(UuidSchema).max(8),
+    pending_items: z.array(z.object({ suggestion_id: UuidSchema, menu_item_id: UuidSchema,
+      name: z.string().max(120), quantity: z.number().int().min(1).max(99),
+      state_version: PositiveIntegerSchema, plan_id: UuidSchema.optional() }).strict()).max(8).optional(),
+    handoff: ConciergeV2HandoffResultSchema.optional(),
   })
   .strict();
 export type ConciergeV2SessionMutableState = z.infer<typeof ConciergeV2SessionMutableStateSchema>;
@@ -340,6 +539,13 @@ export const ConciergeV2SessionRecordSchema = z
   })
   .strict();
 export type ConciergeV2SessionRecord = z.infer<typeof ConciergeV2SessionRecordSchema>;
+
+export const ConciergeV2ClaimResultSchema = z.object({
+  session: ConciergeV2SessionMetadataSchema,
+  transcript: z.array(ConciergeV2SessionMessageSchema).max(60),
+  draft: ConciergeV2DraftSchema.nullable(),
+}).strict();
+export type ConciergeV2ClaimResult = z.infer<typeof ConciergeV2ClaimResultSchema>;
 
 export const ConciergeV2SessionCreateInputSchema = z
   .object({
@@ -385,8 +591,169 @@ export interface ConciergeV2SessionStore {
   delete(reference: ConciergeV2SessionReference, actor: ConciergeV2ActorBinding): Promise<ConciergeV2SessionDeleteResult>;
 }
 
+export const ConciergeV2MemoryTypeSchema = z.enum(['preference', 'dislike', 'allergy']);
+export type ConciergeV2MemoryType = z.infer<typeof ConciergeV2MemoryTypeSchema>;
+
+export const ConciergeV2MemorySourceSchema = z.enum(['explicit', 'order_history']);
+export type ConciergeV2MemorySource = z.infer<typeof ConciergeV2MemorySourceSchema>;
+
+export const ConciergeV2MemoryKeySchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+){0,15}$/).max(80);
+const ConciergeV2FoodMemoryValueSchema = z.object({ food: z.string().trim().min(1).max(120) }).strict();
+
+const ConciergeV2MemoryFactFieldsSchema = z.object({
+  memory_type: ConciergeV2MemoryTypeSchema,
+  memory_key: ConciergeV2MemoryKeySchema,
+  value: ConciergeV2FoodMemoryValueSchema,
+  source: ConciergeV2MemorySourceSchema,
+  confidence: z.number().int().min(0).max(100),
+  observed_at: IsoTimestampSchema,
+  expires_at: IsoTimestampSchema.nullable(),
+  schema_version: z.literal(1),
+}).strict();
+const validateMemoryExpiry = (value: z.infer<typeof ConciergeV2MemoryFactFieldsSchema>, context: z.RefinementCtx) => {
+  if (value.expires_at && Date.parse(value.expires_at) <= Date.parse(value.observed_at)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'expires_at phải sau observed_at' });
+  }
+};
+export const ConciergeV2MemoryFactInputSchema = ConciergeV2MemoryFactFieldsSchema.superRefine(validateMemoryExpiry);
+export type ConciergeV2MemoryFactInput = z.infer<typeof ConciergeV2MemoryFactInputSchema>;
+
+export const ConciergeV2MemoryFactSchema = ConciergeV2MemoryFactFieldsSchema.extend({
+  id: UuidSchema,
+  updated_at: IsoTimestampSchema,
+}).strict().superRefine(validateMemoryExpiry);
+export type ConciergeV2MemoryFact = z.infer<typeof ConciergeV2MemoryFactSchema>;
+
+export const ConciergeV2MemorySettingsSchema = z.object({
+  enabled: z.boolean(),
+  consent_version: z.number().int().min(1).max(10000),
+  memory_epoch: NonNegativeIntegerSchema,
+  updated_at: IsoTimestampSchema.nullable(),
+}).strict();
+export type ConciergeV2MemorySettings = z.infer<typeof ConciergeV2MemorySettingsSchema>;
+
+export const ConciergeV2MemorySettingsInputSchema = z.object({
+  enabled: z.boolean(),
+  consent_version: z.number().int().min(1).max(10000),
+}).strict();
+export type ConciergeV2MemorySettingsInput = z.infer<typeof ConciergeV2MemorySettingsInputSchema>;
+
+export const ConciergeV2MemoryWriteInputSchema = z.object({
+  expected_memory_epoch: NonNegativeIntegerSchema,
+  fact: ConciergeV2MemoryFactInputSchema,
+}).strict();
+export type ConciergeV2MemoryWriteInput = z.infer<typeof ConciergeV2MemoryWriteInputSchema>;
+
+export const ConciergeV2MemoryFactSelectorSchema = z.object({
+  expected_memory_epoch: NonNegativeIntegerSchema.optional(),
+  memory_type: ConciergeV2MemoryTypeSchema,
+  memory_key: ConciergeV2MemoryKeySchema,
+  source: ConciergeV2MemorySourceSchema,
+}).strict();
+export type ConciergeV2MemoryFactSelector = z.infer<typeof ConciergeV2MemoryFactSelectorSchema>;
+
+export const ConciergeV2BehavioralMemorySelectorSchema = ConciergeV2MemoryFactSelectorSchema.pick({
+  memory_type: true,
+  memory_key: true,
+}).strict();
+export type ConciergeV2BehavioralMemorySelector = z.infer<typeof ConciergeV2BehavioralMemorySelectorSchema>;
+
+export const ConciergeV2MemoryFailureReasonSchema = z.enum([
+  'ACCOUNT_INELIGIBLE',
+  'INVALID_MEMORY_FACT',
+  'INVALID_MEMORY_SETTINGS',
+  'MEMORY_DISABLED',
+  'MEMORY_EPOCH_MISMATCH',
+  'MEMORY_LIMIT_REACHED',
+  'MEMORY_SUPPRESSED',
+  'MEMORY_STORAGE_UNAVAILABLE',
+]);
+export type ConciergeV2MemoryFailureReason = z.infer<typeof ConciergeV2MemoryFailureReasonSchema>;
+
+export const ConciergeV2MemorySettingsOperationSchema = z.union([
+  z.object({ ok: z.literal(true), settings: ConciergeV2MemorySettingsSchema }).strict(),
+  z.object({ ok: z.literal(false), reason: ConciergeV2MemoryFailureReasonSchema }).strict(),
+]);
+export type ConciergeV2MemorySettingsOperation = z.infer<typeof ConciergeV2MemorySettingsOperationSchema>;
+
+export const ConciergeV2MemoryWriteOperationSchema = z.union([
+  z.object({ ok: z.literal(true), fact: ConciergeV2MemoryFactSchema }).strict(),
+  z.object({ ok: z.literal(false), reason: ConciergeV2MemoryFailureReasonSchema }).strict(),
+]);
+export type ConciergeV2MemoryWriteOperation = z.infer<typeof ConciergeV2MemoryWriteOperationSchema>;
+
+export const ConciergeV2MemoryDeleteOperationSchema = z.union([
+  z.object({ ok: z.literal(true), deleted: z.boolean() }).strict(),
+  z.object({ ok: z.literal(false), reason: ConciergeV2MemoryFailureReasonSchema }).strict(),
+]);
+export type ConciergeV2MemoryDeleteOperation = z.infer<typeof ConciergeV2MemoryDeleteOperationSchema>;
+
+export const ConciergeV2MemoryRestoreOperationSchema = z.union([
+  z.object({ ok: z.literal(true), restored: z.boolean() }).strict(),
+  z.object({ ok: z.literal(false), reason: ConciergeV2MemoryFailureReasonSchema }).strict(),
+]);
+export type ConciergeV2MemoryRestoreOperation = z.infer<typeof ConciergeV2MemoryRestoreOperationSchema>;
+
 export interface ConciergeV2MemoryRepository {
-  getSettings(userId: string): Promise<{ enabled: boolean; memory_epoch: number } | null>;
-  listFacts(userId: string): Promise<ReadonlyArray<{ id: string; key: string; source: 'explicit' | 'order_history' }>>;
-  compareAndWriteFact(input: { user_id: string; expected_memory_epoch: number; key: string; value: unknown }): Promise<boolean>;
+  getSettings(): Promise<ConciergeV2MemorySettings>;
+  setEnabled(input: ConciergeV2MemorySettingsInput): Promise<ConciergeV2MemorySettingsOperation>;
+  listFacts(): Promise<ReadonlyArray<ConciergeV2MemoryFact>>;
+  writeFact(input: ConciergeV2MemoryWriteInput): Promise<ConciergeV2MemoryWriteOperation>;
+  deleteFact(input: ConciergeV2MemoryFactSelector): Promise<ConciergeV2MemoryDeleteOperation>;
+  forgetAll(): Promise<ConciergeV2MemorySettingsOperation>;
+  restoreBehavioralFact(input: ConciergeV2BehavioralMemorySelector): Promise<ConciergeV2MemoryRestoreOperation>;
 }
+
+export const ConciergeV2ExtractedFactCandidateSchema = z.object({
+  memory_type: ConciergeV2MemoryTypeSchema,
+  memory_key: ConciergeV2MemoryKeySchema,
+  food: z.string().trim().min(1).max(120),
+  confidence: z.number().int().min(0).max(100),
+  is_correction: z.boolean().default(false),
+  target_memory_key: ConciergeV2MemoryKeySchema.optional(),
+}).strict();
+export type ConciergeV2ExtractedFactCandidate = z.infer<typeof ConciergeV2ExtractedFactCandidateSchema>;
+
+export const ConciergeV2ExtractionResultSchema = z.object({
+  extracted: z.boolean(),
+  facts: z.array(ConciergeV2ExtractedFactCandidateSchema).max(3),
+  rejection_reason: z.string().nullable().default(null),
+}).strict();
+export type ConciergeV2ExtractionResult = z.infer<typeof ConciergeV2ExtractionResultSchema>;
+
+export const ConciergeV2BehavioralItemCandidateSchema = z.object({
+  menu_item_id: UuidSchema.nullable(),
+  item_name: z.string().trim().min(1).max(120),
+  order_count: PositiveIntegerSchema,
+  total_quantity: PositiveIntegerSchema,
+  last_ordered_at: IsoTimestampSchema,
+  confidence: z.number().int().min(0).max(100),
+}).strict();
+export type ConciergeV2BehavioralItemCandidate = z.infer<typeof ConciergeV2BehavioralItemCandidateSchema>;
+
+export const ConciergeV2BehavioralAggregationResultSchema = z.object({
+  user_id: UuidSchema,
+  eligible_orders_count: NonNegativeIntegerSchema,
+  candidates: z.array(ConciergeV2BehavioralItemCandidateSchema).max(20),
+  persisted_facts_count: NonNegativeIntegerSchema,
+  suppressed_facts_count: NonNegativeIntegerSchema,
+}).strict();
+export type ConciergeV2BehavioralAggregationResult = z.infer<typeof ConciergeV2BehavioralAggregationResultSchema>;
+
+export const ConciergeV2RetrievedMemoryFactSchema = z.object({
+  memory_type: ConciergeV2MemoryTypeSchema,
+  memory_key: ConciergeV2MemoryKeySchema,
+  food: z.string().trim().min(1).max(120),
+  source: ConciergeV2MemorySourceSchema,
+  confidence: z.number().int().min(0).max(100),
+}).strict();
+export type ConciergeV2RetrievedMemoryFact = z.infer<typeof ConciergeV2RetrievedMemoryFactSchema>;
+
+export const ConciergeV2MemoryRetrievalResultSchema = z.object({
+  intent_type: z.enum(['food_or_draft', 'faq']),
+  fetched_from_storage: z.boolean(),
+  facts: z.array(ConciergeV2RetrievedMemoryFactSchema).max(12),
+  formatted_prompt: z.string().max(2000),
+  estimated_tokens: NonNegativeIntegerSchema,
+}).strict();
+export type ConciergeV2MemoryRetrievalResult = z.infer<typeof ConciergeV2MemoryRetrievalResultSchema>;

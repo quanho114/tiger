@@ -1,7 +1,7 @@
 import { useEffect, useState, type FC } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { AlertCircle, ArrowRight, RotateCcw } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '@/shared/lib/supabase'
 import { safeReturnTo, getAndClearPendingReturnTo } from './auth-helpers'
 import {
   getPendingUnclaimedOrders,

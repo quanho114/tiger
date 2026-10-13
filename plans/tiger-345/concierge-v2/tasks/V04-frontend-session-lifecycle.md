@@ -1,6 +1,6 @@
 # V04 - Frontend fresh-session lifecycle
 
-Status: TODO
+Status: DONE
 Dependencies: V03
 Deliverable: implementation + applicable tests + ../reports/V04.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Place session state at the agreed app-shell scope so widget close/open and internal routing do not accidentally reset it.
-- [ ] 2. Start new on reload/new tab/reset/auth identity change; clear transcript, draft and capability together. Never hydrate old conversation storage.
-- [ ] 3. Discard stale async responses after reset/logout/switch, including mutations/handoff payloads. Abort requests when appropriate.
-- [ ] 4. Handle session expiry with a fresh greeting and actionable notice; preserve text for retry without silently resubmitting a mutation. Conflict triggers safe state refresh, not replay.
-- [ ] 5. Handle back-forward cache and tab visibility with TTL/lifecycle checks. Do not rely on unload to guarantee server cleanup.
-- [ ] 6. Check browser storage and URLs contain no session or draft data. Preserve existing real-cart behavior.
+- [x] 1. Place session state at the agreed app-shell scope so widget close/open and internal routing do not accidentally reset it.
+- [x] 2. Start new on reload/new tab/reset/auth identity change; clear transcript, draft and capability together. Never hydrate old conversation storage.
+- [x] 3. Discard stale async responses after reset/logout/switch, including mutations/handoff payloads. Abort requests when appropriate.
+- [x] 4. Handle session expiry with a fresh greeting and actionable notice; preserve text for retry without silently resubmitting a mutation. Conflict triggers safe state refresh, not replay.
+- [x] 5. Handle back-forward cache and tab visibility with TTL/lifecycle checks. Do not rely on unload to guarantee server cleanup.
+- [x] 6. Check browser storage and URLs contain no session or draft data. Preserve existing real-cart behavior.
 
 ## Exit criteria
 

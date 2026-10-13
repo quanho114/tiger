@@ -233,7 +233,7 @@ test.describe('Tiger 345 Public & Admin Reservation E2E (Task T12, Invariants V1
     await page.goto('/admin/reservations')
 
     // Verify reservation table
-    await expect(page.locator('h1')).toContainText('Quản lý Đặt bàn')
+    await expect(page.getByRole('heading', { name: /Quản lý Đặt bàn/ })).toBeVisible()
     await expect(page.locator('text=RES-20260920-ABCD')).toBeVisible()
     await expect(page.locator('text=Nguyễn Văn A')).toBeVisible()
 

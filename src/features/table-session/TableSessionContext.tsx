@@ -1,7 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { publicApi } from '@/lib/api/client'
-import { ApiError } from '@/lib/api/types'
+import { publicApi } from '@/shared/lib/api/client'
+import { ApiError } from '@/shared/lib/api/types'
 import {
   clearStoredTableSession,
   getStoredTableSession,

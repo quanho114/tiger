@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures/admin-e2e'
 
 const _mockAdminUser = {
   id: 'usr-admin-01',
@@ -100,6 +100,9 @@ test.describe('Dine-In Visit Settlement & Lifecycle E2E (Task T17, Invariant V18
       window.localStorage.setItem('tiger345_auth_token', JSON.stringify(mockSession))
     })
 
+    await page.route('**/functions/v1/admin-api/seating-areas*', route =>
+      route.fulfill({ json: { data: { items: [] } } }))
+
     // Mock Supabase Auth / User call and Admin Profile query
     await page.route('**/auth/v1/user*', async (route) => {
       await route.fulfill({
@@ -141,7 +144,7 @@ test.describe('Dine-In Visit Settlement & Lifecycle E2E (Task T17, Invariant V18
         contentType: 'application/json',
         body: JSON.stringify({
           data: {
-            tables: [tableState],
+            items: [tableState],
             seating_areas: [],
           },
         }),
@@ -322,7 +325,7 @@ test.describe('Dine-In Visit Settlement & Lifecycle E2E (Task T17, Invariant V18
         contentType: 'application/json',
         body: JSON.stringify({
           data: {
-            orders: [orderState.order],
+            items: [orderState.order],
             total: 1,
           },
         }),
@@ -342,7 +345,7 @@ test.describe('Dine-In Visit Settlement & Lifecycle E2E (Task T17, Invariant V18
     await page.goto('/admin/orders')
 
     // Click on the order to open modal
-    await page.getByText('TG-DELIV-001').click()
+    await page.getByRole('button', { name: 'Chi tiết', exact: true }).click()
 
     // Verify order modal opened
     await expect(page.getByText('Chi tiết đơn hàng TG-DELIV-001')).toBeVisible()
@@ -354,9 +357,7 @@ test.describe('Dine-In Visit Settlement & Lifecycle E2E (Task T17, Invariant V18
     // Verify "Hủy đơn" button is disabled with guard tooltip/notice
     const cancelBtn = page.getByRole('button', { name: /Hủy đơn/i })
     await expect(cancelBtn).toBeDisabled()
-    await expect(
-      page.getByText('Đơn đã thanh toán, phải hoàn tiền trước khi hủy/từ chối')
-    ).toBeVisible()
+    await expect(cancelBtn).toHaveAttribute('title', 'Đơn đã thanh toán, phải hoàn tiền trước khi hủy')
 
     // Refund order
     await page.route('**/functions/v1/admin-api/orders/ord-deliv-01/payment', async (route) => {

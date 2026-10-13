@@ -1,6 +1,6 @@
 # V17 - Full regression and browser verification
 
-Status: TODO
+Status: DONE (local automated verification; external/manual gates recorded in report)
 Dependencies: V14, V15, V16
 Deliverable: implementation + applicable tests + ../reports/V17.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Implement all acceptance scenarios with deterministic fake provider responses, real isolated PostgreSQL and shared TTL store.
-- [ ] 2. Run lifecycle and draft browser flows on desktop/mobile, including concurrent requests, stale tabs, network retries and account switch.
-- [ ] 3. Inspect outbound provider payloads to prove budgets, no duplicate message, no full menu, proper tool outputs and no unrelated personal memory.
-- [ ] 4. Verify zero guest transcript writes and no sensitive log/storage contents, real cleanup SQL, epoch races and order/reservation regressions.
-- [ ] 5. Run complete applicable offline suites, typechecks, lint and build. Record every failure and close regressions before declaring readiness.
-- [ ] 6. Prepare live-provider evaluation scenarios and cost ceiling, but do not run without explicit opt-in. Report real-provider quality as unverified until run.
+- [x] 1. Implement all acceptance scenarios with deterministic fake provider responses, real isolated PostgreSQL and shared TTL store.
+- [x] 2. Run lifecycle and draft browser flows on desktop/mobile, including concurrent requests, stale tabs, network retries and account switch.
+- [x] 3. Inspect outbound provider payloads to prove budgets, no duplicate message, no full menu, proper tool outputs and no unrelated personal memory.
+- [x] 4. Verify zero guest transcript writes and no sensitive log/storage contents, real cleanup SQL, epoch races and order/reservation regressions.
+- [x] 5. Run complete applicable offline suites, typechecks, lint and build. Record every failure and close regressions before declaring readiness.
+- [x] 6. Prepare live-provider evaluation scenarios and cost ceiling, but do not run without explicit opt-in. Report real-provider quality as unverified until run.
 
 ## Exit criteria
 

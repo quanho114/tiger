@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useDeliveryOrder } from '@/features/ordering/delivery/useDeliveryOrder'
 import * as api from '@/features/ordering/delivery/api'
-import { ApiError } from '@/lib/api/types'
+import { ApiError } from '@/shared/lib/api/types'
 import type { DeliveryOrderReceipt, DeliveryQuoteResponse } from '@/features/ordering/delivery/types'
 
 vi.mock('@/features/ordering/delivery/api', () => ({
@@ -13,6 +13,7 @@ vi.mock('@/features/ordering/delivery/api', () => ({
 describe('Delivery Order Workflow & Invariants (T11, V10, V13, V14, V24)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    sessionStorage.clear()
     localStorage.clear()
   })
 

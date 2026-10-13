@@ -10,6 +10,7 @@ export type CartAction =
     }
   | {
       type: 'UPDATE_QUANTITY'
+      note?: string
       dishId: string
       quantity: number
     }
@@ -20,6 +21,7 @@ export type CartAction =
     }
   | {
       type: 'REMOVE_ITEM'
+      note?: string
       dishId: string
     }
   | {
@@ -46,7 +48,7 @@ export function cartReducer(state: PersistedCartState, action: CartAction): Pers
       const addQty = action.quantity ?? 1
       if (addQty <= 0) return state
 
-      const existingIndex = state.items.findIndex((item) => item.dishId === action.dishId)
+      const existingIndex = state.items.findIndex((item) => item.dishId === action.dishId && (action.note === undefined || (item.note ?? '') === action.note))
 
       let updatedItems: CartDraftItem[]
       if (existingIndex >= 0) {
@@ -83,7 +85,7 @@ export function cartReducer(state: PersistedCartState, action: CartAction): Pers
         return {
           ...state,
           updatedAt: now,
-          items: state.items.filter((item) => item.dishId !== action.dishId),
+          items: state.items.filter((item) => item.dishId !== action.dishId || (item.note ?? '') !== (action.note ?? '')),
         }
       }
 
@@ -91,7 +93,7 @@ export function cartReducer(state: PersistedCartState, action: CartAction): Pers
         ...state,
         updatedAt: now,
         items: state.items.map((item) =>
-          item.dishId === action.dishId ? { ...item, quantity: action.quantity } : item
+          item.dishId === action.dishId && (item.note ?? '') === (action.note ?? '') ? { ...item, quantity: action.quantity } : item
         ),
       }
     }
@@ -110,7 +112,7 @@ export function cartReducer(state: PersistedCartState, action: CartAction): Pers
       return {
         ...state,
         updatedAt: now,
-        items: state.items.filter((item) => item.dishId !== action.dishId),
+        items: state.items.filter((item) => item.dishId !== action.dishId || (item.note ?? '') !== (action.note ?? '')),
       }
     }
 

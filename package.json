@@ -9,8 +9,12 @@
     "typecheck": "tsc -b",
     "typecheck:server": "tsc -p tsconfig.server.json --noEmit",
     "lint": "oxlint",
+    "check:architecture": "node scripts/architecture/check.mjs",
+    "test:architecture": "node --test scripts/architecture/check.test.mjs",
     "test:unit": "vitest run",
     "test:server": "vitest run --config vitest.server.config.ts",
+    "benchmark:concierge": "node scripts/concierge-quality-benchmark.mjs",
+    "test:benchmark:offline": "node --test tests/benchmark/concierge-quality-benchmark.test.mjs",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:policies": "vitest run --config vitest.policies.config.ts",
     "test:e2e": "playwright test",
@@ -25,7 +29,8 @@
     "db:stop": "supabase stop",
     "db:status": "supabase status",
     "db:reset:test": "bash scripts/db-reset-test.sh",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e:admin": "playwright test tests/e2e/admin-backend-real.spec.ts"
   },
   "engines": {
     "node": ">=22.12.0"

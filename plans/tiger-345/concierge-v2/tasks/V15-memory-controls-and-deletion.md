@@ -1,6 +1,6 @@
 # V15 - Customer memory controls and deletion integration
 
-Status: TODO
+Status: DONE
 Dependencies: V06, V07
 Deliverable: implementation + applicable tests + ../reports/V15.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Expose authenticated whitelisted settings/fact APIs and customer UI to enable, inspect, correct, delete individual facts and forget all.
-- [ ] 2. Explain that new chats are fresh and memory contains food preferences only. Distinguish explicit versus behavioral facts in inspect UI.
-- [ ] 3. Disable memory with explicit clear behavior; preserve normal chat ordering. Opt-in/opt-out state must match server truth.
-- [ ] 4. Wire account deletion/deleting tombstone checks into reads, extraction jobs, behavioral refresh and epoch fencing.
-- [ ] 5. Implement per-fact suppression so manually deleted behavioral facts are not automatically rebuilt until explicitly restored. Forget-all pauses regeneration until the customer explicitly enables learning again; honor this across both extraction and aggregation.
-- [ ] 6. Test direct API cross-user attacks, concurrent correction/extraction, deleting accounts and worker retries without deleting financial records.
+- [x] 1. Expose authenticated whitelisted settings/fact APIs and customer UI to enable, inspect, correct, delete individual facts and forget all.
+- [x] 2. Explain that new chats are fresh and memory contains food preferences only. Distinguish explicit versus behavioral facts in inspect UI.
+- [x] 3. Disable memory with explicit clear behavior; preserve normal chat ordering. Opt-in/opt-out state must match server truth.
+- [x] 4. Wire account deletion/deleting tombstone checks into reads, extraction jobs, behavioral refresh and epoch fencing.
+- [x] 5. Implement per-fact suppression so manually deleted behavioral facts are not automatically rebuilt until explicitly restored. Forget-all pauses regeneration until the customer explicitly enables learning again; honor this across both extraction and aggregation.
+- [x] 6. Test direct API cross-user attacks, concurrent correction/extraction, deleting accounts and worker retries without deleting financial records.
 
 ## Exit criteria
 

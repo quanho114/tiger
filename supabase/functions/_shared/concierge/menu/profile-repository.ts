@@ -90,18 +90,28 @@ export async function listServingProfiles(pool: pg.Pool): Promise<Record<string,
 }
 
 // Minimal domain-shaped shim so the strict legacy mapper can be reused.
+// Preserves stored allergen/taste/dietary/pairing data verbatim (unknown stays
+// unknown; verified stays verified). Never fabricate or blank stored profiles.
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
+
+const asUuidArray = (value: unknown): string[] =>
+  asStringArray(value).filter((v) => /^[0-9a-fA-F-]{36}$/.test(v))
+
 function rowToDomainShim(row: Record<string, unknown>): MenuDomainItem {
   const profile = rowToProfileRow(row)
+  const allergens = (profile.allergens && typeof profile.allergens === 'object' && !Array.isArray(profile.allergens)
+    ? profile.allergens : {}) as MenuDomainItem['allergens']['states']
   return {
     id: profile.menu_item_id, name: '', description: null, categoryId: null, categoryName: null,
     priceVnd: 0, pricingMode: 'fixed', priceMin: null, priceMax: null, isAvailable: true,
     allowDineIn: true, allowDelivery: true,
     serving: { unit: profile.serving_unit, description: profile.serving_description, peopleMin: profile.people_min, peopleMax: profile.people_max, mealRole: profile.meal_role, mealContext: profile.meal_context },
     contribution: { protein: profile.protein_score, carb: profile.carb_score, vegetable: profile.vegetable_score, soup: profile.soup_score },
-    taste: { spiceLevel: profile.spice_level, richnessLevel: profile.richness_level, tags: [] },
-    dietaryTags: [],
-    allergens: { states: {}, verified: false, source: 'demo_estimate', verifiedAt: null, verifiedBy: null, kitchenNotes: '' },
-    pairingItemIds: [], pairingNote: null, isSignature: false, isBestseller: false, tags: [],
+    taste: { spiceLevel: profile.spice_level, richnessLevel: profile.richness_level, tags: asStringArray(profile.taste_tags) },
+    dietaryTags: asStringArray(profile.dietary_tags),
+    allergens: { states: allergens, verified: profile.allergen_verified, source: profile.allergen_source, verifiedAt: profile.allergen_verified_at, verifiedBy: profile.allergen_verified_by, kitchenNotes: profile.kitchen_notes ?? '' },
+    pairingItemIds: asUuidArray(profile.pairing_item_ids), pairingNote: null, isSignature: false, isBestseller: false, tags: [],
     confidence: profile.confidence, provenance: profile.provenance,
     sources: { serving: profile.serving_source ?? 'admin', taste: profile.taste_source ?? 'admin', allergen: profile.allergen_source },
   }

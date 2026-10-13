@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useState } from 'react';
-import { Dialog } from '@/components/ui/Dialog';
+import { Dialog } from '@/shared/ui/Dialog';
 
 function DialogHarness({ defaultOpen = true, closeOnOverlay = true }: { defaultOpen?: boolean; closeOnOverlay?: boolean }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);

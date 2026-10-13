@@ -14,7 +14,7 @@ import {
   Sparkles,
   Flame,
 } from 'lucide-react'
-import { adminApi } from '../../../lib/api/client'
+import { adminApi } from '@/shared/lib/api/client'
 import { useAdmin } from '../layout/AdminContext'
 import { ReceiptModal } from '../components/ReceiptModal'
 import { AdminLoading } from '../components/AdminLoading'
@@ -32,12 +32,12 @@ export const AdminDashboardPage: FC = () => {
   const [data, setData] = useState<AdminDashboardData | null>(null)
   const [tables, setTables] = useState<AdminTableItem[]>([])
   const [orders, setOrders] = useState<AdminOrderSummary[]>([])
-  const [confirmedBookingsCount, setConfirmedBookingsCount] = useState<number>(0)
+  const [recentInvoices, setRecentInvoices] = useState<AdminInvoiceItem[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Primary Scope Tab: all | dine_in | delivery
-  const [orderFilterTab, setOrderFilterTab] = useState<'all' | 'dine_in' | 'delivery'>('all')
+  // Primary Scope Tab: all | dine_in | delivery | takeaway
+  const [orderFilterTab, setOrderFilterTab] = useState<'all' | 'dine_in' | 'delivery' | 'takeaway'>('all')
 
   // Receipt Modal state
   const [receiptModalOpen, setReceiptModalOpen] = useState<boolean>(false)
@@ -64,11 +64,11 @@ export const AdminDashboardPage: FC = () => {
     async function loadDashboardData() {
       try {
         setError(null)
-        const [dashRes, tablesRes, ordersRes, resRes] = await Promise.all([
+        const [dashRes, tablesRes, ordersRes, invoicesRes] = await Promise.all([
           adminApi.get<AdminDashboardData>('/dashboard'),
-          adminApi.get<{ items: AdminTableItem[] }>('/tables').catch(() => ({ data: { items: [] } })),
-          adminApi.get<{ items: AdminOrderSummary[] }>('/orders?limit=30').catch(() => ({ data: { items: [] } })),
-          adminApi.get<{ items: Array<{ id: string }> }>('/reservations?status=confirmed').catch(() => ({ data: { items: [] } })),
+          adminApi.get<{ items: AdminTableItem[] }>('/tables'),
+          adminApi.get<{ items: AdminOrderSummary[] }>('/orders?limit=100&actionable=true'),
+          adminApi.get<{ items: AdminInvoiceItem[] }>('/invoices?limit=6'),
         ])
 
         if (mounted) {
@@ -79,9 +79,7 @@ export const AdminDashboardPage: FC = () => {
           if (ordersRes?.data?.items) {
             setOrders(ordersRes.data.items)
           }
-          if (resRes?.data?.items) {
-            setConfirmedBookingsCount(resRes.data.items.length)
-          }
+          setRecentInvoices(invoicesRes.data.items)
         }
       } catch (err: unknown) {
         if (mounted) {
@@ -116,78 +114,21 @@ export const AdminDashboardPage: FC = () => {
     return Math.max(1, diff)
   }
 
-  // Process recent invoices (completed / paid orders)
-  const recentInvoices = useMemo(() => {
-    const paid = orders
-      .filter((o) => o.payment_status === 'paid' || o.status === 'completed')
-      .slice(0, 6)
-
-    return paid.map((o): AdminInvoiceItem => ({
-      id: o.id,
-      code: `HD-${o.code.replace(/\D/g, '') || o.code}`,
-      order_id: o.id,
-      order_type: o.order_type,
-      table_name: o.table_name_snapshot,
-      customer_name: o.customer_name,
-      customer_phone: o.customer_phone,
-      created_at: o.created_at,
-      paid_at: o.completed_at || o.updated_at || o.created_at,
-      payment_method: 'cash',
-      subtotal_vnd: o.subtotal_vnd || o.total_vnd,
-      shipping_fee_vnd: o.shipping_fee_vnd,
-      total_vnd: o.total_vnd,
-      cashier_name: 'Thu ngân',
-      items: [
-        {
-          name: o.note ? `Phần ăn (${o.item_count} món - ${o.note.slice(0, 24)})` : `Phần ăn (${o.item_count} món)`,
-          quantity: o.item_count || 1,
-          unit_price_vnd: o.total_vnd,
-          line_total_vnd: o.total_vnd,
-        },
-      ],
-    }))
-  }, [orders])
-
   const handleOpenReceipt = (invoice: AdminInvoiceItem) => {
     setSelectedInvoice(invoice)
     setReceiptModalOpen(true)
   }
 
-  const handleQuickPrintSample = () => {
-    if (recentInvoices.length > 0) {
-      setSelectedInvoice(recentInvoices[0])
-    } else {
-      setSelectedInvoice({
-        id: 'sample-inv',
-        code: 'HD-1092',
-        order_id: 'sample-ord',
-        order_type: 'dine_in',
-        table_name: 'Bàn B02 (Tầng 1)',
-        customer_name: 'Bàn B02',
-        created_at: new Date().toISOString(),
-        paid_at: new Date().toISOString(),
-        payment_method: 'bank_transfer',
-        subtotal_vnd: 285000,
-        discount_vnd: 0,
-        total_vnd: 285000,
-        cashier_name: 'Thu ngân',
-        items: [
-          { name: 'Bún Bò Huế Đặc Biệt', quantity: 2, unit_price_vnd: 65000, line_total_vnd: 130000 },
-          { name: 'Gỏi Cuốn Tôm Thịt (4c)', quantity: 1, unit_price_vnd: 45000, line_total_vnd: 45000 },
-          { name: 'Trà Tắc Hạt Chia Khổng Lồ', quantity: 2, unit_price_vnd: 25000, line_total_vnd: 50000 },
-          { name: 'Khăn lạnh & Nước khoáng', quantity: 3, unit_price_vnd: 5000, line_total_vnd: 15000 },
-          { name: 'Trứng gà ta lòng đào', quantity: 3, unit_price_vnd: 15000, line_total_vnd: 45000 },
-        ],
-      })
-    }
-    setReceiptModalOpen(true)
+  const handleQuickPrint = () => {
+    if (recentInvoices.length) handleOpenReceipt(recentInvoices[0])
+    else navigate('/admin/invoices')
   }
 
   if (isLoading && !data) {
-    return <AdminLoading variant="screen" label="Đang đồng bộ dữ liệu vận hành Tiger 345..." />
+    return <AdminLoading variant="block" label="Đang tải dữ liệu tổng quan..." />
   }
 
-  if (error && !data) {
+  if (error) {
     return (
       <div className="bg-white border border-[#e2e3e3] rounded-2xl p-8 text-center max-w-md mx-auto my-12 shadow-sm">
         <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3 font-bold">
@@ -208,9 +149,9 @@ export const AdminDashboardPage: FC = () => {
 
   const pendingCount = data?.pending_orders_count ?? 0
   const preparingCount = data?.preparing_orders_count ?? 0
-  const activeTablesCount = data?.active_tables_count ?? tables.filter((t) => t.current_visit_id).length
-  const totalTablesCount = tables.length || 16
-  const bookingsCount = confirmedBookingsCount || 4
+  const activeTablesCount = data?.open_visits_count ?? tables.filter((t) => t.current_visit_id).length
+  const totalTablesCount = tables.filter(t => t.active).length
+  const bookingsCount = data?.confirmed_bookings_today_count ?? 0
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -313,7 +254,7 @@ export const AdminDashboardPage: FC = () => {
                 {activeTablesCount}<span className="text-sm font-normal text-[#8a8f89]">/{totalTablesCount}</span>
               </span>
               <span className="elera-stat-badge success">
-                {Math.round((activeTablesCount / totalTablesCount) * 100)}% công suất
+                {totalTablesCount ? Math.round((activeTablesCount / totalTablesCount) * 100) : 0}% công suất
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-[11px]">
@@ -345,7 +286,7 @@ export const AdminDashboardPage: FC = () => {
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-[11px]">
-              <span className="text-[#8a8f89]">Lượt gần nhất: 19:00</span>
+              <span className="text-[#8a8f89]">Đặt chỗ đã xác nhận hôm nay</span>
               <Link
                 to="/admin/reservations"
                 className="font-medium text-[#171a17] hover:text-[#7cd56e] inline-flex items-center gap-0.5"
@@ -395,7 +336,14 @@ export const AdminDashboardPage: FC = () => {
                   onClick={() => setOrderFilterTab('delivery')}
                   className={`elera-pill-scope ${orderFilterTab === 'delivery' ? 'selected' : ''}`}
                 >
-                  Mang về / Giao
+                  Giao hàng
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderFilterTab('takeaway')}
+                  className={`elera-pill-scope ${orderFilterTab === 'takeaway' ? 'selected' : ''}`}
+                >
+                  Mang đi
                 </button>
               </div>
             </div>
@@ -450,7 +398,11 @@ export const AdminDashboardPage: FC = () => {
                                 : order.customer_name || 'Khách online'}
                             </span>
                             <span className="text-[10px] text-[#787979]">
-                              {order.order_type === 'dine_in' ? 'Tại quán' : order.customer_phone || 'Giao hàng'}
+                              {order.order_type === 'dine_in'
+                                ? 'Tại quán'
+                                : order.order_type === 'takeaway'
+                                ? order.customer_phone || 'Mang đi'
+                                : order.customer_phone || 'Giao hàng'}
                             </span>
                           </td>
                           <td className="py-3 px-4">
@@ -646,14 +598,14 @@ export const AdminDashboardPage: FC = () => {
                   <div className="elera-icon-btn w-6 h-6 rounded-lg text-[#171a17]">
                     <ShoppingBag className="w-3.5 h-3.5" />
                   </div>
-                  <span>Tạo đơn mang về</span>
+                  <span>Tạo đơn giao hàng</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-[#787979]" />
               </button>
 
               <button
                 type="button"
-                onClick={handleQuickPrintSample}
+                onClick={handleQuickPrint}
                 className="elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
               >
                 <div className="flex items-center gap-2.5">

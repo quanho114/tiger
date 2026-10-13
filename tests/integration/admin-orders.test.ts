@@ -38,6 +38,8 @@ describe('Admin Queue, Orders, Tables & Transitions Integration (Task T08, Invar
     })
 
     await seedFixtureUsers(pool)
+    // Transaction scenarios must remain open regardless of the wall clock.
+    await pool.query("UPDATE public.business_hours SET open_time = '00:00:00', close_time = '23:59:59' WHERE service_type IN ('restaurant', 'delivery')")
     adminToken = getUserToken('admin')
     customerToken = getUserToken('customerA')
     disabledAdminToken = getUserToken('disabledAdmin')
@@ -541,7 +543,7 @@ describe('Admin Queue, Orders, Tables & Transitions Integration (Task T08, Invar
         new Request(`http://localhost:54321/functions/v1/admin-api/settings`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
-          body: JSON.stringify({ accepting_delivery_orders: false }),
+          body: JSON.stringify({ accepting_delivery_orders: false, expected_version: getData.data.version }),
         }),
         { pool, supabaseAdmin }
       )
@@ -554,7 +556,7 @@ describe('Admin Queue, Orders, Tables & Transitions Integration (Task T08, Invar
         new Request(`http://localhost:54321/functions/v1/admin-api/settings`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
-          body: JSON.stringify({ accepting_delivery_orders: true }),
+          body: JSON.stringify({ accepting_delivery_orders: getData.data.accepting_delivery_orders, expected_version: patchData.data.version }),
         }),
         { pool, supabaseAdmin }
       )

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures/admin-e2e'
 
 // Mock Data
 const mockAdminDashboardPayload = {
@@ -48,7 +48,7 @@ const mockAdminDashboardPayload = {
 }
 
 const mockOrdersListPayload = {
-  data: [
+  data: { total: 2, items: [
     {
       id: 'ord-001',
       code: 'DIN-260919-001',
@@ -77,7 +77,7 @@ const mockOrdersListPayload = {
       created_at: new Date().toISOString(),
       version: 2,
     },
-  ],
+  ] },
 }
 
 const mockOrderDetailPayload = {
@@ -160,6 +160,7 @@ const mockTablesPayload = {
       id: 'tbl-1',
       code: 'T01',
       name: 'Bàn 01',
+      active: true,
       area_name: 'Sân Vườn',
       current_visit_id: 'vis-1',
       active_qr_token: 'valid-hmac-qr-token-demo',
@@ -172,6 +173,7 @@ const mockTablesPayload = {
       id: 'tbl-2',
       code: 'T02',
       name: 'Bàn 02',
+      active: true,
       area_name: 'Phòng Lạnh',
       current_visit_id: null,
       active_qr_token: null,
@@ -258,6 +260,13 @@ test.describe('Tiger 345 Admin Queue, Tables, & Operations E2E (Task T08, Invari
       })
     })
 
+    for (const endpoint of ['categories', 'settings/hours', 'settings/closures', 'seating-areas', 'delivery-zones', 'audit', 'invoices']) {
+      await page.route(`**/functions/v1/admin-api/${endpoint}*`, route =>
+        route.fulfill({ json: { data: { items: [] } } }))
+    }
+    await page.route('**/functions/v1/admin-api/concierge/feedback*', route =>
+      route.fulfill({ json: { data: { data: [] } } }))
+
     // Route admin-api endpoints
     await page.route('**/functions/v1/admin-api/dashboard*', async (route) => {
       await route.fulfill({
@@ -292,7 +301,7 @@ test.describe('Tiger 345 Admin Queue, Tables, & Operations E2E (Task T08, Invari
       })
     })
 
-    await page.route('**/functions/v1/admin-api/settings*', async (route) => {
+    await page.route('**/functions/v1/admin-api/settings', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -315,7 +324,7 @@ test.describe('Tiger 345 Admin Queue, Tables, & Operations E2E (Task T08, Invari
     await page.goto('/admin')
 
     // Admin UI is visible
-    await expect(page.getByRole('heading', { name: 'Tổng quan Vận hành' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Tổng quan vận hành/i })).toBeVisible()
 
     // Public chrome must NOT be rendered
     await expect(page.locator('header.site-header, .customer-header')).toHaveCount(0)
@@ -324,26 +333,23 @@ test.describe('Tiger 345 Admin Queue, Tables, & Operations E2E (Task T08, Invari
     await expect(page.locator('[data-testid="cart-drawer"]')).toHaveCount(0)
   })
 
-  test('Admin Dashboard renders real metrics, intake toggles, and recent pending orders', async ({
+  test('Admin Dashboard renders metrics and filters actionable orders', async ({
     page,
   }) => {
     await page.goto('/admin')
 
-    // Metric cards
-    await expect(page.getByText('Chờ tiếp nhận')).toBeVisible()
-    await expect(page.getByText('2', { exact: true }).first()).toBeVisible()
-    await expect(page.getByText('Đang chế biến')).toBeVisible()
-    await expect(page.getByText('Bàn đang có khách')).toBeVisible()
-
-    // Intake toggles
-    await expect(page.getByText('Kiểm soát Tiếp nhận Đơn hàng')).toBeVisible()
-    await expect(page.getByText('Nhận đơn chung')).toBeVisible()
-    await expect(page.getByText('Tại bàn (Dine-in)')).toBeVisible()
-    await expect(page.getByText('Giao hàng (Delivery)')).toBeVisible()
-
-    // Recent orders table
+    await expect(page.getByText('Đơn chờ', { exact: true })).toBeVisible()
+    await expect(page.getByText('Đơn chờ', { exact: true }).locator('..').getByText('2', { exact: true })).toBeVisible()
+    await expect(page.getByText('Đang chế biến', { exact: true })).toBeVisible()
+    await expect(page.getByText('Bàn đang phục vụ')).toBeVisible()
     await expect(page.getByText('DIN-260919-001')).toBeVisible()
     await expect(page.getByText('Bàn 01 - Sân Vườn')).toBeVisible()
+    await page.getByRole('button', { name: 'Mang về / Giao', exact: true }).click()
+    await expect(page.getByText('DEL-260919-002')).toBeVisible()
+    await expect(page.getByText('DIN-260919-001')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Tại bàn', exact: true }).click()
+    await expect(page.getByText('DIN-260919-001')).toBeVisible()
+    await expect(page.getByText('DEL-260919-002')).toHaveCount(0)
   })
 
   test('Admin Orders Queue displays orders, filters by type/status, and opens Order Detail Modal', async ({
@@ -356,20 +362,20 @@ test.describe('Tiger 345 Admin Queue, Tables, & Operations E2E (Task T08, Invari
     await expect(page.getByText('DEL-260919-002')).toBeVisible()
 
     // Click "Chi tiết" or row to open Order Detail modal
-    await page.getByText('Chi tiết').first().click()
+    await page.getByRole('button', { name: 'Chi tiết', exact: true }).first().click()
 
     // Modal is opened
     await expect(page.getByRole('heading', { name: /Chi tiết Đơn hàng.*DIN-260919-001/i })).toBeVisible()
     await expect(page.getByText('Sườn nướng sốt cay')).toBeVisible()
     await expect(page.getByText('Lẩu bò nhúng dấm')).toBeVisible()
-    await expect(page.getByText('Bàn quen của quản lý')).toBeVisible()
+    await expect(page.locator('textarea').first()).toHaveValue('Bàn quen của quản lý')
 
     // State transition action buttons for pending order
     await expect(page.getByRole('button', { name: /tiếp nhận đơn/i })).toBeVisible()
     await expect(page.getByRole('button', { name: /từ chối đơn/i })).toBeVisible()
 
     // Close modal
-    await page.getByRole('button', { name: '✕', exact: true }).click()
+    await page.getByRole('button', { name: 'Đóng chi tiết đơn hàng', exact: true }).click()
     await expect(page.getByRole('heading', { name: /Chi tiết Đơn hàng.*DIN-260919-001/i })).not.toBeVisible()
   })
 
@@ -401,7 +407,7 @@ test.describe('Tiger 345 Admin Queue, Tables, & Operations E2E (Task T08, Invari
   }) => {
     await page.goto('/admin/settings')
 
-    await expect(page.getByRole('heading', { name: /cấu hình & quản trị nội dung|cài đặt vận hành/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /cài đặt & cấu hình quán/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: /chế độ vận hành & tiếp nhận đơn hàng|công tắc hoạt động quán/i })).toBeVisible()
 
     // Switch to Menu Content Tab

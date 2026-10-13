@@ -1,0 +1,148 @@
+import type { FC } from 'react';
+import { HeroFoodCarousel } from './HeroFoodCarousel';
+import { ArrowRight } from 'lucide-react';
+import { BotanicalBranch, StarDustDots, HandDrawnArrow } from '@/shared/ui/BotanicalDecorations';
+
+interface HeroSectionProps {
+  onExploreMenu: () => void;
+}
+
+export const HeroSection: FC<HeroSectionProps> = ({ onExploreMenu }) => {
+  return (
+    <section id="home" className="relative pt-20 pb-12 sm:pt-24 sm:pb-16 md:pt-36 md:pb-24 overflow-hidden bg-[#fbf9f6]">
+      
+      {/* Top Left Botanical Branch (Image A exact motif) */}
+      <div className="absolute -top-6 -left-6 w-24 h-24 sm:w-36 sm:h-36 md:w-52 md:h-52 opacity-35 sm:opacity-60 md:opacity-85 pointer-events-none z-0">
+        <BotanicalBranch className="w-full h-full rotate-45" color="#3d5a45" />
+      </div>
+
+      {/* Bottom Left Soft Watercolor Wash (Image A detail) */}
+      <div 
+        aria-hidden="true" 
+        className="absolute -bottom-16 -left-16 w-64 h-64 bg-[#d2b68c]/25 rounded-full blur-2xl pointer-events-none -z-0" 
+      />
+
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+          
+          {/* Left Column: Expressive Typography & CTAs (Exact Image A layout) */}
+          <div className="lg:col-span-7 flex flex-col items-start text-left">
+
+            {/* Eyebrow: Be Vietnam Pro 12px / 600 uppercase letter-spacing: 0.18em */}
+            <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
+              <span className="font-['Be_Vietnam_Pro',sans-serif] text-[11px] sm:text-[12px] font-semibold tracking-[0.16em] sm:tracking-[0.18em] uppercase text-[#000000]/65">
+                ẨM THỰC ĐƯƠNG ĐẠI
+              </span>
+              <span className="w-8 sm:w-12 h-[1.5px] bg-[#d2b68c]" />
+            </div>
+
+            {/* Main Headline: Noto Serif bold editorial serif with calibrated line-height preventing Vietnamese diacritic collisions */}
+            <h1 className="font-['Noto_Serif',serif] text-[#234386] text-[36px] xs:text-[38px] sm:text-[50px] lg:text-[60px] xl:text-[66px] font-bold lg:font-extrabold leading-[1.26] sm:leading-[1.26] lg:leading-[1.26] tracking-[-0.025em] uppercase mb-3 sm:mb-4">
+              MÓN VIỆT.<br />
+              ĐẬM VỊ.<br />
+              ĐẦY CẢM HỨNG.
+            </h1>
+
+            {/* Script Accent: Dancing Script 30px 600 line-height: 1.15 Burnt Orange #ed7328 */}
+            <div className="font-['Dancing_Script',cursive] text-[22px] sm:text-2xl md:text-[30px] text-[#ed7328] font-semibold leading-[1.15] -rotate-1 mb-4 sm:mb-6">
+              Một bữa ăn ngon là một ngày tươi đẹp hơn.
+            </div>
+
+            {/* Body: Be Vietnam Pro 16px 400 line-height: 1.7 max-width around 560px */}
+            <p className="font-['Be_Vietnam_Pro',sans-serif] text-[15px] sm:text-[16px] text-[#000000]/75 font-normal leading-[1.65] sm:leading-[1.7] max-w-[560px] mb-6 sm:mb-8">
+              Tại Tiger 345, chúng tôi gìn giữ hương vị Việt qua những nguyên liệu tươi sạch và cách chế biến sáng tạo,
+              <span className="hidden sm:inline"> để mỗi bữa ăn là một trải nghiệm trọn vẹn, gần gũi mà đầy bất ngờ.</span>
+            </p>
+
+            <div className="w-full sm:w-auto flex items-center gap-3 sm:gap-4 group/cta">
+              <button
+                type="button"
+                onClick={onExploreMenu}
+                className="w-full sm:w-auto font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2.5 bg-[#234386] hover:bg-[#1a3468] text-white px-7 py-3.5 rounded-full font-semibold text-[14px] shadow-md hover:shadow-lg active:scale-[0.96] transition-all duration-200 group"
+              >
+                <span>Xem thực đơn</span>
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <svg viewBox="0 0 64 52" fill="none"
+                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"
+                className="w-14 h-12 shrink-0 -rotate-6 pointer-events-none select-none transition-transform duration-150 ease-out motion-safe:group-hover/cta:-translate-y-1 motion-safe:group-hover/cta:rotate-[-10deg] motion-safe:group-active/cta:translate-y-0 motion-safe:group-active/cta:scale-[0.96] motion-reduce:transition-none">
+                <path d="M48.8 16.5h-8.3V10a4.8 4.8 0 0 0-9.6 0v13.1H13.5a6.1 6.1 0 0 0 0 12.2h11.4l-2.3 3.1a7.1 7.1 0 0 0 5.7 11.3h7.1a11.8 11.8 0 0 0 8.3-3.4l5.8-5.8h4.3V16.5Z"
+                  fill="#fff8ee" stroke="#bd8051" strokeWidth="1.6" />
+                <path d="M48.8 16.5h7v23.2h-7z" fill="#234386" stroke="#bd8051" strokeWidth="1.5" />
+                <path d="M49.5 19.5h5.6v3.1h-5.6z" fill="#ed7328" />
+                <path d="M14.2 26.1h13.4M32.3 28.4c3.4 2.2 6.5 2.1 9-.2m-17.2 10c2.7 2.7 5.7 3.2 8.5 1.6" stroke="#bd8051" strokeWidth="1.4" />
+                <path d="M16.3 24.7c1.7-.6 3.5-.6 5.2 0" stroke="#edb68b" strokeWidth="1.5" />
+                <path d="M4.2 17.5 2.4 16m4.3 7H4m2.8 9.5-2 1.6" stroke="#ed7328" strokeWidth="1.8" />
+                <path d="m8.8 11.2.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7.7-1.7Z" fill="#ed7328" />
+                <circle cx="44.7" cy="33.4" r="1.2" fill="#ed7328" />
+              </svg>
+            </div>
+
+          </div>
+
+          {/* Right Column: Hero Food Cutout Plate with Organic Blobs (Image A & C) */}
+          <div className="lg:col-span-5 relative flex justify-center items-center py-4 sm:py-6 lg:py-0">
+            
+            {/* Background Organic Paint Blobs (Sky Blue + Honey Gold) */}
+            <div 
+              aria-hidden="true"
+              className="absolute -left-4 sm:-left-6 top-4 sm:top-8 w-[240px] xs:w-[280px] sm:w-[380px] h-[280px] sm:h-[430px] bg-[#6aa8dc]/25 sm:bg-[#6aa8dc]/30 -z-10"
+              style={{
+                borderRadius: '65% 35% 58% 42% / 45% 62% 38% 55%'
+              }}
+            />
+            
+            <div 
+              aria-hidden="true"
+              className="absolute -right-2 sm:-right-4 top-1 sm:top-2 w-[220px] xs:w-[260px] sm:w-[360px] h-[260px] sm:h-[410px] bg-[#ffc400]/30 sm:bg-[#ffc400]/35 -z-10"
+              style={{
+                borderRadius: '42% 58% 35% 65% / 55% 40% 60% 45%'
+              }}
+            />
+
+            {/* Botanical Branches Sprouting From Plate — desktop only (reduce mobile noise) */}
+            <div className="hidden sm:block absolute top-0 lg:-top-12 left-10 w-32 h-32 pointer-events-none -z-10">
+              <BotanicalBranch className="w-full h-full -rotate-15" color="#3d5a45" />
+            </div>
+            
+            <div className="hidden sm:block absolute -bottom-10 right-8 w-36 h-36 pointer-events-none -z-10">
+              <BotanicalBranch className="w-full h-full rotate-70" color="#3d5a45" />
+            </div>
+
+            {/* StarDust Golden Dots */}
+            <StarDustDots className="absolute top-4 right-16 w-16 h-16 pointer-events-none -z-10" />
+            <StarDustDots className="hidden sm:block absolute bottom-8 left-6 w-14 h-14 pointer-events-none -z-10" />
+
+            {/* Floating Handwritten Notes with Curved Directional Arrows (Dancing Script 500-600) */}
+            <div className="hidden sm:flex absolute -top-3 right-4 sm:right-10 z-20 flex-col items-end pointer-events-none">
+              <span className="font-['Dancing_Script',cursive] text-xl sm:text-2xl text-[#ed7328] font-semibold leading-tight rotate-3 drop-shadow-xs">
+                Hương vị<br />kết nối con người
+              </span>
+              <HandDrawnArrow className="w-9 h-7 mr-4 mt-0.5" color="#ed7328" />
+            </div>
+
+            <div className="hidden sm:flex absolute -bottom-5 left-4 sm:left-10 z-20 flex-col items-start pointer-events-none">
+              <HandDrawnArrow className="w-8 h-6 ml-3 mb-0.5 -rotate-90" color="#3d5a45" flip />
+              <span className="font-['Dancing_Script',cursive] text-xl sm:text-2xl text-[#3d5a45] font-semibold leading-tight -rotate-3 drop-shadow-xs">
+                Việt Nam<br />thật ngon!
+              </span>
+            </div>
+
+            {/* Main Round Food Plate Cutout (Image A central visual) */}
+            <HeroFoodCarousel />
+
+            {/* Vertical Right Label Strip (Be Vietnam Pro) */}
+            <div className="hidden xl:flex flex-row gap-6 absolute -right-8 top-1/2 -translate-y-1/2 font-['Be_Vietnam_Pro',sans-serif] text-[10px] font-semibold tracking-[0.18em] text-[#000000]/45 uppercase whitespace-nowrap [writing-mode:vertical-rl] rotate-180 pointer-events-none">
+              <span>NGUYÊN LIỆU TƯƠI SẠCH</span>
+              <span>MÓN ĂN SÁNG TẠO</span>
+              <span>TRẢI NGHIỆM ĐÁNG NHỚ</span>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+};

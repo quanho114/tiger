@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FC, type FormEvent } from 'react'
 import { Navigate, useNavigate, useLocation, Link } from 'react-router-dom'
 import { ShieldCheck, ArrowLeft, AlertCircle, KeyRound } from 'lucide-react'
-import { supabase } from '../../../lib/supabase'
+import { supabase } from '@/shared/lib/supabase'
 import { useAuth } from '../../auth'
 
 const DEV_DEFAULT_EMAIL = 'admin_active@tiger345.vn'
@@ -89,7 +89,7 @@ export const AdminLoginPage: FC = () => {
   }, [location.state, autoLoginAttempted, isLoading, user, role, performLogin])
 
   // If already authenticated as admin, redirect to dashboard or previous route
-  if (!isLoading && user && role === 'admin') {
+  if (!isSubmitting && !isLoading && user && role === 'admin') {
     const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/admin'
     return <Navigate to={from} replace />
   }

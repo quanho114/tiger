@@ -158,6 +158,11 @@ export function OrderDetailModal({ orderId, onClose }: OrderDetailModalProps) {
                     <MapPin className="w-4 h-4 text-amber-600" />
                     <span>Địa chỉ giao hàng:</span>
                   </>
+                ) : order.order_type === 'takeaway' ? (
+                  <>
+                    <Utensils className="w-4 h-4 text-amber-600" />
+                    <span>Hình thức nhận:</span>
+                  </>
                 ) : (
                   <>
                     <Utensils className="w-4 h-4 text-amber-600" />
@@ -165,8 +170,8 @@ export function OrderDetailModal({ orderId, onClose }: OrderDetailModalProps) {
                   </>
                 )}
                 <span className="font-normal text-slate-700">
-                  {order.order_type === 'delivery'
-                    ? order.address_snapshot || 'Giao tận nơi'
+                  {order.order_type === 'delivery' ? order.address_snapshot || 'Giao tận nơi'
+                    : order.order_type === 'takeaway' ? 'Mang đi tại quán'
                     : order.table_name_snapshot || 'Bàn chưa chỉ định'}
                 </span>
               </div>

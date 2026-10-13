@@ -1,6 +1,7 @@
-import { type FC } from 'react'
+import { useEffect, useRef, useState, type FC } from 'react'
 import { Printer, X, CheckCircle2 } from 'lucide-react'
-import type { AdminInvoiceItem, AdminOrderDetail } from '../types'
+import { adminApi } from '@/shared/lib/api/client'
+import type { AdminRestaurantSettings, AdminInvoiceItem, AdminOrderDetail } from '../types'
 
 export interface ReceiptModalProps {
   isOpen: boolean
@@ -15,11 +16,24 @@ export const ReceiptModal: FC<ReceiptModalProps> = ({
   invoice,
   orderDetail,
 }) => {
+  const paperRef = useRef<HTMLDivElement>(null)
+  const [settings, setSettings] = useState<AdminRestaurantSettings | null>(null)
+  const [settingsError, setSettingsError] = useState<string | null>(null)
+  useEffect(() => {
+    if (!isOpen) return
+    let active = true
+    setSettings(null); setSettingsError(null)
+    void adminApi.get<AdminRestaurantSettings>('/settings').then(res => { if (active) setSettings(res.data) })
+      .catch(() => { if (active) setSettingsError('Không thể tải thông tin quán để in. Vui lòng mở lại hóa đơn.') })
+    return () => { active = false }
+  }, [isOpen])
   if (!isOpen || (!invoice && !orderDetail)) return null
 
   // Normalize data between invoice and orderDetail
   const code = invoice?.code || orderDetail?.order.code || 'HD-000'
-  const isDineIn = invoice ? invoice.order_type === 'dine_in' : orderDetail?.order.order_type === 'dine_in'
+  const orderType = invoice ? invoice.order_type : orderDetail?.order.order_type
+  const isDineIn = orderType === 'dine_in'
+  const isTakeaway = orderType === 'takeaway'
   const targetName = invoice
     ? isDineIn ? (invoice.table_name || 'Bàn chưa đặt tên') : (invoice.customer_name || 'Khách hàng')
     : isDineIn ? (orderDetail?.order.table_name_snapshot || 'Bàn chưa đặt tên') : (orderDetail?.order.customer_name || 'Khách hàng')
@@ -29,7 +43,10 @@ export const ReceiptModal: FC<ReceiptModalProps> = ({
   const shippingFee = invoice ? (invoice.shipping_fee_vnd || 0) : (orderDetail?.order.shipping_fee_vnd || 0)
   const discount = invoice?.discount_vnd || 0
   const total = invoice ? invoice.total_vnd : (orderDetail?.order.total_vnd || 0)
-  const paymentMethod = invoice?.payment_method === 'cash' ? 'Tiền mặt' : invoice?.payment_method === 'bank_transfer' ? 'Chuyển khoản' : 'Đã thanh toán'
+  const method = invoice?.payment_method || orderDetail?.order.payment_method
+  const paymentMethod = method === 'cash' ? 'Tiền mặt' : method === 'bank_transfer' ? 'Chuyển khoản' : 'Chưa ghi nhận phương thức'
+  const paid = Boolean(invoice) || orderDetail?.order.payment_status === 'paid'
+  const paymentLabel = paid ? `Đã thanh toán (${paymentMethod})` : orderDetail?.order.payment_status === 'refunded' ? 'Đã hoàn tiền' : 'Chưa thanh toán'
 
   const items = invoice?.items || (orderDetail?.items.map((i) => ({
     name: i.name_snapshot,
@@ -39,7 +56,22 @@ export const ReceiptModal: FC<ReceiptModalProps> = ({
   })) || [])
 
   const handlePrint = () => {
-    window.print()
+    if (!paperRef.current || !settings) return
+    const frame = document.createElement('iframe')
+    frame.title = 'In phiếu thanh toán'
+    frame.style.cssText = 'position:fixed;width:0;height:0;border:0'
+    document.body.appendChild(frame)
+    const doc = frame.contentDocument
+    if (!doc || !frame.contentWindow) { frame.remove(); return }
+    doc.title = code
+    const style = doc.createElement('style')
+    style.textContent = 'body{font:12px sans-serif;max-width:80mm;margin:auto;padding:8mm}h2,h3{text-align:center}table{width:100%;border-collapse:collapse}td,th{padding:6px 2px;text-align:left}p{margin:6px 0}.flex{display:flex;justify-content:space-between}.text-center{text-align:center}button{display:none}'
+    doc.head.appendChild(style)
+    doc.body.appendChild(paperRef.current.cloneNode(true))
+    frame.contentWindow.addEventListener('afterprint', () => frame.remove(), { once: true })
+    frame.contentWindow.focus()
+    frame.contentWindow.print()
+    setTimeout(() => frame.remove(), 60000)
   }
 
   return (
@@ -64,17 +96,18 @@ export const ReceiptModal: FC<ReceiptModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 bg-slate-100/60">
           <div
             id="printable-receipt"
+            ref={paperRef}
             className="bg-white p-6 rounded-xl border border-slate-200/80 shadow-xs font-sans text-slate-800 text-xs max-w-sm mx-auto"
           >
             {/* Store Header */}
             <div className="text-center pb-4 border-b border-dashed border-slate-300">
               <h2 className="text-base font-bold tracking-tight text-slate-900 uppercase">
-                TIGER 345 – BẾP & QUÁN
+                {settings?.name || 'Đang tải thông tin quán...'}
               </h2>
-              <p className="text-[11px] text-slate-500 mt-0.5">345 Nguyễn Trãi, Thanh Xuân, Hà Nội</p>
-              <p className="text-[11px] text-slate-500">Hotline: 090 123 4567</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">{settings?.address}</p>
+              <p className="text-[11px] text-slate-500">{settings?.phone ? `Hotline: ${settings.phone}` : ''}</p>
               <div className="mt-2 inline-block px-2.5 py-0.5 bg-slate-100 rounded text-[11px] font-semibold tracking-wider text-slate-700 uppercase">
-                Hóa đơn thanh toán
+                {paid ? 'Phiếu thanh toán' : 'Phiếu tạm tính'}
               </div>
             </div>
 
@@ -100,8 +133,16 @@ export const ReceiptModal: FC<ReceiptModalProps> = ({
               )}
               <div className="flex justify-between">
                 <span className="text-slate-500">Hình thức:</span>
-                <span>{isDineIn ? 'Tại quán' : 'Giao hàng online'}</span>
+                <span>
+                  {isDineIn ? 'Tại quán' : isTakeaway ? 'Mang đi' : 'Giao hàng online'}
+                </span>
               </div>
+              {isTakeaway && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Giờ nhận:</span>
+                  <span>{orderDetail?.order.pickup_time || 'Càng sớm càng tốt'}</span>
+                </div>
+              )}
             </div>
 
             {/* Items Table */}
@@ -160,18 +201,17 @@ export const ReceiptModal: FC<ReceiptModalProps> = ({
             <div className="pt-3 text-center space-y-1">
               <div className="inline-flex items-center space-x-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full text-[11px] font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Đã thanh toán ({paymentMethod})</span>
+                <span>{paymentLabel}</span>
               </div>
               <p className="text-[11px] text-slate-500 pt-2">
                 Cảm ơn quý khách và hẹn gặp lại!
               </p>
-              <p className="text-[9px] text-slate-400 font-mono">
-                tiger345.vn · Wifi: Tiger345 / Pass: tiger345
-              </p>
+
             </div>
           </div>
         </div>
 
+        {settingsError && <p role="alert" className="text-rose-600 p-3">{settingsError}</p>}
         {/* Modal Actions */}
         <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between bg-white">
           <button
@@ -183,6 +223,7 @@ export const ReceiptModal: FC<ReceiptModalProps> = ({
           </button>
           <button
             type="button"
+            disabled={!settings}
             onClick={handlePrint}
             className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition shadow-xs"
           >

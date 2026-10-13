@@ -1,6 +1,6 @@
 # V14 - Sticky draft preview, review and editing UI
 
-Status: TODO
+Status: DONE
 Dependencies: V04, V13
 Deliverable: implementation + applicable tests + ../reports/V14.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Render sticky compact item count/total from canonical draft; expand to item quantities, notes, removal and blocked status.
-- [ ] 2. Show distinct suggested versus accepted items. Chot presents a review card with Xem & chinh sua don CTA.
-- [ ] 3. Implement loading/error/conflict/expired/price-change/empty states and explicit acceptance of updated prices.
-- [ ] 4. Avoid optimistic success before committed response. UI disabled states and response IDs prevent repeated handoff.
+- [x] 1. Render sticky compact item count/total from canonical draft; expand to item quantities, notes, removal and blocked status.
+- [x] 2. Show distinct suggested versus accepted items. Chot presents a review card with Xem & chinh sua don CTA.
+- [x] 3. Implement loading/error/conflict/expired/price-change/empty states and explicit acceptance of updated prices.
+- [x] 4. Avoid optimistic success before committed response. UI disabled states and response IDs prevent repeated handoff.
 - [ ] 5. Support keyboard/focus, screen-reader status, mobile viewport/virtual keyboard and long Vietnamese names. Keep scroll and chat usable.
-- [ ] 6. After handoff open existing cart/order UI; allow normal edits without AI auto-checkout. Retain existing reservation cards.
+- [x] 6. After handoff open existing cart/order UI; allow normal edits without AI auto-checkout. Retain existing reservation cards.
 
 ## Exit criteria
 

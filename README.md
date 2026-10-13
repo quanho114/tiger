@@ -2,6 +2,16 @@
 
 Trang web và trải nghiệm đặt bàn / đặt món trực tuyến cho nhà hàng ẩm thực đương đại Tiger 345.
 
+## Tổ chức mã nguồn
+
+Frontend chia thành `src/app` (routes và providers), `src/features` (nghiệp vụ)
+và `src/shared` (UI và hạ tầng dùng chung). Backend giữ cổng HTTP nhỏ, điều phối
+sang các handler theo nghiệp vụ. Xem [hướng dẫn kiến trúc](docs/architecture.md)
+để biết vị trí đặt file, chiều phụ thuộc và quy trình thêm tính năng.
+
+Chạy `npm run check:architecture` để kiểm tra ranh giới module và import vòng.
+CI kiểm tra các quy tắc này trên mỗi pull request.
+
 ## Công nghệ sử dụng
 
 - **Framework**: React 19 + Vite 8
@@ -13,57 +23,51 @@ Trang web và trải nghiệm đặt bàn / đặt món trực tuyến cho nhà 
 
 ---
 
-## Phát triển cục bộ (Local Development)
+## Phát triển cục bộ
 
-### Yêu cầu hệ thống
-- **Node.js**: `>= 22.12.0` (Active LTS khuyến nghị)
-- **Docker**: Docker Engine / Desktop (dành cho Supabase local stack)
-- **Package Manager**: `npm`
-
-### Biến môi trường (.env)
-Sao chép `.env.example` thành `.env` để cấu hình kết nối frontend và cơ sở dữ liệu:
-```bash
-cp .env.example .env
-```
-
-### Quản lý cơ sở dữ liệu Supabase Local
-Hệ thống sử dụng Supabase CLI chạy Docker cục bộ với PostgreSQL 17:
-
-| Dịch vụ | Cổng (Port) | Mô tả |
-|---|---|---|
-| **API Gateway (Kong)** | `54321` | REST/GraphQL & Auth API |
-| **PostgreSQL Database** | `54322` | Cơ sở dữ liệu chính (PostgreSQL 17) |
-| **Supabase Studio** | `54323` | Giao diện quản trị database web |
-| **Mailpit (Inbucket)** | `54324` | Web kiểm tra email xác nhận local |
-| **Shadow DB** | `54320` | Database tạm phục vụ `db diff` |
-
-Các câu lệnh quản lý cơ sở dữ liệu:
-```bash
-# Khởi động toàn bộ cụm Supabase local (Docker)
-npm run db:start
-
-# Kiểm tra trạng thái và thông tin kết nối
-npm run db:status
-
-# Dừng toàn bộ cụm Supabase local
-npm run db:stop
-
-# Reset và seed lại dữ liệu mẫu (có guard bảo vệ chỉ chạy trên localhost:54322)
-npm run db:reset:test
-```
-
-### Cài đặt và khởi chạy Frontend
+Người mới bắt đầu tại [hướng dẫn contributor](docs/contributing.md): cài đặt,
+dựng database riêng, chạy backend/frontend, tạo admin local, kiểm thử và gửi PR.
 
 ```bash
-# Cài đặt dependencies (khuyến nghị dùng frozen install khi đồng bộ)
 npm ci
-
-# Khởi chạy dev server
-npm run dev
-
-# Xem thử production build
-npm run preview
+npm run db:start
 ```
+
+Supabase local lần đầu dựng schema từ migrations và nạp `supabase/seed.sql`.
+Sao chép `.env.example` thành `.env.local`, rồi thay public anon key bằng giá trị
+của instance local trong Supabase Studio → Settings → API. Chỉ dùng URL/key local;
+không dùng cấu hình production. Vite tự đọc `.env.local`.
+
+Chạy hai terminal từ thư mục repo:
+
+```bash
+# Terminal 1: backend; mẫu này không chứa bí mật
+npx supabase functions serve --env-file supabase/functions/.env.example --no-verify-jwt
+```
+
+```bash
+# Terminal 2: frontend
+npm run dev
+```
+
+Mở `http://localhost:5173`; Studio tại `http://127.0.0.1:54323`.
+`--no-verify-jwt` chỉ dành cho local: gateway của ứng dụng vẫn tự xác thực JWT
+và quyền truy cập. Không áp dụng tùy tiện vào cấu hình triển khai.
+
+`npm run db:reset:test` chỉ dùng cho database test có marker cách ly; không dùng
+để khởi tạo hoặc làm mới database phát triển. Xem hướng dẫn contributor trước
+khi chạy kiểm thử có ghi database.
+
+### Phát triển chatbot trên Tiger
+
+Mở chatbot trên website Tiger; không có trang chat riêng. Để cấu hình provider,
+dùng `/admin/settings` → Chatbot. API key thật chỉ đi qua cơ chế cấu hình backend,
+không ghi vào `.env`, `VITE_*`, mã nguồn hoặc commit. Gateway tùy chỉnh phải dùng
+HTTPS và hostname được phép qua `CONCIERGE_LLM_ALLOWED_HOSTS`.
+
+Clone repo không sao chép cấu hình provider hay khóa AI của người khác. Gọi
+provider thật có thể tính phí và cần được người thực hiện chủ động cho phép.
+Tests offline không chứng minh chatbot thật hoạt động; nghiệm thu theo AGENTS.md.
 
 ---
 
@@ -134,10 +138,10 @@ Hệ thống Tiger 345 áp dụng mô hình phân quyền nghiêm ngặt (**Inva
 - Quyền quản trị được kích hoạt thông qua bảng `public.admin_profiles`. Mọi yêu cầu quản trị đều kiểm tra trạng thái `active = true` trực tiếp từ cơ sở dữ liệu trên từng request (kể cả khi JWT chưa hết hạn).
 
 #### 1. Khởi tạo tài khoản Admin ban đầu trên Staging / Production:
-```bash
-# Bước 1: Tạo user trong Supabase Auth (hoặc qua Supabase Studio)
-npx supabase auth users create --email admin@tiger345.com --password "MAT_KHAU_MANH_16_KY_TU"
-```
+
+Tạo user bằng Supabase Dashboard → Authentication → Users trên đúng môi trường.
+Sau đó cấp quyền bằng SQL dưới đây; thay email mẫu bằng email vừa tạo.
+Không dùng script bootstrap local cho staging/production.
 
 ```sql
 -- Bước 2: Kích hoạt quyền Admin trong admin_profiles qua SQL Editor (yêu cầu service_role / postgres)
@@ -167,11 +171,11 @@ Truy cập `/admin/settings` -> Tab **Vận hành (Operations)**:
 - Gạt công tắc **Nhận đơn giao hàng** -> Tắt
 - Gạt công tắc **Nhận gọi món tại bàn** -> Tắt
 - Gạt công tắc **Nhận đặt bàn trực tuyến** -> Tắt
-- Bấm **Lưu thay đổi** (hệ thống lập tức cập nhật `settings.version` và gửi tín hiệu đến toàn bộ client).
+- Bấm **Lưu thay đổi** (hệ thống lập tức cập nhật `restaurant_settings.version` và gửi tín hiệu đến toàn bộ client).
 
 #### Cách 2: Qua câu lệnh SQL khẩn cấp:
 ```sql
-UPDATE public.settings
+UPDATE public.restaurant_settings
 SET accepting_delivery_orders = false,
     accepting_dine_in_orders = false,
     booking_enabled = false;

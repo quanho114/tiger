@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures/admin-e2e'
 
 const mockSettingsPayload = {
   data: {
@@ -277,7 +277,7 @@ test.describe('Tiger 345 Admin Content, Settings, Storage & QR E2E (Task T13, In
       })
     })
 
-    await page.route('**/functions/v1/admin-api/settings*', async (route) => {
+    await page.route('**/functions/v1/admin-api/settings', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -346,7 +346,7 @@ test.describe('Tiger 345 Admin Content, Settings, Storage & QR E2E (Task T13, In
     await page.goto('/admin/settings')
 
     // Expect header & version
-    await expect(page.getByRole('heading', { name: /Cấu Hình & Quản Trị Nội Dung/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Cài Đặt & Cấu Hình Quán/i })).toBeVisible()
     await expect(page.getByText('v1')).toBeVisible()
 
     // Expect all 4 tab buttons

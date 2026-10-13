@@ -1,6 +1,14 @@
+<!--
+Fact-Forcing Metadata:
+- Importers/Callers: Concierge V2 roadmap tracking, V06/V07/V15 planning
+- Affected API: ConciergeV2MemoryRepository
+- Data Schemas: public.user_ai_memory_settings, public.user_ai_memories, public.user_ai_memory_suppressions
+- Verbatim Instructions: "Triển khai Concierge V2 cho Tiger 345 theo bộ kế hoạch đã có.", "V05: Additive memory migration; memory-repository.ts and contract tests. No catalog migration or runtime.ts edits."
+-->
+
 # V05 - Memory schema, settings and repository
 
-Status: TODO
+Status: DONE
 Dependencies: V01
 Deliverable: implementation + applicable tests + ../reports/V05.md
 
@@ -22,12 +30,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Create settings/fact schema with bounded values, source/confidence, timestamps, schema version and unique upsert identity.
-- [ ] 2. Default memory disabled; implement authenticated enable/read/edit/delete/disable repository operations and per-user limits.
-- [ ] 3. Apply RLS and server identity binding. Model/client cannot choose a different owner. Return whitelisted DTOs only.
-- [ ] 4. Implement explicit-versus-inferred precedence, source-aware updates and stable correction identity.
-- [ ] 5. Increment memory_epoch atomically on forget/disable/account deletion; writes require matching epoch and active account.
-- [ ] 6. Document index/query plans and migrations rollback strategy. No raw utterance field in table or job payload archive.
+- [x] 1. Create settings/fact schema with bounded values, source/confidence, timestamps, schema version and unique upsert identity.
+- [x] 2. Default memory disabled; implement authenticated enable/read/edit/delete/disable repository operations and per-user limits.
+- [x] 3. Apply RLS and server identity binding. Model/client cannot choose a different owner. Return whitelisted DTOs only.
+- [x] 4. Implement explicit-versus-inferred precedence, source-aware updates and stable correction identity.
+- [x] 5. Increment memory_epoch atomically on forget/disable/account deletion; writes require matching epoch and active account.
+- [x] 6. Document index/query plans and migrations rollback strategy. No raw utterance field in table or job payload archive.
 
 ## Exit criteria
 

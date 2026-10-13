@@ -11,8 +11,8 @@ import {
   AlertCircle,
   RotateCcw,
 } from 'lucide-react'
-import { adminApi } from '../../../lib/api/client'
-import { ApiError } from '../../../lib/api/types'
+import { adminApi } from '@/shared/lib/api/client'
+import { ApiError } from '@/shared/lib/api/types'
 import type { AdminOrderDetail, OrderStatus, PaymentMethod } from '../types'
 
 interface AdminOrderDetailModalProps {
@@ -77,22 +77,15 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
     setSuccessMessage(null)
 
     try {
-      const res = await adminApi.patch<{ order: { internal_note: string; version: number } }>(
-        `/orders/${detail.order.id}/internal-note`,
+      await adminApi.patch(
+        `/orders/${detail.order.id}/note`,
         {
           internal_note: internalNote,
           expected_version: detail.order.version,
         }
       )
 
-      setDetail({
-        ...detail,
-        order: {
-          ...detail.order,
-          internal_note: res.data.order.internal_note,
-          version: res.data.order.version,
-        },
-      })
+      await loadOrderDetail()
       setSuccessMessage('Đã lưu ghi chú nội bộ thành công.')
       onOrderUpdated()
     } catch (err: unknown) {
@@ -304,6 +297,25 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                 <Armchair className="w-4 h-4" />
                 <span>Đã phục vụ ra bàn</span>
               </button>
+            ) : order_type === 'takeaway' ? (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                {payment_status !== 'paid' ? (
+                  <div className="flex items-center space-x-1.5 text-xs text-[#b57a0b] bg-[#faf1dc] border border-[#f2deae] px-3 py-1.5 rounded-lg font-medium">
+                    <AlertCircle className="w-4 h-4 text-[#b57a0b] shrink-0" />
+                    <span>Chưa thanh toán: Cần ghi nhận thanh toán trước khi hoàn thành đơn.</span>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => handleExecuteTransition('completed')}
+                  disabled={isSubmitting || payment_status !== 'paid'}
+                  className="elera-btn-accent shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={payment_status !== 'paid' ? 'Chưa thanh toán' : 'Bàn giao cho khách, hoàn thành đơn mang đi'}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Bàn giao cho khách (Hoàn thành)</span>
+                </button>
+              </div>
             ) : (
               <button
                 type="button"
@@ -423,6 +435,7 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Đóng chi tiết đơn hàng"
             className="elera-icon-btn w-8 h-8 rounded-lg"
           >
             <X className="w-4 h-4 text-[#787979]" />
@@ -481,7 +494,11 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                 <div>
                   <span className="text-[#787979] block font-medium">Loại đơn</span>
                   <span className="text-sm font-bold text-[#171a17] mt-0.5 block">
-                    {detail.order.order_type === 'dine_in' ? 'Tại bàn (Dine-in)' : 'Giao hàng (Delivery)'}
+                    {detail.order.order_type === 'dine_in'
+                      ? 'Tại bàn (Dine-in)'
+                      : detail.order.order_type === 'takeaway'
+                      ? 'Mang đi (Takeaway)'
+                      : 'Giao hàng (Delivery)'}
                   </span>
                 </div>
                 <div>
@@ -525,6 +542,31 @@ export const AdminOrderDetailModal: FC<AdminOrderDetailModalProps> = ({
                       </p>
                       <p className="text-[#787979] font-mono text-[11px]">
                         Mã phiên (visit): {detail.order.table_visit_id || 'N/A'}
+                      </p>
+                    </div>
+                  ) : detail.order.order_type === 'takeaway' ? (
+                    <div className="space-y-1">
+                      <p className="text-[#5c5e63]">
+                        Người nhận:{' '}
+                        <strong className="text-[#171a17]">
+                          {detail.order.customer_name || 'Khách vãng lai'}
+                        </strong>
+                      </p>
+                      <p className="text-[#5c5e63]">
+                        SĐT liên hệ:{' '}
+                        <strong className="text-[#171a17] font-mono">
+                          {detail.order.customer_phone || 'Chưa cung cấp'}
+                        </strong>
+                      </p>
+                      <p className="text-[#5c5e63]">
+                        Giờ nhận:{' '}
+                        <span className="text-[#171a17]">
+                          {detail.order.pickup_time || 'Càng sớm càng tốt'}
+                        </span>
+                      </p>
+                      <p className="text-[#5c5e63]">
+                        Nhận tại:{' '}
+                        <span className="text-[#171a17]">Tiger 345 – Vĩnh An, Vĩnh Cửu</span>
                       </p>
                     </div>
                   ) : (

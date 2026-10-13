@@ -11,14 +11,16 @@ import {
   ShieldCheck,
   ExternalLink,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '@/shared/lib/supabase'
 import { useAuth } from './useAuth'
 import { safeReturnTo, getAuthRedirectUrl, savePendingReturnTo } from './auth-helpers'
+import { useOptionalConciergeSession } from '@/features/concierge/ConciergeProvider'
 
 export const LoginPage: FC = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { user, role, isLoading: isAuthLoading } = useAuth()
+  const concierge = useOptionalConciergeSession()
 
   // Sanitize returnTo to prevent Open Redirect (CWE-601 / Invariant V19)
   const returnTo = safeReturnTo(searchParams.get('returnTo'), '/')
@@ -46,6 +48,7 @@ export const LoginPage: FC = () => {
     setIsGoogleLoading(true)
 
     try {
+      try { await concierge?.prepareLoginTransition() } catch { /* Login remains available without chat transfer. */ }
       savePendingReturnTo(returnTo)
       const redirectUrl = getAuthRedirectUrl(returnTo)
 
@@ -98,6 +101,7 @@ export const LoginPage: FC = () => {
 
     setIsSubmitting(true)
     try {
+      try { await concierge?.prepareLoginTransition() } catch { /* Login remains available without chat transfer. */ }
       savePendingReturnTo(returnTo)
       const redirectUrl = getAuthRedirectUrl(returnTo)
 
@@ -138,6 +142,7 @@ export const LoginPage: FC = () => {
 
     setIsSubmitting(true)
     try {
+      try { await concierge?.prepareLoginTransition() } catch { /* Login remains available without chat transfer. */ }
       const { error } = await supabase.auth.signInWithOtp({
         email: cleanEmail,
         options: {
@@ -207,7 +212,7 @@ export const LoginPage: FC = () => {
         <div className="text-center">
           <Link
             to="/"
-            className="inline-flex items-center gap-2.5 group cursor-pointer focus:outline-none"
+            className="hidden md:inline-flex items-center gap-2.5 group cursor-pointer focus:outline-none"
             aria-label="Tiger 345 - Về trang chủ"
           >
             <img
@@ -225,7 +230,7 @@ export const LoginPage: FC = () => {
             </div>
           </Link>
 
-          <h1 className="mt-6 text-xl sm:text-2xl font-bold font-['Fraunces',serif] text-[#234386] tracking-tight">
+          <h1 className="md:mt-6 text-xl sm:text-2xl font-bold font-['Fraunces',serif] text-[#234386] tracking-tight">
             Đăng nhập Tài khoản Khách hàng
           </h1>
           <p className="mt-2 text-xs sm:text-sm text-black/60 max-w-sm mx-auto leading-relaxed">

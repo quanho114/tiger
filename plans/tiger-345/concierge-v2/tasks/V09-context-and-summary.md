@@ -1,6 +1,6 @@
 # V09 - Context builder and rolling session summary
 
-Status: TODO
+Status: DONE
 Dependencies: V03, V06, V07, V08
 Deliverable: implementation + applicable tests + ../reports/V09.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Assemble business policy, applicable memory, session summary, recent messages, draft, relevant tool schemas and candidates with explicit provenance.
-- [ ] 2. Include current user message exactly once. Preserve verified auth identity outside model payload.
-- [ ] 3. Implement per-request and per-turn input budgets including tool schemas/results. Use tokenizer/provider-aware estimates and conservative fallback.
-- [ ] 4. Trigger bounded summary around 10 turns or 2500 recent tokens; retain 4-8 messages. Summary preserves constraints, pending questions and references, not fabricated acceptance.
-- [ ] 5. Use deterministic structured summary where possible; bounded cheap model optionally. Summary failure keeps safety-critical state and trims optional data.
-- [ ] 6. Prevent summary and retrieved text from becoming instructions or durable facts. Resolve conflict with canonical constraints/draft, and record truncation metrics without text.
+- [x] 1. Assemble business policy, applicable memory, session summary, recent messages, draft, relevant tool schemas and candidates with explicit provenance.
+- [x] 2. Include current user message exactly once. Preserve verified auth identity outside model payload.
+- [x] 3. Implement per-request and per-turn input budgets including tool schemas/results. Use tokenizer/provider-aware estimates and conservative fallback.
+- [x] 4. Trigger bounded summary around 10 turns or 2500 recent tokens; retain 4-8 messages. Summary preserves constraints, pending questions and references, not fabricated acceptance.
+- [x] 5. Use deterministic structured summary where possible; bounded cheap model optionally. Summary failure keeps safety-critical state and trims optional data.
+- [x] 6. Prevent summary and retrieved text from becoming instructions or durable facts. Resolve conflict with canonical constraints/draft, and record truncation metrics without text.
 
 ## Exit criteria
 

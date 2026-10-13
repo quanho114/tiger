@@ -40,6 +40,8 @@ describe('Order Engine & Quote Integration (Task T07, Invariants V08, V09, V10)'
     })
 
     await seedFixtureUsers(pool)
+    // Transaction scenarios must remain open regardless of the wall clock.
+    await pool.query("UPDATE public.business_hours SET open_time = '00:00:00', close_time = '23:59:59' WHERE service_type IN ('restaurant', 'delivery')")
     adminToken = getUserToken('admin')
 
     // 1. Create a dining table

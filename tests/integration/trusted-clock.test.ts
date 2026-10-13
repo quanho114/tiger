@@ -423,7 +423,8 @@ describe('F04: Trusted Clock & Operating Schedule Validation', () => {
       const pgErr = caughtError as { code?: string; message?: string }
       expect(pgErr.code).toBe('P0011')
       expect(pgErr.message).toContain('SERVICE_CLOSED')
-      expect(pgErr.message).toContain('Ngoài khung giờ phục vụ')
+      // Either the delivery shift or the restaurant kitchen can close this time slot.
+      expect(pgErr.message).toMatch(/Ngoài khung giờ phục vụ|bếp không hoạt động/)
     })
   })
 

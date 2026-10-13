@@ -169,6 +169,6 @@ test.describe('Tiger 345 Customer Auth & Optional Login (Invariant V13, V19)', (
     await page.goto('/admin')
     // Unauthenticated guest is redirected to /admin/login
     await expect(page).toHaveURL(/\/admin\/login/)
-    await expect(page.getByRole('heading', { name: /Đăng nhập Hệ thống Điều phối Vận hành/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /TIGER 345 • Bếp & Quán/i })).toBeVisible()
   })
 })

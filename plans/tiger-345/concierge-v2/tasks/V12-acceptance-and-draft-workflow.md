@@ -1,6 +1,6 @@
 # V12 - Acceptance intent and draft tool workflow
 
-Status: TODO
+Status: DONE
 Dependencies: V10, V11
 Deliverable: implementation + applicable tests + ../reports/V12.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Distinguish suggestion, explicit acceptance, ambiguous approval, rejection, quantity change, removal and review intent.
-- [ ] 2. Bind pronouns/OK/2 portions to exactly one current pending suggestion with stable item ID, proposed quantity and version. Otherwise clarify.
-- [ ] 3. Model output is an interpretation proposal only; backend checks supporting user instruction, pending context and allowed operation. No accepted=true trust shortcut.
-- [ ] 4. Register draft tools and commit validated operation batches atomically. Changing topic, rejection or stale version invalidates inappropriate pending acceptance.
-- [ ] 5. Support discovery -> preferences -> recommendation -> building -> reviewing; FAQ detours preserve accepted draft; chot only renders review.
-- [ ] 6. Acknowledge committed items naturally. Never claim additions on failed CAS or tool error. Exclude automatic order/checkout paths from V2.
+- [x] 1. Distinguish suggestion, explicit acceptance, ambiguous approval, rejection, quantity change, removal and review intent.
+- [x] 2. Bind pronouns/OK/2 portions to exactly one current pending suggestion with stable item ID, proposed quantity and version. Otherwise clarify.
+- [x] 3. Model output is an interpretation proposal only; backend checks supporting user instruction, pending context and allowed operation. No accepted=true trust shortcut.
+- [x] 4. Register draft tools and commit validated operation batches atomically. Changing topic, rejection or stale version invalidates inappropriate pending acceptance.
+- [x] 5. Support discovery -> preferences -> recommendation -> building -> reviewing; FAQ detours preserve accepted draft; chot only renders review.
+- [x] 6. Acknowledge committed items naturally. Never claim additions on failed CAS or tool error. Exclude automatic order/checkout paths from V2.
 
 ## Exit criteria
 

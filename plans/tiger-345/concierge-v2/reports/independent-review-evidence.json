@@ -1,0 +1,228 @@
+{
+  "date": "2026-09-22",
+  "requested_model": "ag/gemini-3.8-flash-high",
+  "bounded_proxy_model": "ag/gemini-3.8-flash-high(1024)",
+  "method": "Independent model source review; tests executed separately by implementation agent",
+  "reviews": {
+    "session": {
+      "model": "gemini-3.8-flash",
+      "usage": {
+        "prompt_tokens": 19313,
+        "completion_tokens": 349,
+        "total_tokens": 19662
+      },
+      "elapsed_seconds": 142.44,
+      "finish_reason": "stop",
+      "source_sha256": {
+        "supabase/functions/_shared/concierge/runtime-v2.ts": "fff850cb3293af398b0eb10f57fca7139ecc45a3e1907b3a1ed071a2c9c3b2a0",
+        "supabase/functions/_shared/concierge/session-store.ts": "b09aa876237c6b666b77f6dc5a33fca3501ef44ed91c9a7f2cf8033f9e21e29e",
+        "supabase/functions/_shared/concierge/session-store-redis.ts": "d10fdb0e3d0ec5a890c923585faa3caec9f505744f24c17d6df04978c1745701",
+        "supabase/functions/_shared/concierge/turn-lease.ts": "7e463fbfc7337f751791a51b1226ce4e7b11c1bb11e787a7e384949a4eb5992c",
+        "supabase/functions/_shared/concierge/health.ts": "ca1bdda578ac5ad2980dad2aecede3d27d65eb1807806b189eb27bc34b3354c3",
+        "supabase/functions/_shared/concierge/observability.ts": "c132c34c9ea85e03d9237b0f08f04a9a04f8fc9efff170d0d0d5ec942e13b430",
+        "supabase/functions/public-api/concierge-protocol-handlers.ts": "13688fc4bddc55ee2eac1555444769276d609fc159b0c99fd868eabb6e2d07b1"
+      },
+      "review": {
+        "findings": [
+          {
+            "severity": "high",
+            "title": "Unauthenticated actor binding check permits guest session hijacking",
+            "file": "supabase/functions/_shared/concierge/session-store.ts",
+            "line": 120,
+            "reproduction": "Create a session as guest (authenticated_user_id: null). Any other unauthenticated guest sharing or acquiring capability/session reference satisfies actorMatches because null === null.",
+            "fix": "Bind guest sessions to an unforgeable guest actor token or unique client/device identity rather than evaluating null === null as an actor match."
+          },
+          {
+            "severity": "medium",
+            "title": "Upstash Redis backend compares stale state_version in CAS script",
+            "file": "supabase/functions/_shared/concierge/session-store-redis.ts",
+            "line": 63,
+            "reproduction": "MUTATE_SCRIPT verifies record.state_version against ARGV[8] (current.state_version fetched in pre-read). A concurrent CAS between read and eval still passes if ARGV[3] matches, but if ARGV[3] != ARGV[8] it fails unnecessarily, or if concurrent mutations interleave, ARGV[8] causes false conflicts.",
+            "fix": "Rely only on expected_state_version (ARGV[3]) in MUTATE_SCRIPT and remove the redundant check against pre-read state_version (ARGV[8])."
+          }
+        ],
+        "limitations": [
+          "External modules (flags.ts, memory-extractor.ts, memory-repository.ts, orchestrator.ts, types.ts) were not provided."
+        ],
+        "completed": true
+      }
+    },
+    "memory": {
+      "model": "gemini-3.8-flash",
+      "usage": {
+        "prompt_tokens": 32681,
+        "completion_tokens": 430,
+        "total_tokens": 33111
+      },
+      "elapsed_seconds": 26.43,
+      "finish_reason": "stop",
+      "source_sha256": {
+        "supabase/functions/_shared/concierge/memory-repository.ts": "f705fc79b775f5ce70d57a5aeb1f9d66702660f059598d216e722a4fbd37eb73",
+        "supabase/functions/_shared/concierge/memory-extractor.ts": "b110b5ad14c8c23b59e339152256337756cbfc7751c99180e7364082bd3ca4d8",
+        "supabase/functions/_shared/concierge/behavioral-memory.ts": "acfd1b88238f2672b30fe2f76e065eb8bc438ab738bccb18e80f3c40bd1b6fa0",
+        "supabase/functions/_shared/concierge/memory-retrieval.ts": "1ad798223807507c22a0c91b58280c42d6ba3a993c45a19b0c3e3e1a7161b039",
+        "supabase/functions/customer-api/memory-handlers.ts": "b83a166f4f8a034d552fba32d2d680dd18e69ff8cb696950c2de51722d796db4",
+        "supabase/migrations/20260922000001_concierge_v2_memory.sql": "52ff5c5ba28bf8fe8016f9358d5d862fbd5cacb9428b128d23b2d5d39999acf1",
+        "supabase/migrations/20260922000004_concierge_memory_deletion_fence.sql": "58184e651494c9426fe6ad800ffbb4ff8b605f038ed80fbadbfd060230548684",
+        "src/features/account/MemoryControls.tsx": "a0ae266a3e9e3913470fe5aa74cf53f3a0720aecba0b809d2596a94d8d753eaf"
+      },
+      "review": {
+        "findings": [
+          {
+            "severity": "high",
+            "title": "Unchecked allergy modification on edit endpoint creates unvalidated food allergy claims",
+            "file": "supabase/functions/customer-api/memory-handlers.ts",
+            "line": 44,
+            "reproduction": "Call PUT /me/ai-memory/edit with selector `{ memory_type: 'allergy', memory_key: 'peanut', source: 'explicit' }` and food `'strawberries'`. `slugifyFoodKey` delegates to `normalizeAllergen('strawberries')`, which returns null for unknown allergens and falls back to slugifying 'strawberries'. The fact is directly inserted with memory_type 'allergy' without validating against verified allergen lists.",
+            "fix": "Validate food with `normalizeAllergen(food)` when `input.selector.memory_type === 'allergy'`. Reject the update if `normalizeAllergen` returns null."
+          },
+          {
+            "severity": "medium",
+            "title": "Edit memory fact deletes old entry without optimistic epoch fence, risking silent overwrite races",
+            "file": "supabase/functions/customer-api/memory-handlers.ts",
+            "line": 40,
+            "reproduction": "Client submits PUT /me/ai-memory/edit without passing `expected_memory_epoch` in `selector`. `deleteFact` invokes `concierge_v2_delete_memory_fact_fenced` with a null epoch, bypassing CAS protection against concurrent user forget/disable actions that occurred between UI read and submit.",
+            "fix": "Require `expected_memory_epoch` in editSchema's selector, passing it into `tx.deleteFact`, or verify `settings.memory_epoch === input.selector.expected_memory_epoch` before deleting."
+          }
+        ],
+        "limitations": [
+          "External modules (food-safety.ts, redact.ts, contracts/concierge-v2.ts) are not fully provided.",
+          "Database runtime environment and complete database schemas outside the provided migrations were not directly executed."
+        ],
+        "completed": true
+      }
+    },
+    "draft": {
+      "model": "gemini-3.8-flash",
+      "usage": {
+        "prompt_tokens": 41504,
+        "completion_tokens": 560,
+        "total_tokens": 42064
+      },
+      "elapsed_seconds": 23.15,
+      "finish_reason": "stop",
+      "source_sha256": {
+        "supabase/functions/_shared/concierge/orchestrator.ts": "a8656e7ce434cfe4a0cccf5887050a7acf341626ef48da414791fe92bca3af9e",
+        "supabase/functions/_shared/concierge/draft-intent.ts": "23a1262df4deb86f0d9227914bd7ceab06cd3bed6b7e4d23097f0310befe7d73",
+        "supabase/functions/_shared/concierge/draft-cart.ts": "02d1690b647e6de5863fba7f19be8777db861584d65f9765cf98d3e094914868",
+        "supabase/functions/_shared/concierge/cart-handoff.ts": "15c34a124c6cc67af61ea694bafa00b5450efe6b013c38c32c17e5048f39c41c",
+        "supabase/functions/_shared/concierge/context.ts": "16aa603405f86bd97e4396f66b1d876c6976438bb49c75dc758aa44c834d8d75",
+        "supabase/functions/_shared/concierge/session-summary.ts": "e47e891144ff2f23ba42fe412699152b43f3c4ef45bef6e99146601bdd1e06ff",
+        "supabase/functions/_shared/concierge/tool-registry.ts": "1466a99490721ff6469a4719364372dc3c8508486fa717acf6d7282d655fe3e9",
+        "supabase/functions/_shared/concierge/food-safety.ts": "0d9166a4cb112963cc7b3f211bcc9dd54186d3d7c4779397d2531e48d53c725f",
+        "supabase/functions/_shared/concierge/menu-retrieval.ts": "37e9112ec28e4cb8bbfb2ee949b85b7f414af03fd7f0eb68beca8ca8bc32290c",
+        "src/features/concierge/useConcierge.ts": "ce8f780006409bf3b22d77adbdb431b03c75d74be67b72b829582dfb86f1b01f",
+        "src/features/cart/CartProvider.tsx": "9489907d1d0997503ab9a72ac49c84205c139374820e46b661156ed9e34d971e",
+        "src/features/cart/cartReducer.ts": "9c6c601b0b6bd1f6bb039a715e62e84b9bda40b8f0021811c093a815dc9b2b7d",
+        "src/features/cart/handoff.ts": "6e3b39766fafc081f9f111678eb5d554c2959f5f1b9e664a796bc311581f7bb9",
+        "src/features/cart/storage.ts": "fad5b19b3198290efe5cb6e4761cb2030e1d9984607613a38ec4d82a7d9ed177"
+      },
+      "review": {
+        "findings": [
+          {
+            "severity": "CRITICAL",
+            "title": "Handoff fails when draft review state transition is skipped",
+            "file": "supabase/functions/_shared/concierge/orchestrator.ts",
+            "line": 137,
+            "reproduction": "Create draft via draft_operation or intent. In chot/review turn, request action handoff_draft. Draft review_state is still 'building'. prepareCartHandoff checks draft.review_state !== 'ready_for_review' and throws INVALID_HANDOFF.",
+            "fix": "Before invoking prepareCartHandoff on handoff_draft, call transitionDraftReviewState(checked, 'ready_for_review') or update checkDraftHandoffEligibility / prepareCartHandoff to permit auto-transition if valid."
+          },
+          {
+            "severity": "HIGH",
+            "title": "Natural language item removal removes wrong line or corrupts notes",
+            "file": "src/features/cart/CartProvider.tsx",
+            "line": 100,
+            "reproduction": "Have two cart lines for dishId with notes 'ít cay' and 'không cay'. In UI/consumer, call remove(dishId) without note. In cartReducer REMOVE_ITEM, condition (item.note ?? '') !== (action.note ?? '') evaluates against note=undefined, filtering out only lines where note==='', deleting empty-note items or failing to match target line.",
+            "fix": "Pass note from caller or update cartReducer REMOVE_ITEM and UPDATE_QUANTITY to check if action.note !== undefined before filtering by note."
+          },
+          {
+            "severity": "MEDIUM",
+            "title": "Direct draft_operation ignores pending suggestions validation",
+            "file": "supabase/functions/_shared/concierge/orchestrator.ts",
+            "line": 111,
+            "reproduction": "Client sends draft_operation={type: 'add_item', pending_suggestion_id: 'x', menu_item_id: 'y', quantity: 1}. orchestrator passes undefined for allowedPendingSuggestionIds to applyDraftBatch, bypassing allowed suggestion verification for operations not passing through lines 94-98.",
+            "fix": "Pass next.pending_suggestion_ids as the 4th argument to applyDraftBatch instead of undefined."
+          }
+        ],
+        "limitations": [
+          "External schemas, contracts (@contracts/concierge-v2), and DB pool/migrations were not provided.",
+          "RAG, memory extraction/retrieval implementations, and LLM orchestration delegates were not provided."
+        ],
+        "completed": true
+      }
+    },
+    "final": {
+      "model": "gemini-3.8-flash",
+      "usage": {
+        "prompt_tokens": 58887,
+        "completion_tokens": 607,
+        "total_tokens": 59494
+      },
+      "elapsed_seconds": 121.2,
+      "finish_reason": "stop",
+      "source_sha256": {
+        "supabase/functions/_shared/concierge/session-store.ts": "b09aa876237c6b666b77f6dc5a33fca3501ef44ed91c9a7f2cf8033f9e21e29e",
+        "supabase/functions/_shared/concierge/session-store-redis.ts": "d10fdb0e3d0ec5a890c923585faa3caec9f505744f24c17d6df04978c1745701",
+        "supabase/functions/_shared/concierge/orchestrator.ts": "a8656e7ce434cfe4a0cccf5887050a7acf341626ef48da414791fe92bca3af9e",
+        "supabase/functions/_shared/concierge/draft-intent.ts": "23a1262df4deb86f0d9227914bd7ceab06cd3bed6b7e4d23097f0310befe7d73",
+        "supabase/functions/_shared/concierge/cart-handoff.ts": "15c34a124c6cc67af61ea694bafa00b5450efe6b013c38c32c17e5048f39c41c",
+        "supabase/functions/_shared/concierge/food-safety.ts": "0d9166a4cb112963cc7b3f211bcc9dd54186d3d7c4779397d2531e48d53c725f",
+        "supabase/functions/_shared/contracts/concierge-v2.ts": "c89963c37f40bc6527667578868b86700453318cdf03a84e619ae942bf4e20db",
+        "supabase/functions/customer-api/memory-handlers.ts": "872d77c3e973842a662449941d3fa791ec608f5a396223202b6d66c716f60e26",
+        "supabase/migrations/20260922000004_concierge_memory_deletion_fence.sql": "58184e651494c9426fe6ad800ffbb4ff8b605f038ed80fbadbfd060230548684",
+        "src/features/ordering/checkout/CartDrawer.tsx": "463cd4e9170e3dfaf0f4206acbfdffb266fa647606f81f6f97c0a3de942672d1",
+        "src/features/account/MemoryControls.tsx": "c2d5c4cd2a7feccac0985e57847dd2e06387c724b5f4f017669f4ba99c3b4feb",
+        "tests/integration/concierge-memory-controls.test.ts": "aba3b326fdc17d0ca1309ed9302fb37c6493ac13139a3aead4097450280f4c43",
+        "tests/server/concierge-draft-intent.test.ts": "100a040384f8d352355a1dbc969034493e766b750d1ead98565018a9d838f8f0",
+        "plans/tiger-345/concierge-v2/REQUIREMENTS.md": "f1cd9bb2221334e45c489725126761d9a10f22381a3289cf2da6fbe462652294",
+        "plans/tiger-345/concierge-v2/verification-matrix.md": "bc98f0bc5bbde9f89a1cb869e9dc9f5d7870b02e6f135b63bcbbd71669b3f203",
+        "plans/tiger-345/concierge-v2/release-runbook.md": "e0474fe936189b7c397e237c6b895e0a519264d944390d5b811e2c493d603d94"
+      },
+      "review": {
+        "findings": [],
+        "dispositions": [
+          {
+            "title": "Unauthenticated actor binding check permits guest session hijacking",
+            "status": "withdrawn",
+            "reason": "Actor binding checks user ID, but session-store.ts enforces 256-bit unforgeable bearer capability verification in isAuthorized via SHA-256 hash match on all reads, mutations, and deletions."
+          },
+          {
+            "title": "Upstash Redis backend compares stale state_version in CAS script",
+            "status": "withdrawn",
+            "reason": "Comparing record.state_version against both expected_state_version and pre-read state_version prevents applying mutations based on a stale pre-read serialization payload."
+          },
+          {
+            "title": "Unchecked allergy modification on edit endpoint creates unvalidated food allergy claims",
+            "status": "withdrawn",
+            "reason": "Allergy memory stores user constraints rather than verified kitchen claims. evaluateFoodSafety treats unmapped/unknown allergen keys as unverified/unknown and blocks safe claims fail-closed."
+          },
+          {
+            "title": "Edit memory fact deletes old entry without optimistic epoch fence, risking silent overwrite races",
+            "status": "resolved",
+            "reason": "customerFactSelectorSchema requires expected_memory_epoch; memory-handlers.ts and concierge_v2_delete_memory_fact_fenced enforce epoch CAS validation under a row lock."
+          },
+          {
+            "title": "Handoff fails when draft review state transition is skipped",
+            "status": "withdrawn",
+            "reason": "Draft specification mandates explicit review step (via 'chot' or review_draft) to enter 'ready_for_review' before cart handoff; direct handoff from 'building' is intentionally disallowed."
+          },
+          {
+            "title": "Natural language item removal removes wrong line or corrupts notes",
+            "status": "resolved",
+            "reason": "CartDrawer.tsx now checks `item.note === undefined` and forwards `item.note` to onUpdateQuantity and onRemoveItem."
+          },
+          {
+            "title": "Direct draft_operation ignores pending suggestions validation",
+            "status": "resolved",
+            "reason": "orchestrator.ts lines 94-98 validate pending_suggestion_id against pending_items on incoming draft_operation before applyDraftBatch."
+          }
+        ],
+        "limitations": [
+          "Unprovided modules (context.ts, session-summary.ts, tool-registry.ts, menu-retrieval.ts, llm-config.ts, draft-cart.ts, memory-extractor.ts, memory-repository.ts, memory-retrieval.ts) were not directly inspected.",
+          "External provider model quality, hosted Upstash Redis infrastructure, and human accessibility (WCAG/screen readers) remain unverified."
+        ],
+        "completed": true
+      }
+    }
+  }
+}

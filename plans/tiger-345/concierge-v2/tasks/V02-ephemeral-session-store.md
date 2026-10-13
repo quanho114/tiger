@@ -1,6 +1,6 @@
 # V02 - Shared TTL session store
 
-Status: BLOCKED
+Status: DONE
 Dependencies: V01
 Deliverable: implementation + applicable tests + ../reports/V02.md
 
@@ -22,12 +22,12 @@ You are not alone in the codebase. Preserve edits by the user and other agents, 
 
 ## Subtasks
 
-- [ ] 1. Implement create/read/CAS/delete with server-generated capability, hashed capability storage where practical, actor binding, version and injected clock.
-- [ ] 2. Enforce 45-minute inactivity and 4-hour maximum expiry on reads and writes. Refresh idle TTL only for accepted activity; expired writes cannot revive sessions.
-- [ ] 3. Store transcript, summary, constraints, draft and pending suggestion together. Add limits for messages, bytes, draft size and operation replay records.
-- [ ] 4. Implement atomic version/expiry/idempotency checks with the selected store primitive. Reject cross-user access and conflicting simultaneous writes.
-- [ ] 5. Implement deterministic in-memory test adapter with equivalent behavior. Production missing/unavailable store returns explicit service error, not DB or RAM fallback.
-- [ ] 6. Add isolated real-store tests for TTL, simultaneous requests, response-loss retry, deletion and separate Edge-client instances.
+- [x] 1. Implement create/read/CAS/delete with server-generated capability, hashed capability storage where practical, actor binding, version and injected clock.
+- [x] 2. Enforce 45-minute inactivity and 4-hour maximum expiry on reads and writes. Refresh idle TTL only for accepted activity; expired writes cannot revive sessions.
+- [x] 3. Store transcript, summary, constraints, draft and pending suggestion together. Add limits for messages, bytes, draft size and operation replay records.
+- [x] 4. Implement atomic version/expiry/idempotency checks with the selected store primitive. Reject cross-user access and conflicting simultaneous writes.
+- [x] 5. Implement deterministic in-memory test adapter with equivalent behavior. Production missing/unavailable store returns explicit service error, not DB or RAM fallback.
+- [x] 6. Add isolated real-store tests for TTL, simultaneous requests, response-loss retry, deletion and separate Edge-client instances.
 
 ## Exit criteria
 

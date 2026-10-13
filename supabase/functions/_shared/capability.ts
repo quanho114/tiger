@@ -6,15 +6,12 @@
 import type pg from 'pg'
 import { createSignedToken, verifySignedToken } from './crypto.ts'
 import { AppError } from './errors.ts'
+import { signingSecret } from './environment.ts'
 
 export const CAPABILITY_DEFAULT_TTL_SECONDS = 4 * 3600 // 4 hours
 
 export function getCapabilitySecret(): string {
-  return (
-    process.env.CAPABILITY_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    'tiger345-capability-secret-2026'
-  )
+  return signingSecret('CAPABILITY_SECRET', 'tiger345-capability-secret-2026')
 }
 
 export interface VisitCapabilityPayload {

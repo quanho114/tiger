@@ -17,6 +17,7 @@ import {
 
 const IDLE_TIMEOUT_MS = 45 * 60 * 1000
 const ABSOLUTE_TIMEOUT_MS = 4 * 60 * 60 * 1000
+export const MAX_CONCIERGE_SESSION_BYTES = 256 * 1024
 
 export interface ConciergeV2Clock {
   now(): Date
@@ -81,7 +82,7 @@ export function createConciergeV2OwnershipError(): ConciergeV2Error {
   return ownershipError()
 }
 
-function internalError(): ConciergeV2Error {
+export function internalError(): ConciergeV2Error {
   return error('INTERNAL_SAFE_FAILURE', 'Không thể xử lý phiên trò chuyện một cách an toàn.', true)
 }
 
@@ -210,7 +211,8 @@ class SessionStore implements ConciergeV2SessionStore {
         return { ok: false, error: internalError() }
       }
       if (hasExpired(record, this.clock.now())) {
-        await this.backend.delete(reference.session_id)
+        // A concurrent CAS may have refreshed idle expiry since this read.
+        // The retention job removes expired rows after their logical expiry.
         return { ok: false, error: expiredError() }
       }
       if (!isAuthorized(record, actor, await hashCapability(reference.session_capability))) {
@@ -243,6 +245,9 @@ class SessionStore implements ConciergeV2SessionStore {
         absolute_expires_at: toIso(absoluteExpiry),
         ...parsedInput.data,
         idempotency: [],
+      }
+      if (new TextEncoder().encode(serialize(record)).byteLength > MAX_CONCIERGE_SESSION_BYTES) {
+        return { ok: false, error: internalError() }
       }
       const created = isAtomicBackend(this.backend)
         ? await this.backend.create(record, now)
@@ -306,13 +311,21 @@ class SessionStore implements ConciergeV2SessionStore {
 
     const now = this.clock.now()
     const nextRecord: ConciergeV2SessionRecord = {
-      ...record,
+      session_id: record.session_id,
+      capability_hash: record.capability_hash,
+      actor: record.actor,
+      created_at: record.created_at,
+      absolute_expires_at: record.absolute_expires_at,
       ...input.next,
       state_version: record.state_version + 1,
       idle_expires_at: toIso(nextIdleExpiry(now, new Date(record.absolute_expires_at))),
       idempotency: [...record.idempotency, { request_id: input.request_id, operation_hash: input.operation_hash, result: input.result }].slice(-32),
     }
-    return { next: serialize(nextRecord), result: { ok: true, record: nextRecord, replay: false, result: input.result } }
+    const serialized = serialize(nextRecord)
+    if (new TextEncoder().encode(serialized).byteLength > MAX_CONCIERGE_SESSION_BYTES) {
+      return { next: raw, result: { ok: false, error: internalError() } }
+    }
+    return { next: serialized, result: { ok: true, record: nextRecord, replay: false, result: input.result } }
   }
 
   private deleteOwned(raw: string | null, reference: ConciergeV2SessionReference, actor: ConciergeV2ActorBinding, capabilityHash: string): { next: string | null; result: ConciergeV2SessionDeleteResult } {

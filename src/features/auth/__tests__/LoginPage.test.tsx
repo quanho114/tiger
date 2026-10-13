@@ -4,9 +4,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { LoginPage } from '../LoginPage'
 import { AuthContext, type AuthState } from '../AuthContext'
-import { supabase } from '../../../lib/supabase'
+import { supabase } from '@/shared/lib/supabase'
 
-vi.mock('../../../lib/supabase', () => ({
+vi.mock('@/shared/lib/supabase', () => ({
   supabase: {
     auth: {
       signInWithOAuth: vi.fn(),

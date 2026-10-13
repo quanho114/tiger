@@ -79,7 +79,7 @@ export const VietnamPhoneSchema = z
 /**
  * Domain Enum Schemas matching DB definition
  */
-export const OrderTypeSchema = z.enum(['dine_in', 'delivery']);
+export const OrderTypeSchema = z.enum(['dine_in', 'delivery', 'takeaway']);
 export type OrderType = z.infer<typeof OrderTypeSchema>;
 
 export const OrderStatusSchema = z.enum([

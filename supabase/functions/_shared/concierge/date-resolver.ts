@@ -1,6 +1,6 @@
 /**
  * Fact-Forcing Metadata:
- * - Importers/Callers: supabase/functions/_shared/concierge/runtime.ts, supabase/functions/_shared/concierge/tools.ts, tests/server/concierge-reservation-ui.test.ts
+ * - Importers/Callers: supabase/functions/_shared/concierge/llm.ts
  * - Affected API: resolveReservationDateTime, extractReservationDetails, createVnIsoString, getVnDateTimeComponents
  * - Data Schemas: ResolvedReservationDateTime, ExtractedReservationDetails
  * - Verbatim Instruction: "Resolve ngày tương đối bằng Asia/Ho_Chi_Minh và clock server; ngày giờ mơ hồ hỏi lại; xác nhận ngày tuyệt đối. Thu thập tên/phone/guests/ngày giờ thật; area/note theo policy, không fake fallback."
@@ -100,13 +100,14 @@ export function createVnIsoString(
  */
 export function resolveReservationDateTime(
   text: string,
-  referenceDate: Date = new Date()
+  referenceDate: Date = new Date(),
+  parseOnly = false
 ): ResolvedReservationDateTime {
   const norm = normalizeText(text)
   const vnRef = getVnDateTimeComponents(referenceDate)
 
   // 1. Detect near midnight / out of hours requests immediately
-  if (
+  if (!parseOnly &&
     norm.includes('nửa đêm') ||
     norm.includes('nua dem') ||
     norm.includes('gần nửa đêm') ||
@@ -273,6 +274,7 @@ export function resolveReservationDateTime(
   let targetHour: number | null = null
   let targetMinute = 0
   let timeFound = false
+  let timeAmbiguous = false
 
   // Detect time of day modifiers
   const hasToi = norm.includes('tối') || norm.includes('toi') || norm.includes('đêm') || norm.includes('dem')
@@ -298,16 +300,17 @@ export function resolveReservationDateTime(
       if (h < 12) {
         if (hasToi && h < 12) {
           h += 12
-        } else if (hasChieu && h < 12 && h < 6) {
+        } else if (hasChieu) {
           h += 12
         } else if (hasTrua && h === 11) {
           // 11h trưa is 11:00
         } else if (hasTrua && h === 12) {
           // 12h trưa is 12:00
         } else if (h >= 1 && h <= 9 && !hasSang && (h === 7 || h === 8 || h === 6 || h === 5)) {
+          if (parseOnly) timeAmbiguous = true
           // If customer mentions 6h, 7h, 8h in a dinner context without saying "sáng",
           // restaurant does not open before 10:30, so 6h, 7h, 8h without modifier refers to evening
-          if (norm.includes('tối') || norm.includes('bữa tối') || norm.includes('ăn tối') || h === 7 || h === 8 || h === 6 || h === 5) {
+          if (!parseOnly && (norm.includes('tối') || norm.includes('bữa tối') || norm.includes('ăn tối') || h === 7 || h === 8 || h === 6 || h === 5)) {
             h += 12
           }
         }
@@ -353,13 +356,14 @@ export function resolveReservationDateTime(
       success: false,
       missingField: 'time',
       reason:
-        'Bạn dự định đến dùng bữa vào mấy giờ ạ? Khung giờ nhận khách của Tiger 345 là từ 10:30 sáng đến 20:30 tối.',
+        'Bạn dự định đến dùng bữa vào mấy giờ?',
     }
   }
+  if (timeAmbiguous) return { success: false, ambiguous: true, reason: 'Bạn muốn đến buổi sáng hay buổi tối?' }
 
   // 4. Validate Operating Hours
   // Intake hours: 10:30 - 20:30
-  if (targetHour < 10 || (targetHour === 10 && targetMinute < 30)) {
+  if (!parseOnly && (targetHour < 10 || (targetHour === 10 && targetMinute < 30))) {
     return {
       success: false,
       isOutOfHours: true,
@@ -368,7 +372,7 @@ export function resolveReservationDateTime(
     }
   }
 
-  if (targetHour > 20 || (targetHour === 20 && targetMinute > 30)) {
+  if (!parseOnly && (targetHour > 20 || (targetHour === 20 && targetMinute > 30))) {
     return {
       success: false,
       isOutOfHours: true,
@@ -385,6 +389,11 @@ export function resolveReservationDateTime(
     targetHour,
     targetMinute
   )
+  const local = getVnDateTimeComponents(startsAtDate)
+  if (local.year !== targetYear || local.month !== targetMonth || local.date !== targetDate ||
+      local.hour !== targetHour || local.minute !== targetMinute) {
+    return { success: false, reason: 'Ngày hoặc giờ không hợp lệ.', ambiguous: true }
+  }
 
   // 5. Policy Timing Checks relative to referenceDate
   const refMs = referenceDate.getTime()
@@ -401,7 +410,7 @@ export function resolveReservationDateTime(
 
   // Notice window check: >= 30 min
   const diffMinutes = (startMs - refMs) / (60 * 1000)
-  if (diffMinutes < 30) {
+  if (!parseOnly && diffMinutes < 30) {
     return {
       success: false,
       isNoticeTooShort: true,
@@ -412,7 +421,7 @@ export function resolveReservationDateTime(
 
   // Horizon check: <= 30 days
   const diffDays = (startMs - refMs) / (24 * 3600 * 1000)
-  if (diffDays > 30) {
+  if (!parseOnly && diffDays > 30) {
     return {
       success: false,
       isTooFarAhead: true,

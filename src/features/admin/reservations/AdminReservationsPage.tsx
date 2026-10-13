@@ -24,7 +24,7 @@ import {
   type AdminReservationItem,
   type ReservationStatus,
 } from '@/features/reservations'
-import { getVietnamNow } from '@/lib/validation'
+import { getVietnamNow } from '@/shared/lib/validation'
 import { AdminLoading } from '../components/AdminLoading'
 
 export const AdminReservationsPage: FC = () => {
@@ -294,7 +294,7 @@ export const AdminReservationsPage: FC = () => {
   }
 
   if (isLoading && reservations.length === 0) {
-    return <AdminLoading variant="screen" label="Đang tải danh sách đặt bàn..." />
+    return <AdminLoading variant="block" label="Đang tải danh sách đặt bàn..." />
   }
 
   return (

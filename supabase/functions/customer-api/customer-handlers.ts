@@ -1253,6 +1253,14 @@ export async function handlePostReorder(
         message: `Món "${live.name}" không hỗ trợ giao hàng tận nơi.`,
       })
     }
+    if (effectiveMode === 'takeaway' && !live.allow_delivery) {
+      warnings.push({
+        type: 'MODE_NOT_ALLOWED',
+        item_name: live.name,
+        menu_item_id: live.id,
+        message: `Món "${live.name}" không áp dụng mang đi.`,
+      })
+    }
 
     // Check price changes (Invariant V21)
     const oldPrice = Number(it.unit_price_vnd)

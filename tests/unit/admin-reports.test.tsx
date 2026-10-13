@@ -1,63 +1,23 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { AdminReportsPage } from '../../src/features/admin/reports/AdminReportsPage'
-
-describe('AdminReportsPage Component (Elera Redesign)', () => {
-  it('renders report header, KPI tiles, and time switchers', () => {
+import { adminApi } from '@/shared/lib/api/client'
+vi.mock('@/shared/lib/api/client', () => ({ adminApi: { get: vi.fn() } }))
+const report = { net_revenue: 123456, received: 150000, reversed: 26544, payment_count: 2, cash: 123456, bank_transfer: 0, daily: [] }
+beforeEach(() => vi.resetAllMocks())
+describe('Admin reports from backend', () => {
+  it('renders returned amounts and requests the selected date range', async () => {
+    vi.mocked(adminApi.get).mockResolvedValue({ data: report, requestId: 'test' })
     render(<AdminReportsPage />)
-
-    // Heading and badge
-    expect(screen.getByText('Báo cáo & Doanh thu Vận hành')).toBeInTheDocument()
-    expect(screen.getByText('Thời gian thực')).toBeInTheDocument()
-
-    // 4 KPI Stats
-    expect(screen.getByText('Gross Revenue')).toBeInTheDocument()
-    expect(screen.getByText('Room Occupancy')).toBeInTheDocument()
-    expect(screen.getByText('Seen vs Scheduled')).toBeInTheDocument()
-    expect(screen.getByText('Staff Utilization')).toBeInTheDocument()
-
-    // Live table card
-    expect(screen.getByText('Live Occupancy')).toBeInTheDocument()
-    expect(screen.getAllByText('15')[0]).toBeInTheDocument()
-
-    // Peak Activity card
-    expect(screen.getByText('Peak Activity Times Today')).toBeInTheDocument()
-    expect(screen.getByText('Avg. wait time')).toBeInTheDocument()
-
-    // Dark Heatmap Calendar card
-    expect(screen.getByText('April Patient Volume')).toBeInTheDocument()
-
-    // Bubble chart card
-    expect(screen.getByText('Daily Caseload')).toBeInTheDocument()
-
-    // Staff tasks card
-    expect(screen.getByText('Staff Tasks & Authorizations')).toBeInTheDocument()
+    expect(await screen.findByText('150.000đ')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '7 ngày qua' }))
+    await waitFor(() => expect(adminApi.get).toHaveBeenLastCalledWith('/reports?range=7days'))
   })
-
-  it('switches time range and updates statistics', () => {
+  it('shows failures without replacing them with sample revenue', async () => {
+    vi.mocked(adminApi.get).mockRejectedValue(new Error('Máy chủ không phản hồi'))
     render(<AdminReportsPage />)
-
-    // Switch to 7 days
-    const weekBtn = screen.getByRole('button', { name: '7 ngày qua' })
-    fireEvent.click(weekBtn)
-
-    // Revenue updates to 54.800.000đ
-    expect(screen.getByText(/54\.800\.000/)).toBeInTheDocument()
-
-    // Switch to Month
-    const monthBtn = screen.getByRole('button', { name: 'Tháng này' })
-    fireEvent.click(monthBtn)
-
-    // Revenue updates to 168.500.000đ
-    expect(screen.getByText(/168\.500\.000/)).toBeInTheDocument()
-  })
-
-  it('displays notification toast when clicking operational task buttons', () => {
-    render(<AdminReportsPage />)
-
-    const appealBtn = screen.getByRole('button', { name: 'Appeal' })
-    fireEvent.click(appealBtn)
-
-    expect(screen.getByText(/Đã gửi kháng nghị thanh toán bảo hiểm/)).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Máy chủ không phản hồi')
+    expect(screen.queryByText('8.450.000đ')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xuất CSV' })).toBeDisabled()
   })
 })

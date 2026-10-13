@@ -127,6 +127,7 @@ export async function processDeletionRetries(
     let authErrorMessage: string | null = null
 
     try {
+      await pool.query('SELECT public.concierge_v2_purge_memory_for_deletion($1) WHERE EXISTS (SELECT 1 FROM auth.users WHERE id = $1)', [userId])
       const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
       if (authError) {
         // If user is already deleted from Supabase Auth (e.g. 404 or "User not found")

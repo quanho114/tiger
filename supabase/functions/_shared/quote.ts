@@ -7,15 +7,12 @@
 import { Buffer } from 'node:buffer'
 import { createSignedToken, verifySignedToken, sha256 } from './crypto.ts'
 import { AppError } from './errors.ts'
+import { signingSecret } from './environment.ts'
 
 export const QUOTE_TTL_SECONDS = 300 // 5 minutes
 
 export function getQuoteSecret(): string {
-  return (
-    process.env.QUOTE_SECRET ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    'tiger345-order-quote-secret-2026'
-  )
+  return signingSecret('QUOTE_SECRET', 'tiger345-order-quote-secret-2026')
 }
 
 export interface RawLineItem {
@@ -54,12 +51,21 @@ export interface DeliveryQuoteContext {
   [key: string]: unknown
 }
 
-export type OrderQuoteContext = DineInQuoteContext | DeliveryQuoteContext | Record<string, unknown>
+export interface TakeawayQuoteContext {
+  pickup_time?: string | null
+  [key: string]: unknown
+}
+
+export type OrderQuoteContext =
+  | DineInQuoteContext
+  | DeliveryQuoteContext
+  | TakeawayQuoteContext
+  | Record<string, unknown>
 
 export interface OrderQuotePayload {
   type: 'order_quote'
   actor_scope: string
-  order_type: 'dine_in' | 'delivery'
+  order_type: 'dine_in' | 'delivery' | 'takeaway'
   context: OrderQuoteContext
   items: QuotedLineItem[]
   subtotal_vnd: number
@@ -149,6 +155,7 @@ export function computeCanonicalRequestHash(params: {
     address?: string | null
     customer_name?: string | null
     customer_phone?: string | null
+    pickup_time?: string | null
   }
   items: NormalizedLineItem[]
   note?: string
@@ -177,6 +184,10 @@ export function computeCanonicalRequestHash(params: {
       delivery_zone_id: params.context.delivery_zone_id || null,
       table_id: params.context.table_id || null,
       table_visit_id: params.context.table_visit_id || null,
+      // Conditional key: only for takeaway so dine_in/delivery hash bytes stay identical
+      ...(params.order_type === 'takeaway'
+        ? { pickup_time: params.context.pickup_time || null }
+        : {}),
     },
     items: sortedItems,
     note: (params.note || '').trim(),
@@ -192,7 +203,7 @@ export function computeCanonicalRequestHash(params: {
 export function createOrderQuote(
   params: {
     actor_scope: string
-    order_type: 'dine_in' | 'delivery'
+    order_type: 'dine_in' | 'delivery' | 'takeaway'
     context: OrderQuoteContext
     items: QuotedLineItem[]
     subtotal_vnd: number
@@ -252,7 +263,9 @@ export function verifyOrderQuote(
   if (
     payload.type !== 'order_quote' ||
     !payload.actor_scope ||
-    (payload.order_type !== 'dine_in' && payload.order_type !== 'delivery') ||
+    (payload.order_type !== 'dine_in' &&
+      payload.order_type !== 'delivery' &&
+      payload.order_type !== 'takeaway') ||
     !payload.context ||
     !Array.isArray(payload.items) ||
     typeof payload.total_vnd !== 'number'
@@ -375,4 +388,3 @@ export function verifyReservationHoldToken(
     is_expired: result.expired,
   }
 }
-

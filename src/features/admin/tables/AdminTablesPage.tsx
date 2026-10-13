@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FC } from 'react'
 import QRCode from 'qrcode'
-import { adminApi } from '../../../lib/api/client'
-import { ApiError } from '../../../lib/api/types'
+import { adminApi } from '@/shared/lib/api/client'
+import { ApiError } from '@/shared/lib/api/types'
 import { useAdmin } from '../layout/AdminContext'
 import type { AdminTableItem, AdminSeatingArea, TableVisitDetail, PaymentMethod } from '../types'
 import { Plus } from 'lucide-react'
@@ -47,6 +47,7 @@ export const AdminTablesPage: FC = () => {
   const [newTableCode, setNewTableCode] = useState<string>('')
   const [newTableName, setNewTableName] = useState<string>('')
   const [newTableAreaId, setNewTableAreaId] = useState<string>('')
+  const [newTableCapacity, setNewTableCapacity] = useState<string>('')
   const [isSubmittingNewTable, setIsSubmittingNewTable] = useState<boolean>(false)
 
   // Edit Table Modal
@@ -54,6 +55,7 @@ export const AdminTablesPage: FC = () => {
   const [editTableCode, setEditTableCode] = useState<string>('')
   const [editTableName, setEditTableName] = useState<string>('')
   const [editTableAreaId, setEditTableAreaId] = useState<string>('')
+  const [editTableCapacity, setEditTableCapacity] = useState<string>('')
   const [editTableActive, setEditTableActive] = useState<boolean>(true)
   const [isSubmittingEditTable, setIsSubmittingEditTable] = useState<boolean>(false)
 
@@ -63,7 +65,7 @@ export const AdminTablesPage: FC = () => {
       setError(null)
       const [tablesRes, areasRes] = await Promise.all([
         adminApi.get<{ items: AdminTableItem[] } | AdminTableItem[]>('/tables'),
-        adminApi.get<AdminSeatingArea[]>('/seating-areas').catch(() => ({ data: [] })),
+        adminApi.get<AdminSeatingArea[]>('/seating-areas'),
       ])
 
       const items = Array.isArray(tablesRes.data)
@@ -275,9 +277,8 @@ export const AdminTablesPage: FC = () => {
 
     setActionLoadingId(table.id)
     try {
-      await adminApi.delete(`/tables/${table.id}/visit`, {
-        body: { expected_version: table.version },
-      })
+      if (!table.current_visit_id || !table.current_visit_version) throw new Error('Phiên phục vụ không còn tồn tại. Vui lòng tải lại.')
+      await adminApi.post(`/visits/${table.current_visit_id}/close`, { expected_version: table.current_visit_version })
       await loadTables()
       triggerRefresh()
     } catch (err: unknown) {
@@ -340,6 +341,7 @@ export const AdminTablesPage: FC = () => {
         code: newTableCode.trim().toUpperCase(),
         name: newTableName.trim(),
         seating_area_id: newTableAreaId || null,
+        capacity: newTableCapacity ? Number(newTableCapacity) : null,
         active: true,
       })
 
@@ -347,6 +349,7 @@ export const AdminTablesPage: FC = () => {
       setNewTableCode('')
       setNewTableName('')
       setNewTableAreaId('')
+      setNewTableCapacity('')
 
       if (res.data.qr_token && res.data.qr_url) {
         await generateQrCard(res.data.table, res.data.qr_token, res.data.qr_url, true)
@@ -366,6 +369,7 @@ export const AdminTablesPage: FC = () => {
     setEditTableCode(table.code)
     setEditTableName(table.name)
     setEditTableAreaId(table.seating_area_id || '')
+    setEditTableCapacity(table.capacity?.toString() ?? '')
     setEditTableActive(table.active)
   }
 
@@ -383,6 +387,7 @@ export const AdminTablesPage: FC = () => {
         code: editTableCode.trim().toUpperCase(),
         name: editTableName.trim(),
         seating_area_id: editTableAreaId || null,
+        capacity: editTableCapacity ? Number(editTableCapacity) : null,
         active: editTableActive,
         expected_version: editingTable.version,
       })
@@ -415,7 +420,7 @@ export const AdminTablesPage: FC = () => {
   }
 
   if (isLoading && tables.length === 0) {
-    return <AdminLoading variant="screen" label="Đang tải danh sách bàn..." />
+    return <AdminLoading variant="block" label="Đang tải sơ đồ bàn ăn..." />
   }
 
   return (
@@ -839,6 +844,13 @@ export const AdminTablesPage: FC = () => {
                 </select>
               </div>
 
+              <div>
+                <label htmlFor="newTableCapacity" className="block text-xs font-medium text-slate-600 mb-1">Sức chứa (khách)</label>
+                <input id="newTableCapacity" type="number" min="1" max="30" step="1" value={newTableCapacity}
+                  onChange={(event) => setNewTableCapacity(event.target.value)} placeholder="Chưa xác minh"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500" />
+              </div>
+
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                 <button
                   type="button"
@@ -923,6 +935,13 @@ export const AdminTablesPage: FC = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label htmlFor="editTableCapacity" className="block text-xs font-medium text-slate-600 mb-1">Sức chứa (khách)</label>
+                <input id="editTableCapacity" type="number" min="1" max="30" step="1" value={editTableCapacity}
+                  onChange={(event) => setEditTableCapacity(event.target.value)} placeholder="Chưa xác minh"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-amber-500" />
               </div>
 
               <div className="flex items-center gap-2 pt-1">
@@ -1018,7 +1037,7 @@ export const AdminTablesPage: FC = () => {
                     <div>
                       <span className="text-slate-500 block font-medium">Trạng thái phiên</span>
                       <span className="text-sm font-bold text-slate-900 uppercase mt-0.5 block">
-                        {visitDetail.visit.status === 'active' ? 'Đang phục vụ' : 'Đã kết thúc'}
+                        {visitDetail.visit.status === 'open' ? 'Đang phục vụ' : 'Đã kết thúc'}
                       </span>
                     </div>
                     <div>

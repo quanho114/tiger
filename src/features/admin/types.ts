@@ -1,4 +1,4 @@
-export type OrderType = 'dine_in' | 'delivery'
+export type OrderType = 'dine_in' | 'delivery' | 'takeaway'
 export type OrderStatus =
   | 'pending'
   | 'confirmed'
@@ -49,6 +49,8 @@ export interface AdminOrderSummary {
   order_type: OrderType
   status: OrderStatus
   payment_status: PaymentStatus
+  payment_method?: PaymentMethod | null
+  paid_at?: string | null
   total_vnd: number
   subtotal_vnd: number
   shipping_fee_vnd: number
@@ -58,6 +60,7 @@ export interface AdminOrderSummary {
   customer_name?: string | null
   customer_phone?: string | null
   address_snapshot?: string | null
+  pickup_time?: string | null
   note: string
   internal_note: string
   item_count: number
@@ -82,7 +85,7 @@ export interface TableVisitDetail {
     table_id: string
     table_code: string
     table_name: string
-    status: 'active' | 'closed'
+    status: 'open' | 'closed'
     capability_epoch: number
     opened_at: string
     closed_at: string | null
@@ -114,6 +117,8 @@ export interface TableVisitDetail {
 }
 
 export interface AdminDashboardData {
+  open_visits_count: number
+  confirmed_bookings_today_count: number
   pending_orders_count: number
   preparing_orders_count: number
   delivering_orders_count: number
@@ -134,8 +139,10 @@ export interface AdminTableItem {
   seating_area_id: string | null
   area_name: string | null
   active: boolean
+  capacity: number | null
   sort_order: number
   version: number
+  current_visit_version: number | null
   current_visit_id: string | null
   visit_opened_at: string | null
   unpaid_orders_count: number

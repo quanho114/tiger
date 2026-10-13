@@ -9,6 +9,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type pg from 'pg'
 import { jsonResponse, parseJsonBody } from '../_shared/request.ts'
 import { AppError } from '../_shared/errors.ts'
+import { assertPublicProviderDestination, localProviderBaseUrl, validateProviderBaseUrl } from '../_shared/concierge/provider-url.ts'
 import type { AuthActor } from '../_shared/types.ts'
 
 export function slugify(text: string): string {
@@ -414,6 +415,11 @@ export async function handleContentRoutes(
       slug?: string
       description?: string
       price_vnd?: number
+      pricing_mode?: 'fixed' | 'range' | 'market' | 'unknown'
+      price_min?: number | null
+      price_max?: number | null
+      image_source?: 'restaurant' | 'illustration' | 'none'
+      review_note?: string | null
       image_path?: string | null
       published?: boolean
       available?: boolean
@@ -473,15 +479,17 @@ export async function handleContentRoutes(
 
       const insertRes = await client.query(
         `INSERT INTO public.menu_items (
-           id, category_id, name, slug, description, price_vnd, image_path,
-           published, available, allow_dine_in, allow_delivery,
+           id, category_id, name, slug, description, price_vnd,
+           pricing_mode, price_min, price_max, image_source, review_note,
+           image_path, published, available, allow_dine_in, allow_delivery,
            featured_rank, tags, serving_size, pairing_note, delivery_eta,
            spice_level, is_signature, is_bestseller, is_new, version
          ) VALUES (
-           gen_random_uuid(), $1, $2, $3, $4, $5, $6,
-           $7, $8, $9, $10,
+           gen_random_uuid(), $1, $2, $3, $4, $5,
+           $6, $7, $8, $9, $10,
            $11, $12, $13, $14, $15,
-           $16, $17, $18, $19, 1
+           $16, $17, $18, $19, $20,
+           $21, $22, $23, $24, 1
          ) RETURNING *`,
         [
           categoryId,
@@ -489,6 +497,11 @@ export async function handleContentRoutes(
           slug,
           body.description || '',
           priceVnd,
+          body.pricing_mode || 'fixed',
+          body.price_min !== undefined ? body.price_min : null,
+          body.price_max !== undefined ? body.price_max : null,
+          body.image_source || 'none',
+          body.review_note || null,
           body.image_path || null,
           body.published !== undefined ? Boolean(body.published) : true,
           body.available !== undefined ? Boolean(body.available) : true,
@@ -587,6 +600,12 @@ export async function handleContentRoutes(
         throw AppError.validation('Món ăn phải bật ít nhất một phương thức phục vụ (tại quán hoặc giao hàng)')
       }
 
+      const pricingMode = body.pricing_mode !== undefined ? body.pricing_mode : current.pricing_mode
+      const priceMin = body.price_min !== undefined ? body.price_min : current.price_min
+      const priceMax = body.price_max !== undefined ? body.price_max : current.price_max
+      const imageSource = body.image_source !== undefined ? body.image_source : current.image_source
+      const reviewNote = body.review_note !== undefined ? body.review_note : current.review_note
+
       const updateRes = await client.query(
         `UPDATE public.menu_items
          SET category_id = $1,
@@ -594,23 +613,28 @@ export async function handleContentRoutes(
              slug = $3,
              description = $4,
              price_vnd = $5,
-             image_path = $6,
-             published = $7,
-             available = $8,
-             allow_dine_in = $9,
-             allow_delivery = $10,
-             featured_rank = $11,
-             tags = $12,
-             serving_size = $13,
-             pairing_note = $14,
-             delivery_eta = $15,
-             spice_level = $16,
-             is_signature = $17,
-             is_bestseller = $18,
-             is_new = $19,
+             pricing_mode = $6,
+             price_min = $7,
+             price_max = $8,
+             image_source = $9,
+             review_note = $10,
+             image_path = $11,
+             published = $12,
+             available = $13,
+             allow_dine_in = $14,
+             allow_delivery = $15,
+             featured_rank = $16,
+             tags = $17,
+             serving_size = $18,
+             pairing_note = $19,
+             delivery_eta = $20,
+             spice_level = $21,
+             is_signature = $22,
+             is_bestseller = $23,
+             is_new = $24,
              version = version + 1,
              updated_at = now()
-         WHERE id = $20 AND version = $21
+         WHERE id = $25 AND version = $26
          RETURNING *`,
         [
           categoryId,
@@ -618,6 +642,11 @@ export async function handleContentRoutes(
           slug,
           body.description !== undefined ? String(body.description) : current.description,
           priceVnd,
+          pricingMode,
+          priceMin,
+          priceMax,
+          imageSource,
+          reviewNote,
           body.image_path !== undefined ? body.image_path : current.image_path,
           body.published !== undefined ? Boolean(body.published) : current.published,
           body.is_available !== undefined
@@ -927,17 +956,8 @@ export async function handleContentRoutes(
 
   function normalizeLlmBaseUrl(raw: unknown): string {
     if (typeof raw !== 'string') return ''
-    const trimmed = raw.trim().replace(/\/+$/, '')
-    if (trimmed === '') return ''
-    if (!/^https?:\/\//i.test(trimmed)) {
-      throw AppError.validation('base_url phải bắt đầu bằng http:// hoặc https://', {
-        base_url: ['URL không hợp lệ'],
-      })
-    }
-    if (trimmed.length > 500) {
-      throw AppError.validation('base_url quá dài (tối đa 500 ký tự)')
-    }
-    return trimmed
+    try { return validateProviderBaseUrl(raw.trim()) }
+    catch { throw AppError.validation('base_url cần HTTPS được cho phép, hoặc đúng gateway local đã cấu hình phía server trong môi trường dev.') }
   }
 
   // GET /llm-config - Shared chatbot backend config (key masked)
@@ -959,6 +979,11 @@ export async function handleContentRoutes(
         updated_at: r.updated_at,
         has_key: typeof r.api_key === 'string' && r.api_key.length > 0,
         api_key_masked: maskLlmKey(r.api_key),
+        configuration_valid: (() => {
+          try { normalizeLlmBaseUrl(r.base_url); return true }
+          catch { return false }
+        })(),
+        local_gateway_enabled: localProviderBaseUrl() !== null,
       },
       requestId,
       req,
@@ -1003,8 +1028,7 @@ export async function handleContentRoutes(
           provider: ['Chấp nhận: stub, openai, anthropic, gemini'],
         })
       }
-      const baseUrl =
-        body.base_url !== undefined ? normalizeLlmBaseUrl(body.base_url) : current.base_url
+      const baseUrl = normalizeLlmBaseUrl(body.base_url !== undefined ? body.base_url : current.base_url)
       const model = body.model !== undefined ? String(body.model).trim().slice(0, 200) : current.model
       const enabled = body.enabled !== undefined ? Boolean(body.enabled) : current.enabled
       // Empty/missing key keeps the stored secret; only non-empty replaces it.
@@ -1082,7 +1106,7 @@ export async function handleContentRoutes(
     const baseUrl =
       body.base_url !== undefined
         ? normalizeLlmBaseUrl(body.base_url)
-        : String(stored.base_url || '').replace(/\/+$/, '')
+        : normalizeLlmBaseUrl(stored.base_url)
     const apiKey =
       body.api_key !== undefined && String(body.api_key).trim() !== ''
         ? String(body.api_key).trim()
@@ -1104,8 +1128,10 @@ export async function handleContentRoutes(
     try {
       if (provider === 'openai') {
         const endpoint = baseUrl ? `${baseUrl}/chat/completions` : 'https://api.openai.com/v1/chat/completions'
+        if (baseUrl) await assertPublicProviderDestination(endpoint)
         const res = await fetch(endpoint, {
           method: 'POST',
+          redirect: 'error',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
           body: JSON.stringify({
             model,
@@ -1115,12 +1141,14 @@ export async function handleContentRoutes(
           signal: controller.signal,
         })
         if (!res.ok) {
-          throw AppError.validation(`Kết nối thất bại (${res.status}): ${(await res.text()).slice(0, 300)}`)
+          throw AppError.validation(`Kết nối thất bại (HTTP ${res.status}).`)
         }
       } else if (provider === 'anthropic') {
         const endpoint = baseUrl ? `${baseUrl}/v1/messages` : 'https://api.anthropic.com/v1/messages'
+        if (baseUrl) await assertPublicProviderDestination(endpoint)
         const res = await fetch(endpoint, {
           method: 'POST',
+          redirect: 'error',
           headers: {
             'Content-Type': 'application/json',
             'x-api-key': apiKey,
@@ -1134,14 +1162,16 @@ export async function handleContentRoutes(
           signal: controller.signal,
         })
         if (!res.ok) {
-          throw AppError.validation(`Kết nối thất bại (${res.status}): ${(await res.text()).slice(0, 300)}`)
+          throw AppError.validation(`Kết nối thất bại (HTTP ${res.status}).`)
         }
       } else {
         const base = baseUrl || 'https://generativelanguage.googleapis.com'
+        if (baseUrl) await assertPublicProviderDestination(base)
         const res = await fetch(
           `${base}/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
           {
             method: 'POST',
+            redirect: 'error',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{ parts: [{ text: 'ping' }] }],
@@ -1151,7 +1181,7 @@ export async function handleContentRoutes(
           }
         )
         if (!res.ok) {
-          throw AppError.validation(`Kết nối thất bại (${res.status}): ${(await res.text()).slice(0, 300)}`)
+          throw AppError.validation(`Kết nối thất bại (HTTP ${res.status}).`)
         }
       }
       return jsonResponse(
@@ -1168,7 +1198,7 @@ export async function handleContentRoutes(
       if (err instanceof AppError) throw err
       // Connection refused / DNS / TLS failures: surface a friendly message, not a 500.
       throw AppError.validation(
-        'Không kết nối được tới API URL — kiểm tra URL có truy cập được từ internet không (localhost chỉ chạy trên máy bạn, server không với tới)'
+        'Không kết nối được tới API URL từ server. Kiểm tra cấu hình gateway và mạng của server.'
       )
     } finally {
       clearTimeout(timer)

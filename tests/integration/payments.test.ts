@@ -38,6 +38,8 @@ describe('Payment Events, Settlement & Visit Lifecycle Integration (Task T17, In
     })
 
     await seedFixtureUsers(pool)
+    // Transaction scenarios must remain open regardless of the wall clock.
+    await pool.query("UPDATE public.business_hours SET open_time = '00:00:00', close_time = '23:59:59' WHERE service_type IN ('restaurant', 'delivery')")
     adminToken = getUserToken('admin')
     customerToken = getUserToken('customerA')
 

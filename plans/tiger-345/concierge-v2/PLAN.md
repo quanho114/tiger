@@ -1,3 +1,11 @@
+<!--
+Fact-Forcing Metadata:
+- Importers/Callers: Concierge V2 roadmap tracking
+- Affected API: Concierge V2 Roadmap
+- Data Schemas: None
+- Verbatim Instructions: "Triển khai Concierge V2 cho Tiger 345 theo bộ kế hoạch đã có.", "phải làm full a->z"
+-->
+
 # Execution Roadmap
 
 All tasks start TODO. Each task should fit one reviewable PR; split oversized tasks with explicit dependency updates before coding. Task IDs are stable. Task files are the handoff briefs.
@@ -5,23 +13,23 @@ All tasks start TODO. Each task should fit one reviewable PR; split oversized ta
 | ID | Task | Depends on | Owner responsibility | Status |
 | --- | --- | --- | --- | --- |
 | [V01](tasks/V01-contracts-and-baseline.md) | Contract freeze and baseline | None | Architecture/integration | DONE |
-| [V02](tasks/V02-ephemeral-session-store.md) | Shared TTL session store | [V01](tasks/V01-contracts-and-baseline.md) | Session backend | BLOCKED |
-| [V03](tasks/V03-session-runtime-and-retention.md) | Runtime session migration and retention repair | [V02](tasks/V02-ephemeral-session-store.md) | Integration/persistence | TODO |
-| [V04](tasks/V04-frontend-session-lifecycle.md) | Frontend session lifecycle | [V03](tasks/V03-session-runtime-and-retention.md) | Chat frontend | TODO |
-| [V05](tasks/V05-memory-schema-and-repository.md) | Memory schema, settings and repository | [V01](tasks/V01-contracts-and-baseline.md) | Memory data | TODO |
-| [V06](tasks/V06-explicit-memory-extractor.md) | Explicit fact extraction | [V05](tasks/V05-memory-schema-and-repository.md) | Memory admission | TODO |
-| [V07](tasks/V07-behavioral-memory-retrieval.md) | Behavioral aggregation and retrieval | [V05](tasks/V05-memory-schema-and-repository.md) | Memory retrieval | TODO |
-| [V08](tasks/V08-menu-and-food-safety.md) | Verified menu and food-safety retrieval | [V01](tasks/V01-contracts-and-baseline.md) | Catalog backend | TODO |
-| [V09](tasks/V09-context-and-summary.md) | Context builder and rolling summary | V03, V06, V07, V08 | Context backend | TODO |
-| [V10](tasks/V10-grounded-orchestration.md) | Grounded tool orchestration and adapters | [V09](tasks/V09-context-and-summary.md) | Orchestration/integration | TODO |
-| [V11](tasks/V11-draft-domain.md) | Draft domain and atomic operations | V02, V08 | Draft backend | TODO |
-| [V12](tasks/V12-acceptance-and-draft-workflow.md) | Acceptance intent and draft workflow | V10, V11 | Orchestration/integration | TODO |
-| [V13](tasks/V13-cart-handoff.md) | Idempotent handoff to existing cart | [V12](tasks/V12-acceptance-and-draft-workflow.md) | Cart integration | TODO |
-| [V14](tasks/V14-draft-ui.md) | Draft preview and review UI | V04, V13 | Chat/cart frontend | TODO |
-| [V15](tasks/V15-memory-controls-and-deletion.md) | Customer memory controls and deletion | V06, V07 | Account/privacy | TODO |
-| [V16](tasks/V16-observability-and-rollout.md) | Metrics, degradation and rollout controls | V03, V10, V13, V15 | Operations/integration | TODO |
-| [V17](tasks/V17-verification-matrix.md) | Regression, integration and browser acceptance | V14, V15, V16 | Verification | TODO |
-| [V18](tasks/V18-review-and-release.md) | Independent review and release runbook | [V17](tasks/V17-verification-matrix.md) | Reviewer/release | TODO |
+| [V02](tasks/V02-ephemeral-session-store.md) | Shared TTL session store | [V01](tasks/V01-contracts-and-baseline.md) | Session backend | DONE |
+| [V03](tasks/V03-session-runtime-and-retention.md) | Runtime session migration and retention repair | [V02](tasks/V02-ephemeral-session-store.md) | Integration/persistence | DONE |
+| [V04](tasks/V04-frontend-session-lifecycle.md) | Frontend session lifecycle | [V03](tasks/V03-session-runtime-and-retention.md) | Chat frontend | DONE |
+| [V05](tasks/V05-memory-schema-and-repository.md) | Memory schema, settings and repository | [V01](tasks/V01-contracts-and-baseline.md) | Memory data | DONE |
+| [V06](tasks/V06-explicit-memory-extractor.md) | Explicit fact extraction | [V05](tasks/V05-memory-schema-and-repository.md) | Memory admission | DONE |
+| [V07](tasks/V07-behavioral-memory-retrieval.md) | Behavioral aggregation and retrieval | [V05](tasks/V05-memory-schema-and-repository.md) | Memory retrieval | DONE |
+| [V08](tasks/V08-menu-and-food-safety.md) | Verified menu and food-safety retrieval | [V01](tasks/V01-contracts-and-baseline.md) | Catalog backend | DONE |
+| [V09](tasks/V09-context-and-summary.md) | Context builder and rolling summary | V03, V06, V07, V08 | Context backend | DONE |
+| [V10](tasks/V10-grounded-orchestration.md) | Grounded tool orchestration and adapters | [V09](tasks/V09-context-and-summary.md) | Orchestration/integration | DONE |
+| [V11](tasks/V11-draft-domain.md) | Draft domain and atomic operations | V02, V08 | Draft backend | DONE |
+| [V12](tasks/V12-acceptance-and-draft-workflow.md) | Acceptance intent and draft workflow | V10, V11 | Orchestration/integration | DONE |
+| [V13](tasks/V13-cart-handoff.md) | Idempotent handoff to existing cart | [V12](tasks/V12-acceptance-and-draft-workflow.md) | Cart integration | DONE |
+| [V14](tasks/V14-draft-ui.md) | Draft preview and review UI | V04, V13 | Chat/cart frontend | DONE |
+| [V15](tasks/V15-memory-controls-and-deletion.md) | Customer memory controls and deletion | V06, V07 | Account/privacy | DONE |
+| [V16](tasks/V16-observability-and-rollout.md) | Metrics, degradation and rollout controls | V03, V10, V13, V15 | Operations/integration | DONE |
+| [V17](tasks/V17-verification-matrix.md) | Regression, integration and browser acceptance | V14, V15, V16 | Verification | DONE (local; external gates open) |
+| [V18](tasks/V18-review-and-release.md) | Independent review and release runbook | [V17](tasks/V17-verification-matrix.md) | Reviewer/release | DONE (local review; external gates open) |
 
 ## Recommended waves
 
@@ -71,3 +79,13 @@ Record a dated decision for changed defaults/contracts. List affected tasks, acc
 ## Planning review status
 
 2026-09-22: author checked dependencies, file ownership, task completeness and local Markdown links. An independent reviewer was requested through the Blueprint workflow but could not execute because the agent provider had no active credentials (HTTP 404). Independent review of this plan remains outstanding; it is not recorded as passed. Application checks were not rerun for this documentation-only change. V18 is the later implementation review gate, not evidence of a completed plan review.
+
+## Current execution evidence (2026-09-22)
+
+V01-V18 local implementation, verification and independent model source review
+are recorded in the task reports. Final review has no remaining findings in its
+reviewed scope. See [verification matrix](verification-matrix.md),
+[V17 results](reports/V17.md), [V18 gates](reports/V18.md), and
+[release runbook](release-runbook.md). User-authorized connectivity/source-review
+calls completed; full product-quality evaluation and production enablement did not.
+Human assistive-technology and hosted operations remain unverified.

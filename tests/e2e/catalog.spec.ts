@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
+
+const orderModeGroupName = 'Chọn hình thức thưởng thức'
 
 const mockMenuPayload = {
   data: {
@@ -81,8 +84,51 @@ const mockSettingsPayload = {
   },
 }
 
+const fixtureCart = {
+  version: 1,
+  updatedAt: Date.now(),
+  context: { mode: 'delivery' },
+  items: [
+    {
+      dishId: 'item-1',
+      quantity: 1,
+      dishSnapshot: { id: 'item-1', name: 'Bò tơ nướng tảng sốt tiêu', price: 185000, image: '/images/bo-nuong.jpg' },
+    },
+  ],
+}
+
+function orderModeGroup(page: Page) {
+  return page.getByRole('group', { name: orderModeGroupName })
+}
+
+function orderModeRadio(page: Page, name: string) {
+  return orderModeGroup(page).getByRole('radio', { name })
+}
+
+async function selectOrderMode(page: Page, name: string) {
+  await orderModeGroup(page).getByText(name, { exact: true }).click()
+}
+
+async function mockCatalog(page: Page) {
+  await page.route('**/functions/v1/public-api/menu*', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(mockMenuPayload),
+    })
+  })
+}
+
 test.describe('Tiger 345 Public Catalog E2E (T05 / V06, V17)', () => {
   test.beforeEach(async ({ page }) => {
+    await page.route('**/*', async (route) => {
+      const requestUrl = new URL(route.request().url())
+      if (['http://127.0.0.1:5173', 'http://localhost:5173'].includes(requestUrl.origin) && route.request().method() === 'GET') {
+        await route.continue()
+        return
+      }
+      await route.abort('blockedbyclient')
+    })
     await page.route('**/functions/v1/public-api/settings*', async (route) => {
       await route.fulfill({
         status: 200,
@@ -119,29 +165,111 @@ test.describe('Tiger 345 Public Catalog E2E (T05 / V06, V17)', () => {
     expect(await dishCards.count()).toBe(2)
 
     // Unavailable dish shows "Tạm hết"
-    await expect(page.getByText('Tạm hết')).toBeVisible()
+    await expect(page.locator('article[data-dish-id="item-2"]').getByRole('button', { name: 'Tạm hết' })).toBeVisible()
   })
 
-  test('Mode toggle updates query params and filters available dishes', async ({ page }) => {
-    await page.route('**/functions/v1/public-api/menu*', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockMenuPayload),
-      })
-    })
+  test('Mode radio group updates checked state and URL for all service modes', async ({ page }) => {
+    await mockCatalog(page)
 
     await page.goto('/menu')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await expect(orderModeGroup(page)).toBeVisible()
 
-    // Click "Giao tận nơi" mode tab
-    const deliveryModeBtn = page.getByRole('tab', { name: /giao tận nơi/i }).first()
-    await deliveryModeBtn.click()
-    await expect(page).toHaveURL(/mode=delivery/)
+    const dineInMode = orderModeRadio(page, 'Tại quán')
+    const deliveryMode = orderModeRadio(page, 'Giao tận nơi')
+    const takeawayMode = orderModeRadio(page, 'Mang đi')
 
-    // Click "Tại quán" mode tab
-    const dineInModeBtn = page.getByRole('tab', { name: /tại quán/i }).first()
-    await dineInModeBtn.click()
-    await expect(page).toHaveURL(/menu/)
+    await expect(dineInMode).toBeChecked()
+    await expect(deliveryMode).not.toBeChecked()
+    await expect(takeawayMode).not.toBeChecked()
+
+    await selectOrderMode(page, 'Giao tận nơi')
+    await expect(page).toHaveURL(/\/menu\?mode=delivery$/)
+    await expect(deliveryMode).toBeChecked()
+    await expect(dineInMode).not.toBeChecked()
+    await expect(takeawayMode).not.toBeChecked()
+
+    await selectOrderMode(page, 'Mang đi')
+    await expect(page).toHaveURL(/\/menu\?mode=takeaway$/)
+    await expect(takeawayMode).toBeChecked()
+    await expect(dineInMode).not.toBeChecked()
+    await expect(deliveryMode).not.toBeChecked()
+
+    await selectOrderMode(page, 'Tại quán')
+    await expect(page).toHaveURL(/\/menu$/)
+    await expect(dineInMode).toBeChecked()
+    await expect(deliveryMode).not.toBeChecked()
+    await expect(takeawayMode).not.toBeChecked()
+  })
+
+  test('Cancelling or escaping a pending mode change preserves the fixture cart and delivery selection', async ({ page }) => {
+    await mockCatalog(page)
+    await page.addInitScript((cart) => {
+      window.localStorage.setItem('tiger_cart_draft_v1', JSON.stringify(cart))
+    }, fixtureCart)
+
+    await page.goto('/menu?mode=delivery')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+    const deliveryMode = orderModeRadio(page, 'Giao tận nơi')
+    const takeawayMode = orderModeRadio(page, 'Mang đi')
+    await expect(deliveryMode).toBeChecked()
+
+    await selectOrderMode(page, 'Mang đi')
+    const dialog = page.getByRole('dialog', { name: 'Thay Đổi Hình Thức Phục Vụ?' })
+    await expect(dialog).toBeVisible()
+    await expect(deliveryMode).toBeChecked()
+    await expect(takeawayMode).not.toBeChecked()
+    await expect(page).toHaveURL(/\/menu\?mode=delivery$/)
+
+    await page.getByRole('button', { name: 'Giữ giỏ hàng hiện tại' }).click()
+    await expect(dialog).toBeHidden()
+    await expect(deliveryMode).toBeChecked()
+    await expect(page).toHaveURL(/\/menu\?mode=delivery$/)
+    await expect.poll(async () => page.evaluate(() => {
+      const storedCart = window.localStorage.getItem('tiger_cart_draft_v1')
+      if (!storedCart) return null
+      const { items, context } = JSON.parse(storedCart)
+      return { items, context }
+    })).toEqual({ items: fixtureCart.items, context: fixtureCart.context })
+
+    await selectOrderMode(page, 'Mang đi')
+    await expect(dialog).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await expect(deliveryMode).toBeChecked()
+    await expect(page).toHaveURL(/\/menu\?mode=delivery$/)
+    await expect.poll(async () => page.evaluate(() => {
+      const storedCart = window.localStorage.getItem('tiger_cart_draft_v1')
+      if (!storedCart) return null
+      const { items, context } = JSON.parse(storedCart)
+      return { items, context }
+    })).toEqual({ items: fixtureCart.items, context: fixtureCart.context })
+  })
+
+  test('Confirming a pending mode change clears the fixture cart and selects takeaway', async ({ page }) => {
+    await mockCatalog(page)
+    await page.addInitScript((cart) => {
+      window.localStorage.setItem('tiger_cart_draft_v1', JSON.stringify(cart))
+    }, fixtureCart)
+
+    await page.goto('/menu?mode=delivery')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+    const deliveryMode = orderModeRadio(page, 'Giao tận nơi')
+    const takeawayMode = orderModeRadio(page, 'Mang đi')
+    await selectOrderMode(page, 'Mang đi')
+    await expect(page.getByRole('dialog', { name: 'Thay Đổi Hình Thức Phục Vụ?' })).toBeVisible()
+    await expect(deliveryMode).toBeChecked()
+
+    await page.getByRole('button', { name: 'Đồng ý chuyển & làm mới giỏ hàng' }).click()
+    await expect(page).toHaveURL(/\/menu\?mode=takeaway$/)
+    await expect(takeawayMode).toBeChecked()
+    await expect(deliveryMode).not.toBeChecked()
+    await expect.poll(async () => page.evaluate(() => {
+      const storedCart = window.localStorage.getItem('tiger_cart_draft_v1')
+      return storedCart ? JSON.parse(storedCart).items?.length ?? 0 : 0
+    })).toBe(0)
   })
 
   test('Search input filters dishes in real time and shows empty state', async ({ page }) => {

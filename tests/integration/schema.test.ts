@@ -110,11 +110,13 @@ describe('Tiger 345 - PostgreSQL Schema & Constraint Integration Tests', () => {
       try {
         await client.query('BEGIN')
         // Create visit for table 1
+        const table = await client.query(`INSERT INTO dining_tables (code, name)
+          VALUES ('SCHEMA-' || gen_random_uuid()::text, 'Isolated schema fixture') RETURNING id`)
+        const tableId = table.rows[0].id
         const visit = await client.query(`
           INSERT INTO table_visits (id, table_id, status)
-          VALUES (gen_random_uuid(), '30000000-0000-0000-0000-000000000001', 'open')
-          RETURNING id
-        `)
+          VALUES (gen_random_uuid(), $1, 'open') RETURNING id
+        `, [tableId])
         const visitId = visit.rows[0].id
 
         await client.query('SAVEPOINT sp1')
@@ -127,7 +129,7 @@ describe('Tiger 345 - PostgreSQL Schema & Constraint Integration Tests', () => {
               subtotal_vnd, shipping_fee_vnd, total_vnd
             ) VALUES (
               gen_random_uuid(), 'ORD-TEST-002', 'dine_in', 'pending', 'unpaid',
-              '30000000-0000-0000-0000-000000000001', '${visitId}', 'Bàn 01', '0901234567',
+              '${tableId}', '${visitId}', 'Bàn 01', '0901234567',
               100000, 0, 100000
             )
           `)
@@ -144,7 +146,7 @@ describe('Tiger 345 - PostgreSQL Schema & Constraint Integration Tests', () => {
               subtotal_vnd, shipping_fee_vnd, total_vnd
             ) VALUES (
               gen_random_uuid(), 'ORD-TEST-003', 'dine_in', 'pending', 'unpaid',
-              '30000000-0000-0000-0000-000000000001', '${visitId}', 'Bàn 01',
+              '${tableId}', '${visitId}', 'Bàn 01',
               100000, 15000, 115000
             )
           `)
@@ -160,11 +162,13 @@ describe('Tiger 345 - PostgreSQL Schema & Constraint Integration Tests', () => {
       const client = await pool.connect()
       try {
         await client.query('BEGIN')
+        const table = await client.query(`INSERT INTO dining_tables (code, name)
+          VALUES ('SCHEMA-' || gen_random_uuid()::text, 'Isolated schema fixture') RETURNING id`)
+        const tableId = table.rows[0].id
         const visit = await client.query(`
           INSERT INTO table_visits (id, table_id, status)
-          VALUES (gen_random_uuid(), '30000000-0000-0000-0000-000000000001', 'open')
-          RETURNING id
-        `)
+          VALUES (gen_random_uuid(), $1, 'open') RETURNING id
+        `, [tableId])
         const visitId = visit.rows[0].id
 
         await expect(
@@ -175,7 +179,7 @@ describe('Tiger 345 - PostgreSQL Schema & Constraint Integration Tests', () => {
               subtotal_vnd, shipping_fee_vnd, total_vnd
             ) VALUES (
               gen_random_uuid(), 'ORD-TEST-004', 'dine_in', 'delivering', 'unpaid',
-              '30000000-0000-0000-0000-000000000001', '${visitId}', 'Bàn 01',
+              '${tableId}', '${visitId}', 'Bàn 01',
               100000, 0, 100000
             )
           `)
@@ -244,11 +248,13 @@ describe('Tiger 345 - PostgreSQL Schema & Constraint Integration Tests', () => {
         await client.query('BEGIN')
 
         // Create visit belonging to Table 1 (T01)
+        const table = await client.query(`INSERT INTO dining_tables (code, name)
+          VALUES ('SCHEMA-' || gen_random_uuid()::text, 'Isolated schema fixture') RETURNING id`)
+        const tableId = table.rows[0].id
         const visit = await client.query(`
           INSERT INTO table_visits (id, table_id, status)
-          VALUES (gen_random_uuid(), '30000000-0000-0000-0000-000000000001', 'open')
-          RETURNING id
-        `)
+          VALUES (gen_random_uuid(), $1, 'open') RETURNING id
+        `, [tableId])
         const visitIdForTable1 = visit.rows[0].id
 
         // Attempt to insert order with Table 2 (T02) but pointing to visit of Table 1

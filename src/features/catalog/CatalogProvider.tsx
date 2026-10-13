@@ -1,3 +1,9 @@
+/**
+ * Importers/Callers: src/app/providers.tsx, src/features/catalog/MenuPage.tsx, tests/unit/
+ * Affected API: CatalogContext, refreshMenu, refetchMenu
+ * Data schemas: Category, MenuItem, RestaurantSettings
+ * User verbatim instruction: "Không thể tải danh mục món ăn - Lỗi hệ thống (502)" / "ủa sao tên món lạ z ko giống tui đưa á"
+ */
 import { useState, useEffect, useCallback, useMemo, type ReactNode, type FC } from 'react'
 import { CatalogContext, type CatalogContextValue } from './CatalogContext'
 import { fetchMenu, fetchSettings } from './api'
@@ -128,6 +134,14 @@ export const CatalogProvider: FC<CatalogProviderProps> = ({ children }) => {
     return null
   }, [menuError, settingsError])
 
+  const refreshMenu = useCallback(async () => {
+    const promises: Promise<void>[] = [loadMenu()]
+    if (settingsError) {
+      promises.push(loadSettings())
+    }
+    await Promise.all(promises)
+  }, [loadMenu, loadSettings, settingsError])
+
   const contextValue: CatalogContextValue = useMemo(
     () => ({
       categories,
@@ -140,9 +154,9 @@ export const CatalogProvider: FC<CatalogProviderProps> = ({ children }) => {
       settingsError,
       isError,
       error,
-      refetchMenu: loadMenu,
+      refetchMenu: refreshMenu,
       refetchSettings: loadSettings,
-      refreshMenu: loadMenu,
+      refreshMenu,
       refreshSettings: loadSettings,
       featuredItems,
       getItemById,
@@ -159,7 +173,7 @@ export const CatalogProvider: FC<CatalogProviderProps> = ({ children }) => {
       settingsError,
       isError,
       error,
-      loadMenu,
+      refreshMenu,
       loadSettings,
       featuredItems,
       getItemById,
