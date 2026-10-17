@@ -89,7 +89,7 @@ export const AdminLayout: FC = () => {
       if (document.visibilityState === 'visible') {
         triggerRefresh()
       }
-    }, 15000)
+    }, 150000)
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {

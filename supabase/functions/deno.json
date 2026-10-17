@@ -3,8 +3,8 @@
     "strict": true
   },
   "imports": {
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.49.1",
-    "pg": "npm:pg@^8.13.3",
-    "zod": "npm:zod@^3.24.2"
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.116.0",
+    "pg": "npm:pg@8.23.0",
+    "zod": "npm:zod@4.6.5"
   }
 }
