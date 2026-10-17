@@ -2,9 +2,6 @@
 
 ## 1. Clone và yêu cầu hệ thống
 
-Nếu dùng Jev, lấy submodule sau khi clone bằng `git submodule update --init --recursive`
-(hoặc clone với `--recurse-submodules`). Website không cần chạy Jev.
-
 Cần Git, Node.js >= 22.12.0, npm và Docker Engine/Desktop đang chạy.
 Windows nên dùng WSL2 với Docker integration. Supabase CLI nằm trong dependencies;
 không cần cài global. Clone URL GitHub của dự án rồi mở terminal trong repo:
@@ -119,8 +116,8 @@ Chatbot. Key thật chỉ qua cơ chế backend/Vault, không qua file cấu hì
 Hostname provider tùy chỉnh phải được backend cho phép qua
 `CONCIERGE_LLM_ALLOWED_HOSTS`; HTTPS và kiểm tra địa chỉ đích vẫn bắt buộc.
 
-Không bật shim hoặc đổi provider để giả lập nghiệm thu. Gọi provider thật và Jev
-live có thể tính phí; chỉ chạy khi người dùng chủ động cho phép. Kiểm định runtime
+Không bật shim hoặc đổi provider để giả lập nghiệm thu. Gọi provider thật
+có thể tính phí; chỉ chạy khi người dùng chủ động cho phép. Kiểm định runtime
 chatbot thực hiện trên website Tiger theo AGENTS.md, với session test mới.
 
 ## 7. Kiểm thử
@@ -187,7 +184,7 @@ Một số integration/browser tests còn cần HTTP backend và Chromium. Với
 API 54331 và anon key của stack test. Các fixture có thể mặc định API 54321;
 đối chiếu từng suite trước khi chạy. Quy trình CI là tham chiếu cho toàn bộ
 browser-to-database flow; setup local riêng này không mặc định bảo đảm mọi suite.
-Không chạy Jev live như một phần kiểm tra mặc định.
+Không gọi provider thật như một phần kiểm tra mặc định.
 
 ## 8. Gửi PR
 

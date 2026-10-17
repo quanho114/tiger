@@ -95,4 +95,4 @@ the former broad cron authorization; disable the scheduler temporarily if needed
   A missing or mismatched receipt retains the same idempotency key for retry.
 - Live infrastructure settings, deployed CI status, capacity, backup restoration,
   and the complete production acceptance flow were not verified by these local
-  checks. No production deployment or paid Jev evaluation was performed.
+  checks. No production deployment or paid provider evaluation was performed.

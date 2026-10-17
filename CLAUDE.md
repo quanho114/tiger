@@ -10,24 +10,25 @@ Always run verification before claiming work is finished:
 ```sh
 # 1. Typecheck & Lint
 npm run typecheck
+npm run typecheck:server
 npm run lint
 
-# 2. Unit & Component tests (fast, Vitest, 107 tests)
-npm run test:unit
+# 2. Architecture checks
+npm run check:architecture
+npm run test:architecture
 
-# 3. Jev offline regression tests (16 tests, headless Chrome, zero API cost)
-npm run test:jev
+# 3. Unit, Component & Server tests
+npm run test:unit
+npm run test:server
 
 # 4. Production build check
 npm run build
-
-# 5. Jev live browser evaluation (only when user explicitly requests live browser testing)
-# Automatically retrieves authorized credentials from OS Keyring (tiger-jev service):
-npm run jev:eval:keyring
 ```
 
+Database and browser suites have additional prerequisites; see `AGENTS.md` and
+`docs/contributing.md`. Real-provider browser testing requires explicit approval.
+
 ## Agent Guidelines & Boundaries
-- See `AGENTS.md` and `scripts/jev/AGENTS.md` for complete agent contracts.
-- **Never** read, print, hardcode, or commit credentials (`.env`, `TYPESAFE_API_KEY`, `TEXT_MODEL_API_KEY`, etc.).
-- Jev runs in an isolated sandbox (`scripts/jev/run.mjs`). All external network traffic is blocked; all mutations are forbidden.
-- Never put `jev:eval` into CI or default test runs.
+- See `AGENTS.md` for complete agent contracts.
+- **Never** read, print, hardcode, or commit credentials (`.env`, API keys, etc.).
+- Never run paid provider evaluations in CI or default test runs.
