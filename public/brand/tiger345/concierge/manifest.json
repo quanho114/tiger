@@ -1,0 +1,75 @@
+{
+  "name": "Tiger345 Concierge Mascots",
+  "version": 1,
+  "type": "editable-vector",
+  "palette": [
+    "#FFF4E6",
+    "#FF8A3C",
+    "#1F2D4D",
+    "#E8DCC8"
+  ],
+  "expressions": [
+    {
+      "id": "greeting",
+      "label": "Chào hỏi",
+      "file": "tiger-greeting.svg"
+    },
+    {
+      "id": "happy",
+      "label": "Vui vẻ",
+      "file": "tiger-happy.svg"
+    },
+    {
+      "id": "curious",
+      "label": "Tò mò",
+      "file": "tiger-curious.svg"
+    },
+    {
+      "id": "wink",
+      "label": "Nháy mắt",
+      "file": "tiger-wink.svg"
+    },
+    {
+      "id": "surprised",
+      "label": "Ngạc nhiên",
+      "file": "tiger-surprised.svg"
+    },
+    {
+      "id": "love",
+      "label": "Yêu thích",
+      "file": "tiger-love.svg"
+    },
+    {
+      "id": "thinking",
+      "label": "Suy nghĩ",
+      "file": "tiger-thinking.svg"
+    },
+    {
+      "id": "sorry",
+      "label": "Xin lỗi",
+      "file": "tiger-sorry.svg"
+    },
+    {
+      "id": "idle",
+      "label": "Sẵn sàng",
+      "file": "tiger-idle.svg"
+    },
+    {
+      "id": "menu",
+      "label": "Xem menu",
+      "file": "tiger-menu.svg"
+    },
+    {
+      "id": "serving",
+      "label": "Mang món",
+      "file": "tiger-serving.svg"
+    }
+  ],
+  "icons": [
+    "tiger-avatar.svg",
+    "tiger-chat-launcher.svg",
+    "tiger-app-orange.svg",
+    "tiger-app-navy.svg",
+    "tiger-app-cream.svg"
+  ]
+}

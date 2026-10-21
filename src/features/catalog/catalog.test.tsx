@@ -135,6 +135,19 @@ describe('useCatalog & CatalogProvider unit tests', () => {
     )
   })
 
+  it('publishes menu data without waiting for slow restaurant settings', async () => {
+    vi.spyOn(api, 'fetchMenu').mockResolvedValue({ categories: mockCategories, items: mockItems })
+    let finishSettings!: (value: RestaurantSettings) => void
+    vi.spyOn(api, 'fetchSettings').mockImplementation(() => new Promise(resolve => { finishSettings = resolve }))
+    const wrapper = ({ children }: { children: ReactNode }) => <CatalogProvider>{children}</CatalogProvider>
+    const { result } = renderHook(() => useCatalog(), { wrapper })
+    await waitFor(() => expect(result.current.items).toEqual(mockItems))
+    expect(result.current.isLoadingMenu).toBe(false)
+    expect(result.current.isLoadingSettings).toBe(true)
+    await act(async () => finishSettings(mockSettings))
+    expect(result.current.isLoading).toBe(false)
+  })
+
   it('loads menu and settings successfully and derives helper values', async () => {
     vi.spyOn(api, 'fetchMenu').mockResolvedValue({
       categories: mockCategories,

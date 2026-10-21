@@ -270,7 +270,7 @@ export const Header: FC = () => {
                 <button
                   type="button"
                   onClick={() => setCartOpen(true)}
-                  className={`${showMobileCart ? 'flex' : 'hidden'} md:flex relative items-center justify-center w-9 h-9 text-[#234386]/80 hover:text-[#ed7328] hover:bg-[#234386]/8 rounded-full transition-colors`}
+                  className={`hidden md:flex relative items-center justify-center w-9 h-9 text-[#234386]/80 hover:text-[#ed7328] hover:bg-[#234386]/8 rounded-full transition-colors`}
                   aria-label="Xem giỏ hàng giao tận nơi"
                   title="Giỏ hàng giao tận nơi"
                 >
@@ -313,7 +313,7 @@ export const Header: FC = () => {
               </div>
 
               {/* Customer / Admin Account — in-flow below xl, docked to the viewport corner on xl+ */}
-              <div ref={accountRef} className="relative flex shrink-0 items-center md:ml-2 max-xl:order-2 xl:ml-0 xl:absolute xl:right-8 xl:top-1/2 xl:-translate-y-1/2">
+              <div ref={accountRef} className="relative hidden md:flex shrink-0 items-center md:ml-2 max-xl:order-2 xl:ml-0 xl:absolute xl:right-8 xl:top-1/2 xl:-translate-y-1/2">
                 {isAuthenticated ? (
                   <>
                     <button

@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   AlertCircle,
   KeyRound,
-  Sparkles,
   UserCheck,
   ShieldCheck,
   ExternalLink,
@@ -206,10 +205,10 @@ export const LoginPage: FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf9f6] flex flex-col px-4 pt-28 md:pt-36 pb-12 sm:px-6 lg:px-8 font-body">
-      <div className="m-auto w-full sm:max-w-md">
+    <div className="min-h-screen bg-[#fbf9f6] flex flex-col px-4 pt-20 md:pt-36 pb-12 sm:px-6 lg:px-8 font-body">
+      <div className="mx-auto md:my-auto w-full sm:max-w-md">
         {/* Logo & Brand Header */}
-        <div className="text-center">
+        <div className="text-left md:text-center">
           <Link
             to="/"
             className="hidden md:inline-flex items-center gap-2.5 group cursor-pointer focus:outline-none"
@@ -230,16 +229,16 @@ export const LoginPage: FC = () => {
             </div>
           </Link>
 
-          <h1 className="md:mt-6 text-xl sm:text-2xl font-bold font-['Fraunces',serif] text-[#234386] tracking-tight">
-            Đăng nhập Tài khoản Khách hàng
+          <h1 className="md:mt-6 text-2xl font-semibold font-body md:font-['Fraunces',serif] text-[#234386] tracking-tight">
+            Tài khoản của bạn
           </h1>
-          <p className="mt-2 text-xs sm:text-sm text-black/60 max-w-sm mx-auto leading-relaxed">
-            Lưu sổ địa chỉ nhận món, theo dõi đơn hàng và đặt lại các món yêu thích nhanh chóng.
+          <p className="mt-2 text-sm text-black/55 max-w-sm md:mx-auto leading-relaxed">
+            Đăng nhập để xem đơn hàng, lưu địa chỉ và những món bạn yêu thích.
           </p>
         </div>
 
         {/* Main Card */}
-        <div className="mt-8 bg-white py-8 px-6 shadow-sm border border-[#d2b68c]/35 rounded-2xl sm:px-10">
+        <div className="mt-6 bg-white py-6 px-4 border border-[#234386]/10 rounded-xl sm:px-10 md:py-8">
           {/* Error Message */}
           {errorMessage && (
             <div
@@ -368,7 +367,6 @@ export const LoginPage: FC = () => {
                     </span>
                   ) : (
                     <>
-                      <Sparkles size={15} />
                       <span>Gửi Liên kết Đăng nhập</span>
                     </>
                   )}

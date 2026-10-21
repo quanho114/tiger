@@ -73,28 +73,6 @@ body {
   font-family: "Dancing Script", cursive;
 }
 
-/* Calm route transition: small fade + slight rise (replays per route) */
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-enter {
-  animation: page-enter 220ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page-enter {
-    animation: none;
-  }
-}
-
 /* Hide scrollbars for horizontal chip rails while keeping touch scroll */
 @utility scrollbar-none {
   scrollbar-width: none;
@@ -210,5 +188,44 @@ body {
   .ai-thinking-orbit,
   .concierge-card-enter {
     animation: none !important;
+  }
+}
+
+/* Warm metallic highlights distinguish catalog-backed bestsellers. */
+.menu-featured-card[data-bestseller] {
+  border-color: #c89c51;
+  box-shadow: 0 0 0 1px rgb(255 235 176 / 0.55), 0 4px 12px rgb(104 77 28 / 0.14);
+}
+
+.menu-bestseller-label {
+  color: #593516;
+  background: linear-gradient(115deg, #d9ad58, #fff0ba 38%, #f2d088 62%, #d9ac58);
+  border: 1px solid #fff0c4;
+  box-shadow: 0 2px 7px rgb(44 27 7 / 0.26), inset 0 1px 0 rgb(255 255 255 / 0.65);
+}
+
+.menu-bestseller-label::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 25%, rgb(255 255 255 / 0.85) 50%, transparent 75%);
+  transform: translateX(-140%);
+  animation: menu-bestseller-shine 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.menu-featured-card:nth-child(2n) .menu-bestseller-label::after {
+  animation-delay: 900ms;
+}
+
+@keyframes menu-bestseller-shine {
+  0%, 15% { transform: translateX(-140%); }
+  42%, 100% { transform: translateX(140%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-bestseller-label::after {
+    animation: none;
+    content: none;
   }
 }

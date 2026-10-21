@@ -11,7 +11,6 @@ import {
   Award
 } from 'lucide-react';
 import { HeroSection } from '@/features/restaurant/components/HeroSection';
-import { HighlightStrip } from '@/features/restaurant/components/HighlightStrip';
 import { BotanicalBranch, BotanicalSprig } from '@/shared/ui/BotanicalDecorations';
 import { useCatalog } from '@/features/catalog';
 
@@ -28,9 +27,6 @@ export const HomePage: FC = () => {
       <HeroSection
         onExploreMenu={() => navigate('/menu')}
       />
-
-      {/* 2. HIGHLIGHT STRIP (Quality Pillars) */}
-      <HighlightStrip />
 
       {/* 3. BRAND / STORY (Editorial Narrative) */}
       <section className="py-16 md:py-24 bg-[#fbf9f6] relative overflow-hidden">

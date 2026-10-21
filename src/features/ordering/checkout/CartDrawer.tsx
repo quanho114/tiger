@@ -1,5 +1,6 @@
 import {
   X,
+  ChevronLeft,
   Trash2,
   Plus,
   Minus,
@@ -24,7 +25,8 @@ import { TakeawayForm } from './TakeawayForm'
 import { DeliveryReceipt } from './DeliveryReceipt'
 import { DineInReceipt } from './DineInReceipt'
 
-export function CartDrawer(props: CartDrawerProps) {
+export function CartDrawer(props: CartDrawerProps & { presentation?: 'drawer' | 'page' }) {
+  const isPage = props.presentation === 'page'
   const { isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem } = props
   const {
     hasActiveTable,
@@ -78,21 +80,21 @@ export function CartDrawer(props: CartDrawerProps) {
     handleCloseTakeawayReceipt,
     activeTableName,
   } = useCheckout(props)
-  const drawerRef = useDrawerFocus(isOpen, onClose)
+  const drawerRef = useDrawerFocus(isOpen && !isPage, onClose)
   if (!isOpen) return null
 
   return (
     <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end justify-center md:items-stretch md:justify-end transition-opacity duration-300 ease-in-out"
-      data-testid="cart-drawer-backdrop"
+      onClick={isPage ? undefined : onClose}
+      className={isPage ? "h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] md:h-[calc(100dvh-8rem)] md:mt-28 md:mb-4 md:mx-auto md:max-w-3xl" : "fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end justify-center md:items-stretch md:justify-end transition-opacity duration-300 ease-in-out"}
+      data-testid={isPage ? "cart-page" : "cart-drawer-backdrop"}
     >
       <div
         ref={drawerRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
+        role={isPage ? "region" : "dialog"}
+        aria-modal={isPage ? undefined : true}
         aria-label={
           isDineIn
             ? 'Giỏ hàng gọi món tại bàn'
@@ -100,22 +102,22 @@ export function CartDrawer(props: CartDrawerProps) {
               ? 'Giỏ hàng món mang đi'
               : 'Giỏ hàng giao tận nơi'
         }
-        className="w-full md:max-w-md bg-[#ffffff] h-[92dvh] md:h-full flex flex-col justify-between shadow-2xl rounded-t-[24px] md:rounded-none outline-none animate-in fade-in slide-in-from-bottom md:slide-in-from-right duration-300"
+        className={isPage ? "h-full w-full bg-[#fffdf9] flex flex-col justify-between outline-none md:rounded-2xl md:border md:border-[#d2b68c]/30" : "w-full md:max-w-md bg-[#ffffff] h-[92dvh] md:h-full flex flex-col justify-between shadow-2xl rounded-t-[24px] md:rounded-none outline-none animate-in fade-in slide-in-from-bottom md:slide-in-from-right duration-300"}
       >
         {/* Mobile grab handle */}
-        <div aria-hidden="true" className="md:hidden pt-2.5 pb-1 flex justify-center shrink-0">
+        <div aria-hidden="true" className={`${isPage ? 'hidden' : 'md:hidden'} pt-2.5 pb-1 flex justify-center shrink-0`}>
           <span className="w-10 h-1 rounded-full bg-[#000000]/15" />
         </div>
 
         {/* Header */}
-        <div className="p-5 border-b border-[#d2b68c]/30 flex justify-between items-center bg-[#fbf9f6]/80 backdrop-blur-xs">
+        <div className="px-5 py-4 shrink-0 border-b border-[#234386]/10 flex justify-between items-center bg-[#fffdf9]">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-[#ed7328]/10 text-[#ed7328]">
+            <div className={`${isPage ? 'hidden md:block' : ''} p-2 rounded-xl bg-[#ed7328]/10 text-[#ed7328]`}>
               {isDineIn ? <Utensils size={20} /> : isTakeaway ? <ShoppingBag size={20} /> : <Bike size={20} />}
             </div>
             <div>
-              <h3 className="font-['Noto_Serif',serif] font-bold text-lg text-[#234386]">
-                {isDineIn ? 'Món Gọi Tại Bàn' : isTakeaway ? 'Món Mang Đi' : 'Món Giao Tận Nơi'}
+              <h3 className="font-body font-semibold text-xl tracking-tight text-[#234386]">
+                {isPage ? 'Giỏ hàng' : isDineIn ? 'Món Gọi Tại Bàn' : isTakeaway ? 'Món Mang Đi' : 'Món Giao Tận Nơi'}
               </h3>
               <p className="text-xs text-[#000000]/60">
                 {isDineIn
@@ -131,15 +133,15 @@ export function CartDrawer(props: CartDrawerProps) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Đóng giỏ hàng"
-            className="p-1.5 rounded-full hover:bg-black/5 text-[#000000]/60 transition-colors"
+            aria-label={isPage ? "Tiếp tục chọn món" : "Đóng giỏ hàng"}
+            className={`${isPage ? 'hidden md:block' : ''} p-1.5 rounded-full hover:bg-black/5 text-[#000000]/60 transition-colors`}
           >
-            <X size={20} />
+            {isPage ? <ChevronLeft size={20} /> : <X size={20} />}
           </button>
         </div>
 
         {/* Body Content */}
-        <div className="p-5 flex-grow overflow-y-auto space-y-4">
+        <div className="p-5 min-h-0 flex-grow overflow-y-auto space-y-4">
           {/* Fulfillment summary strip — tap "Đổi" returns to MenuPage to switch mode */}
           {!dineInReceipt && !deliveryReceipt && !takeawayReceipt && cartItems.length > 0 && (
             <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#fbf9f6] border border-[#d2b68c]/40 text-xs">
@@ -224,7 +226,7 @@ export function CartDrawer(props: CartDrawerProps) {
               selectedZone={selectedZone}
             />
           ) : cartItems.length === 0 ? (
-            <div className="py-20 text-center space-y-3">
+            <div className="py-16 text-center space-y-3">
               <div className="w-16 h-16 rounded-full bg-[#fbf9f6] border border-[#d2b68c]/40 flex items-center justify-center mx-auto text-[#000000]/40">
                 <ShoppingBag size={28} />
               </div>
@@ -232,26 +234,27 @@ export function CartDrawer(props: CartDrawerProps) {
                 Giỏ hàng của bạn đang trống
               </p>
               <p className="text-xs text-[#000000]/50 max-w-xs mx-auto">
-                Khám phá các món đặc sản đồng quê thơm ngon tại thực đơn Tiger 345!
+                Chọn vài món ngon cho bữa ăn của bạn.
               </p>
+              <button type="button" onClick={() => { onClose(); navigate('/menu') }} className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#234386] px-6 text-sm font-semibold text-white hover:bg-[#1a3468]">Xem thực đơn</button>
             </div>
           ) : (
             <>
               {/* Items List */}
-              <div className="space-y-3">
+              <div className="divide-y divide-[#234386]/10">
                 {cartItems.map((item) => (
                   <div
                     key={`${item.dish.id}:${item.note ?? ''}`}
-                    className="p-3 rounded-2xl border border-[#d2b68c]/40 bg-[#ffffff] flex items-center justify-between gap-3 shadow-xs"
+                    className="py-4 flex flex-wrap items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <img
                         src={item.dish.image}
                         alt={item.dish.name}
-                        className="w-14 h-14 rounded-xl object-cover shrink-0 border border-[#d2b68c]/20"
+                        className="w-16 h-16 rounded-lg object-cover shrink-0 border border-[#d2b68c]/20"
                       />
                       <div className="min-w-0">
-                        <h4 className="font-semibold text-xs text-[#000000] truncate">
+                        <h4 className="font-semibold text-sm text-[#234386] line-clamp-2">
                           {item.dish.name}
                         </h4>
                         <p className="text-xs text-[#ed7328] font-bold mt-0.5">
@@ -266,7 +269,7 @@ export function CartDrawer(props: CartDrawerProps) {
                           type="button"
                           onClick={() => item.note === undefined ? onUpdateQuantity(item.dish.id, -1) : onUpdateQuantity(item.dish.id, -1, item.note)}
                           aria-label="Giảm số lượng"
-                          className="p-1.5 text-[#000000]/70 hover:text-[#000000] transition-colors"
+                          className="h-10 w-10 flex items-center justify-center text-[#234386] hover:bg-[#234386]/5 transition-colors"
                         >
                           <Minus size={13} />
                         </button>
@@ -277,7 +280,7 @@ export function CartDrawer(props: CartDrawerProps) {
                           type="button"
                           onClick={() => item.note === undefined ? onUpdateQuantity(item.dish.id, 1) : onUpdateQuantity(item.dish.id, 1, item.note)}
                           aria-label="Tăng số lượng"
-                          className="p-1.5 text-[#000000]/70 hover:text-[#000000] transition-colors"
+                          className="h-10 w-10 flex items-center justify-center text-[#234386] hover:bg-[#234386]/5 transition-colors"
                         >
                           <Plus size={13} />
                         </button>
@@ -350,7 +353,7 @@ export function CartDrawer(props: CartDrawerProps) {
 
         {/* Footer Summary & Submit */}
         {!dineInReceipt && !deliveryReceipt && !takeawayReceipt && cartItems.length > 0 && (
-          <div className="p-5 border-t border-[#d2b68c]/30 bg-[#fbf9f6] space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="p-5 shrink-0 border-t border-[#234386]/10 bg-white space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <div className="space-y-1.5 text-xs text-[#000000]/80">
               <div className="flex justify-between">
                 <span>Tiền món ({cartItems.length}):</span>

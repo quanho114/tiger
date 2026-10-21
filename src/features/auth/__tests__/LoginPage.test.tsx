@@ -48,7 +48,7 @@ describe('LoginPage Component', () => {
     renderLoginPage()
 
     expect(
-      screen.getByRole('heading', { name: /Đăng nhập Tài khoản Khách hàng/i })
+      screen.getByRole('heading', { name: /Tài khoản của bạn/i })
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Đăng nhập với Google/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Tiếp tục với tư cách Khách/i })).toBeInTheDocument()

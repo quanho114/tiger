@@ -154,11 +154,11 @@ export const AdminDashboardPage: FC = () => {
   const bookingsCount = data?.confirmed_bookings_today_count ?? 0
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="admin-dashboard space-y-6 max-w-7xl mx-auto pb-12">
       {/* 1. Operational Header (Elera Style) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#171a17] flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold tracking-tight text-[#171a17] flex flex-wrap items-center gap-2.5">
             <span>Tổng quan vận hành</span>
             <span className="text-[11px] font-semibold text-[#3e6300] bg-[#e4f7c6] px-2 py-0.5 rounded-full">
               Bếp &amp; Quán
@@ -202,7 +202,7 @@ export const AdminDashboardPage: FC = () => {
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-[11px]">
-              <span className="text-[#8a8f89]">Thời gian chờ TB: ~3p</span>
+              <span className="text-[#8a8f89]">Đơn mới cần xác nhận</span>
               <Link
                 to="/admin/orders?status=pending"
                 className="font-medium text-[#171a17] hover:text-[#7cd56e] inline-flex items-center gap-0.5"
@@ -354,7 +354,7 @@ export const AdminDashboardPage: FC = () => {
                   ✓
                 </div>
                 <p className="text-xs font-medium text-[#171a17]">
-                  Hàng đợi sạch sẽ! Không có đơn nào cần xử lý ngay
+                  Chưa có đơn cần xử lý
                 </p>
                 <p className="text-[11px] text-[#787979] mt-0.5">
                   Các đơn hàng mới sẽ tự động xuất hiện tại đây
@@ -362,7 +362,7 @@ export const AdminDashboardPage: FC = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="admin-orders-table w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-[#e2e3e3] text-[11px] font-semibold text-[#787979] uppercase bg-[#faf9f7]">
                       <th className="py-2.5 px-4 font-medium">Mã đơn</th>
@@ -380,7 +380,7 @@ export const AdminDashboardPage: FC = () => {
 
                       return (
                         <tr key={order.id} className="hover:bg-[#faf9f7] transition">
-                          <td className="py-3 px-4">
+                          <td data-label="Mã đơn" className="py-3 px-4">
                             <span className="font-mono font-bold text-[#171a17] block">
                               {order.code}
                             </span>
@@ -391,7 +391,7 @@ export const AdminDashboardPage: FC = () => {
                               })}
                             </span>
                           </td>
-                          <td className="py-3 px-4">
+                          <td data-label="Khách / Bàn" className="py-3 px-4">
                             <span className="font-semibold text-[#171a17] block">
                               {order.order_type === 'dine_in'
                                 ? order.table_name_snapshot || 'Bàn chưa đặt'
@@ -405,7 +405,7 @@ export const AdminDashboardPage: FC = () => {
                                 : order.customer_phone || 'Giao hàng'}
                             </span>
                           </td>
-                          <td className="py-3 px-4">
+                          <td data-label="Món ăn" className="py-3 px-4">
                             <span className="text-[#171a17] font-medium">
                               {order.item_count} món
                             </span>
@@ -415,10 +415,10 @@ export const AdminDashboardPage: FC = () => {
                               </p>
                             )}
                           </td>
-                          <td className="py-3 px-4 font-mono font-semibold text-[#171a17]">
+                          <td data-label="Tổng tiền" className="py-3 px-4 font-mono font-semibold text-[#171a17]">
                             {order.total_vnd.toLocaleString('vi-VN')}đ
                           </td>
-                          <td className="py-3 px-4">
+                          <td data-label="Trạng thái" className="py-3 px-4">
                             <span
                               className={`elera-time-pill ${
                                 isPending
@@ -441,7 +441,7 @@ export const AdminDashboardPage: FC = () => {
                               )}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-right">
+                          <td data-label="Thao tác" className="py-3 px-4 text-right">
                             <Link
                               to={`/admin/orders?orderId=${order.id}`}
                               className="elera-btn-accent h-7 px-3 text-xs shadow-xs"
@@ -551,13 +551,13 @@ export const AdminDashboardPage: FC = () => {
               </div>
             </div>
 
-            <div className="p-3 border-t border-[#e2e3e3] bg-white flex items-center justify-between text-xs">
+            <div className="p-3 border-t border-[#e2e3e3] bg-white flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between text-xs">
               <span className="text-[#787979] text-[11px]">
                 Nhấn vào bàn để xem chi tiết gọi món hoặc mở phiên
               </span>
               <Link
                 to="/admin/tables"
-                className="font-semibold text-[#171a17] hover:text-[#7cd56e] inline-flex items-center gap-1"
+                className="font-semibold text-[#171a17] hover:text-[#7cd56e] inline-flex min-h-11 shrink-0 items-center gap-1"
               >
                 <span>Quản lý sơ đồ bàn</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -578,7 +578,7 @@ export const AdminDashboardPage: FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/admin/orders?action=new&type=dine_in')}
-                className="elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
+                className="admin-quick-action elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="elera-icon-btn w-6 h-6 rounded-lg text-[#171a17]">
@@ -592,7 +592,7 @@ export const AdminDashboardPage: FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/admin/orders?action=new&type=delivery')}
-                className="elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
+                className="admin-quick-action elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="elera-icon-btn w-6 h-6 rounded-lg text-[#171a17]">
@@ -606,7 +606,7 @@ export const AdminDashboardPage: FC = () => {
               <button
                 type="button"
                 onClick={handleQuickPrint}
-                className="elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
+                className="admin-quick-action elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="elera-icon-btn w-6 h-6 rounded-lg text-[#171a17]">
@@ -620,7 +620,7 @@ export const AdminDashboardPage: FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/admin/menu')}
-                className="elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
+                className="admin-quick-action elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="elera-icon-btn w-6 h-6 rounded-lg text-[#171a17]">
@@ -634,7 +634,7 @@ export const AdminDashboardPage: FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/admin/tables')}
-                className="elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
+                className="admin-quick-action elera-btn-secondary w-full justify-between h-10 px-3.5 rounded-xl border border-[#e2e3e3] bg-white text-xs font-semibold"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="elera-icon-btn w-6 h-6 rounded-lg text-[#171a17]">

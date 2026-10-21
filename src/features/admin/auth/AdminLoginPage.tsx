@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type FC, type FormEvent } from 'react'
 import { Navigate, useNavigate, useLocation, Link } from 'react-router-dom'
-import { ShieldCheck, ArrowLeft, AlertCircle, KeyRound } from 'lucide-react'
+import { ArrowLeft, AlertCircle, KeyRound } from 'lucide-react'
 import { supabase } from '@/shared/lib/supabase'
 import { useAuth } from '../../auth'
 
@@ -103,9 +103,11 @@ export const AdminLoginPage: FC = () => {
     <div className="min-h-screen bg-[#f6f5f3] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans antialiased">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Brand Icon & Name */}
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#2b2e2c] text-white shadow-xs mb-3">
-          <ShieldCheck className="w-6 h-6 text-[#7cd56e]" />
-        </div>
+        <img
+          src="/brand/tiger345/source-exact/tiger-icon-light.svg"
+          alt="Logo Tiger 345"
+          className="inline-block w-12 h-12 rounded-2xl object-contain shadow-xs mb-3"
+        />
         <h2 className="text-xl font-bold tracking-tight text-[#171a17]">
           TIGER 345 • Bếp &amp; Quán
         </h2>

@@ -23,7 +23,7 @@ export const HeroSection: FC<HeroSectionProps> = ({ onExploreMenu }) => {
       />
 
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-10 lg:gap-8 items-center">
           
           {/* Left Column: Expressive Typography & CTAs (Exact Image A layout) */}
           <div className="lg:col-span-7 flex flex-col items-start text-left">
@@ -37,24 +37,24 @@ export const HeroSection: FC<HeroSectionProps> = ({ onExploreMenu }) => {
             </div>
 
             {/* Main Headline: Noto Serif bold editorial serif with calibrated line-height preventing Vietnamese diacritic collisions */}
-            <h1 className="font-['Noto_Serif',serif] text-[#234386] text-[36px] xs:text-[38px] sm:text-[50px] lg:text-[60px] xl:text-[66px] font-bold lg:font-extrabold leading-[1.26] sm:leading-[1.26] lg:leading-[1.26] tracking-[-0.025em] uppercase mb-3 sm:mb-4">
+            <h1 className="font-['Noto_Serif',serif] text-[#234386] text-[30px] xs:text-[32px] sm:text-[50px] lg:text-[60px] xl:text-[66px] font-bold lg:font-extrabold leading-[1.26] sm:leading-[1.26] lg:leading-[1.26] tracking-[-0.025em] uppercase mb-3 sm:mb-4">
               MÓN VIỆT.<br />
               ĐẬM VỊ.<br />
               ĐẦY CẢM HỨNG.
             </h1>
 
             {/* Script Accent: Dancing Script 30px 600 line-height: 1.15 Burnt Orange #ed7328 */}
-            <div className="font-['Dancing_Script',cursive] text-[22px] sm:text-2xl md:text-[30px] text-[#ed7328] font-semibold leading-[1.15] -rotate-1 mb-4 sm:mb-6">
+            <div className="font-['Dancing_Script',cursive] text-[20px] sm:text-2xl md:text-[30px] text-[#ed7328] font-semibold leading-[1.15] -rotate-1 mb-4 sm:mb-6">
               Một bữa ăn ngon là một ngày tươi đẹp hơn.
             </div>
 
             {/* Body: Be Vietnam Pro 16px 400 line-height: 1.7 max-width around 560px */}
-            <p className="font-['Be_Vietnam_Pro',sans-serif] text-[15px] sm:text-[16px] text-[#000000]/75 font-normal leading-[1.65] sm:leading-[1.7] max-w-[560px] mb-6 sm:mb-8">
+            <p className="font-['Be_Vietnam_Pro',sans-serif] text-[13px] sm:text-[16px] text-[#000000]/75 font-normal leading-[1.65] sm:leading-[1.7] max-w-[560px] mb-4 sm:mb-8">
               Tại Tiger 345, chúng tôi gìn giữ hương vị Việt qua những nguyên liệu tươi sạch và cách chế biến sáng tạo,
               <span className="hidden sm:inline"> để mỗi bữa ăn là một trải nghiệm trọn vẹn, gần gũi mà đầy bất ngờ.</span>
             </p>
 
-            <div className="w-full sm:w-auto flex items-center gap-3 sm:gap-4 group/cta">
+            <div className="hidden lg:flex w-full sm:w-auto items-center gap-3 sm:gap-4 group/cta">
               <button
                 type="button"
                 onClick={onExploreMenu}
@@ -64,25 +64,13 @@ export const HeroSection: FC<HeroSectionProps> = ({ onExploreMenu }) => {
                 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </button>
 
-              <svg viewBox="0 0 64 52" fill="none"
-                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"
-                className="w-14 h-12 shrink-0 -rotate-6 pointer-events-none select-none transition-transform duration-150 ease-out motion-safe:group-hover/cta:-translate-y-1 motion-safe:group-hover/cta:rotate-[-10deg] motion-safe:group-active/cta:translate-y-0 motion-safe:group-active/cta:scale-[0.96] motion-reduce:transition-none">
-                <path d="M48.8 16.5h-8.3V10a4.8 4.8 0 0 0-9.6 0v13.1H13.5a6.1 6.1 0 0 0 0 12.2h11.4l-2.3 3.1a7.1 7.1 0 0 0 5.7 11.3h7.1a11.8 11.8 0 0 0 8.3-3.4l5.8-5.8h4.3V16.5Z"
-                  fill="#fff8ee" stroke="#bd8051" strokeWidth="1.6" />
-                <path d="M48.8 16.5h7v23.2h-7z" fill="#234386" stroke="#bd8051" strokeWidth="1.5" />
-                <path d="M49.5 19.5h5.6v3.1h-5.6z" fill="#ed7328" />
-                <path d="M14.2 26.1h13.4M32.3 28.4c3.4 2.2 6.5 2.1 9-.2m-17.2 10c2.7 2.7 5.7 3.2 8.5 1.6" stroke="#bd8051" strokeWidth="1.4" />
-                <path d="M16.3 24.7c1.7-.6 3.5-.6 5.2 0" stroke="#edb68b" strokeWidth="1.5" />
-                <path d="M4.2 17.5 2.4 16m4.3 7H4m2.8 9.5-2 1.6" stroke="#ed7328" strokeWidth="1.8" />
-                <path d="m8.8 11.2.7 1.7 1.7.7-1.7.7-.7 1.7-.7-1.7-1.7-.7 1.7-.7.7-1.7Z" fill="#ed7328" />
-                <circle cx="44.7" cy="33.4" r="1.2" fill="#ed7328" />
-              </svg>
+              <img src="/images/pointing-hand-cartoon.png" alt="" aria-hidden="true" className="relative -top-0.5 ml-1 h-14 w-[72px] shrink-0 object-contain pointer-events-none" />
             </div>
 
           </div>
 
           {/* Right Column: Hero Food Cutout Plate with Organic Blobs (Image A & C) */}
-          <div className="lg:col-span-5 relative flex justify-center items-center py-4 sm:py-6 lg:py-0">
+          <div className="lg:col-span-5 relative flex justify-center items-center py-2 sm:py-6 lg:py-0">
             
             {/* Background Organic Paint Blobs (Sky Blue + Honey Gold) */}
             <div 
@@ -140,6 +128,19 @@ export const HeroSection: FC<HeroSectionProps> = ({ onExploreMenu }) => {
             </div>
 
           </div>
+
+            <div className="lg:hidden flex w-full sm:w-auto items-center gap-3 sm:gap-4 group/cta">
+              <button
+                type="button"
+                onClick={onExploreMenu}
+                className="w-auto font-['Be_Vietnam_Pro',sans-serif] inline-flex items-center justify-center gap-2.5 bg-[#234386] hover:bg-[#1a3468] text-white px-6 py-3 rounded-full font-semibold text-[13px] shadow-md hover:shadow-lg active:scale-[0.96] transition-all duration-200 group"
+              >
+                <span>Xem thực đơn</span>
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <img src="/images/pointing-hand-cartoon.png" alt="" aria-hidden="true" className="relative -top-0.5 ml-1 h-14 w-[72px] shrink-0 object-contain pointer-events-none" />
+            </div>
 
         </div>
       </div>

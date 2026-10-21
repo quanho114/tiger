@@ -4,31 +4,29 @@
  * Data schemas: Category, MenuItem, OrderMode
  * User verbatim instruction: "Không thể tải danh mục món ăn - Lỗi hệ thống (502)" / "ủa sao tên món lạ z ko giống tui đưa á"
  */
-import { useState, useMemo, useRef, useEffect, useContext } from 'react';
+import { memo, useCallback, useState, useMemo, useRef, useEffect, useContext } from 'react';
 import type { FC } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Utensils,
   Bike,
   Search,
   Plus,
+  Minus,
   Heart,
   Clock,
-  Check,
   ChevronLeft,
   ChevronRight,
   Wine,
   Calendar,
   QrCode,
-  ShieldCheck,
   ShoppingBag,
   AlertCircle,
   RefreshCw,
   MapPin,
   Loader2,
   ArrowRight,
-  Phone,
-  Sparkles,
+  X,
   Info
 } from 'lucide-react';
 import { toLegacyMenuItem, type MenuItem } from '@/features/catalog/legacyMenuItem';
@@ -42,11 +40,8 @@ import { Field } from '@/shared/ui/Field';
 import { useAuth } from '@/features/auth';
 import { useConciergeSession } from '@/features/concierge/ConciergeProvider';
 import { FALLBACK_DELIVERY_ZONES } from '@/features/ordering/delivery/zones';
-import {
-  fetchCustomerFavorites,
-  addCustomerFavorite,
-  removeCustomerFavorite,
-} from '@/features/account/api';
+import { useMenuFavorites } from './useMenuFavorites';
+import { useVisibleMenuItems } from './useVisibleMenuItems';
 
 type OrderMode = 'dine-in' | 'delivery' | 'takeaway';
 
@@ -62,6 +57,208 @@ function extractQrToken(raw: string): string {
   return match ? match[1] : trimmed;
 }
 
+function featuredPrice(dish: MenuItem): string {
+  if (dish.pricing_mode === 'market') return 'Theo thời giá';
+  if (dish.pricing_mode === 'unknown') return 'Liên hệ';
+  if (dish.pricing_mode === 'range') {
+    return `${(dish.price_min ?? dish.price).toLocaleString('vi-VN')} – ${(dish.price_max ?? dish.price).toLocaleString('vi-VN')} đ`;
+  }
+  return `${dish.price.toLocaleString('vi-VN')} đ`;
+}
+
+interface MenuDishCardProps {
+  dish: MenuItem;
+  categoryName?: string;
+  activeMode: OrderMode;
+  quantity: number;
+  isFav: boolean;
+  favoritePending: boolean;
+  favoritesDisabled: boolean;
+  onSelect: (dish: MenuItem) => void;
+  onToggleFavorite: (id: string, event: React.MouseEvent) => void;
+  onAdd: (dish: MenuItem) => void;
+  onDecrease: (dish: MenuItem) => void;
+}
+
+// Category tracking and dialog state must not rebuild the entire catalog.
+const MenuDishCard = memo(function MenuDishCard({
+  dish, categoryName, activeMode, quantity, isFav, favoritePending,
+  favoritesDisabled, onSelect, onToggleFavorite, onAdd, onDecrease,
+}: MenuDishCardProps) {
+  const isAvailable = dish.available !== false;
+  return (
+    <article
+      data-dish-id={dish.id}
+      className={`[content-visibility:auto] [contain-intrinsic-size:auto_113px] sm:[contain-intrinsic-size:auto_400px] group flex flex-row sm:flex-col bg-transparent sm:bg-white rounded-none sm:rounded-[18px] border-0 border-b border-[#234386]/10 sm:border sm:border-[#d2b68c]/30 py-2.5 sm:p-3 gap-2.5 sm:gap-0 transition-colors duration-200 ${
+        isAvailable
+          ? 'sm:hover:shadow-md'
+          : 'opacity-75 bg-[#fbf9f6]'
+      }`}
+    >
+      {/* Dish Image */}
+      <div
+        onClick={() => onSelect(dish)}
+        className="relative w-[92px] h-[92px] shrink-0 sm:w-auto sm:h-auto sm:aspect-[4/3] rounded-xl overflow-hidden bg-[#234386]/5 cursor-pointer"
+      >
+        <DishImage
+          dish={dish}
+          categoryName={categoryName}
+          isAvailable={isAvailable}
+        />
+
+        {/* Badge: Đặc sản / Signature / Bán chạy / Mới */}
+        <div className="absolute top-2.5 left-2.5 hidden sm:block">
+          {dish.featured_rank ? (
+            <span className="inline-block bg-[#ed7328] text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
+              ★ Đặc sản #{dish.featured_rank}
+            </span>
+          ) : dish.isSignature ? (
+            <span className="inline-block bg-[#ed7328] text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
+              ★ Đặc sản
+            </span>
+          ) : dish.isBestseller ? (
+            <span className="inline-block bg-[#234386] text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
+              Bán chạy
+            </span>
+          ) : dish.isNew ? (
+            <span className="inline-block bg-[#3d5a45] text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
+              Món mới
+            </span>
+          ) : null}
+        </div>
+
+        {/* Badge: Tạm hết (khi available = false) */}
+        {!isAvailable && (
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center">
+            <span className="bg-black/80 text-white font-medium text-xs px-3 py-1 rounded-full border border-white/20">
+              Tạm hết
+            </span>
+          </div>
+        )}
+
+        {/* Favorite Heart Icon */}
+        <button
+          type="button"
+          onClick={(e) => onToggleFavorite(dish.id, e)}
+          className="absolute top-0 right-0 w-11 h-11 text-[#000000]/60 hover:text-red-500 flex items-center justify-center transition-colors active:scale-95"
+          aria-label={`${isFav ? 'Bỏ yêu thích' : 'Yêu thích'} ${dish.name}`}
+          aria-pressed={isFav}
+          aria-busy={favoritePending}
+          disabled={favoritesDisabled}
+        >
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/90">
+            <Heart size={12} className={isFav ? 'fill-red-500 text-red-500' : ''} />
+          </span>
+        </button>
+
+        {/* Mode-specific Badge */}
+        {activeMode === 'delivery' && dish.deliveryETA && (
+          <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-xs text-white text-[9px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+            <Clock size={10} />
+            <span>{dish.deliveryETA}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="min-w-0 flex-1 sm:p-1.5 sm:pt-2.5 flex flex-col justify-between">
+        <div>
+          <h3
+            className="mb-1 font-body text-sm font-semibold leading-snug text-deep-indigo line-clamp-2 sm:font-heading sm:text-base"
+          >
+            <button type="button" onClick={() => onSelect(dish)} className="text-left hover:text-burnt-orange focus-visible:outline-2 focus-visible:outline-deep-indigo">{dish.name}</button>
+          </h3>
+          <p className="font-['Be_Vietnam_Pro',sans-serif] text-[12px] text-[#000000]/70 line-clamp-1 sm:line-clamp-2 leading-4 mb-1 sm:mb-2 font-normal">
+            {dish.description}
+          </p>
+
+          {/* Dine-in pairing note chip */}
+          {activeMode === 'dine-in' && dish.pairingNote && (
+            <div className="p-1.5 rounded-lg bg-[#ffc400]/15 text-[10px] text-[#234386] mb-1.5 sm:mb-3 flex items-center gap-1.5 line-clamp-1">
+              <Wine size={12} className="text-[#ed7328] shrink-0" />
+              <span className="italic truncate">{dish.pairingNote}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Price & Action Row */}
+        <div className="pt-1 sm:pt-2 sm:border-t sm:border-[#d2b68c]/20 flex items-center justify-between mt-auto gap-2">
+          <div className="min-w-0 flex-1">
+            <span className="block font-body text-sm font-semibold leading-5 tabular-nums text-deep-indigo">{featuredPrice(dish)}</span>
+          </div>
+
+          {dish.pricing_mode === 'range' ? (
+            <button
+              type="button"
+              onClick={() => onSelect(dish)}
+              className="inline-flex min-h-11 items-center gap-1 px-3 py-2 rounded-full text-xs font-semibold bg-burnt-orange/10 text-deep-indigo hover:bg-burnt-orange hover:text-white transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo"
+            >
+              <span>Tùy phần</span>
+              <ArrowRight size={12} />
+            </button>
+          ) : dish.pricing_mode === 'market' ? (
+            <button
+              type="button"
+              onClick={() => onSelect(dish)}
+              className="inline-flex min-h-11 items-center gap-1 px-3 py-2 rounded-full text-xs font-semibold bg-deep-indigo/10 text-deep-indigo hover:bg-deep-indigo hover:text-white transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo"
+            >
+              <span>Hỏi giá</span>
+              <ArrowRight size={12} />
+            </button>
+          ) : dish.pricing_mode === 'unknown' ? (
+            <button
+              type="button"
+              onClick={() => onSelect(dish)}
+              className="inline-flex min-h-11 items-center gap-1 px-3 py-2 rounded-full text-xs font-semibold bg-ink-black/5 text-ink-black/70 hover:bg-deep-indigo hover:text-white transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo"
+            >
+              <span>Liên hệ</span>
+              <ArrowRight size={12} />
+            </button>
+          ) : quantity > 0 ? (
+            <div role="group" aria-label={`Số phần ${dish.name}`} className="inline-flex shrink-0 items-center">
+              <button type="button" onClick={() => onDecrease(dish)} aria-label={`Giảm số lượng ${dish.name}`}
+                className="flex h-11 w-9 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-deep-indigo">
+                <span className="flex size-6 items-center justify-center rounded-full border border-[#ed7328]/40 bg-white text-[#d86218]"><Minus size={13} aria-hidden="true" /></span>
+              </button>
+              <output aria-label={`Số lượng ${dish.name}`} className="min-w-4 text-center text-xs font-semibold tabular-nums text-deep-indigo">{quantity}</output>
+              <button type="button" disabled={!isAvailable} onClick={() => onAdd(dish)} aria-label={`Tăng số lượng ${dish.name}`}
+                className="flex h-11 w-9 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-deep-indigo">
+                <span className={`flex size-6 items-center justify-center rounded-full text-white ${activeMode === 'delivery' ? 'bg-[#234386]' : 'bg-[#ed7328]'}`}><Plus size={13} aria-hidden="true" /></span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={!isAvailable}
+              onClick={() => isAvailable && onAdd(dish)}
+              aria-label={!isAvailable ? 'Tạm hết' : 'Thêm món'}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-transparent p-1.5 text-xs font-semibold shrink-0 cursor-pointer disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo"
+            >
+              <span className={`inline-flex h-6 min-w-6 items-center justify-center gap-1.5 rounded-full transition-colors sm:h-8 sm:px-3.5 ${!isAvailable ? 'px-2.5' : 'w-6 sm:w-auto'} ${
+                !isAvailable
+                  ? 'bg-[#000000]/15 text-[#000000]/40 cursor-not-allowed'
+                  : activeMode === 'delivery'
+                  ? 'bg-[#234386] hover:bg-[#ed7328] text-white shadow-2xs active:scale-95'
+                  : 'bg-[#ed7328] hover:bg-[#d86218] text-white shadow-2xs active:scale-95'
+              }`}>
+              {!isAvailable ? (
+                <span>Tạm hết</span>
+              ) : (
+                <>
+                  <Plus size={13} strokeWidth={2} aria-hidden="true" />
+                  <span className="hidden sm:inline">Thêm món</span>
+                </>
+              )}
+              </span>
+            </button>
+          )}
+        </div>
+
+      </div>
+    </article>
+  );
+});
+
 export const MenuPage: FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -76,15 +273,25 @@ export const MenuPage: FC = () => {
   } = useCatalog();
   const {
     add,
-    addedId,
+    updateQty,
     setCartOpen,
     cartItems,
     clear: clearCart,
     setContext: setCartContext,
     context: cartContext,
   } = useCart();
+  const quantityByDish = useMemo(() => {
+    const quantities = new Map<string, number>();
+    for (const item of cartItems) quantities.set(item.dish.id, (quantities.get(item.dish.id) ?? 0) + item.quantity);
+    return quantities;
+  }, [cartItems]);
+  const decreaseDish = useCallback((dish: MenuItem) => {
+    const line = cartItems.find(item => item.dish.id === dish.id && !item.note)
+      ?? cartItems.find(item => item.dish.id === dish.id);
+    if (line) updateQty(dish.id, -1, line.note);
+  }, [cartItems, updateQty]);
   const { session, resolveToken } = useTableSession();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { setViewedMenuItemId } = useConciergeSession();
   const catalogContext = useContext(CatalogContext);
 
@@ -279,79 +486,30 @@ export const MenuPage: FC = () => {
     setIsAddressDialogOpen(false);
   };
 
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [activeCategory, setActiveCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+  const [hasSwipedHighlights, setHasSwipedHighlights] = useState(false);
+  const { favorites, pending: favoritePending, ready: favoritesReady, notice: favoriteNotice, dismiss: dismissFavoriteNotice, retry: retryFavorites, toggle: toggleMenuFavorite } = useMenuFavorites(role, user?.id);
   const [selectedDishDetail, setSelectedDishDetail] = useState<MenuItem | null>(null);
   useEffect(() => {
     setViewedMenuItemId(selectedDishDetail?.id ?? null);
     return () => setViewedMenuItemId(null);
   }, [selectedDishDetail?.id, setViewedMenuItemId]);
 
-  useEffect(() => {
-    if (role === 'customer') {
-      let isMounted = true;
-      fetchCustomerFavorites()
-        .then((favs) => {
-          if (!isMounted) return;
-          const map: Record<string, boolean> = {};
-          favs.forEach((f) => {
-            map[f.menu_item_id] = true;
-          });
-          setFavorites(map);
-        })
-        .catch(() => {});
-      return () => {
-        isMounted = false;
-      };
-    }
-  }, [role]);
-
   const categoryScrollRef = useRef<HTMLDivElement>(null);
-
-  const toggleFavorite = async (id: string, e: React.MouseEvent) => {
+  const categoryNavRef = useRef<HTMLElement>(null);
+  const menuListRef = useRef<HTMLDivElement>(null);
+  const categoryButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const toggleFavorite = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const willBeFav = !favorites[id];
-    setFavorites((prev) => ({ ...prev, [id]: willBeFav }));
-
-    if (role === 'customer') {
-      try {
-        if (willBeFav) {
-          await addCustomerFavorite(id);
-        } else {
-          await removeCustomerFavorite(id);
-        }
-      } catch {
-        setFavorites((prev) => ({ ...prev, [id]: !willBeFav }));
-      }
-    }
-  };
+    void toggleMenuFavorite(id);
+  }, [toggleMenuFavorite]);
 
   const scrollCategories = (direction: 'left' | 'right') => {
-    if (categoryScrollRef.current) {
-      const scrollAmount = direction === 'left' ? -200 : 200;
-      categoryScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
+    const rail = categoryScrollRef.current;
+    if (!rail) return;
+    rail.scrollBy({ left: direction === 'left' ? -rail.clientWidth : rail.clientWidth, behavior: 'instant' });
   };
-
-  const displayCategories = useMemo(() => {
-    const allCat = { id: 'all', name: 'Tất cả món' };
-    const specialtyCat = { id: 'specialty', name: 'Đặc sản Tiger 345', isSpecialty: true };
-    if (!catalogCategories || catalogCategories.length === 0) {
-      return [allCat, specialtyCat];
-    }
-    const sorted = [...catalogCategories].sort((a, b) => a.sort_order - b.sort_order);
-    return [
-      allCat,
-      specialtyCat,
-      ...sorted.map((c) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        isSpecialty: false,
-      })),
-    ];
-  }, [catalogCategories]);
 
   const categoryMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -366,40 +524,65 @@ export const MenuPage: FC = () => {
     return catalogItems.map(toLegacyMenuItem);
   }, [catalogItems]);
 
-  // Filtered dishes
   const filteredDishes = useMemo(() => {
-    return dishes.filter((dish) => {
-      // Mode filtering
-      if (!dish.modes.includes(activeMode)) {
-        return false;
-      }
-      // Category filtering
-      if (selectedCategory === 'specialty') {
-        const isSpecialty =
-          Boolean(dish.is_featured) ||
-          (dish.featured_rank !== null && dish.featured_rank !== undefined && dish.featured_rank > 0) ||
-          Boolean(dish.isSignature) ||
-          Boolean(dish.is_signature);
-        if (!isSpecialty) return false;
-      } else if (selectedCategory !== 'all') {
-        const currentCat = catalogCategories?.find((c) => c.id === selectedCategory);
-        const matchesCat =
-          dish.category === selectedCategory ||
-          dish.category_id === selectedCategory ||
-          (currentCat && dish.category === currentCat.slug);
-        if (!matchesCat) return false;
-      }
-      // Search query filtering (accent-insensitive Vietnamese search)
-      if (searchQuery.trim()) {
-        const q = normalizeVietnamese(searchQuery);
-        const matchesName = normalizeVietnamese(dish.name).includes(q);
-        const matchesDesc = normalizeVietnamese(dish.description).includes(q);
-        const matchesTags = dish.tags?.some((t) => normalizeVietnamese(t).includes(q));
-        return matchesName || matchesDesc || matchesTags;
-      }
-      return true;
-    });
-  }, [dishes, activeMode, selectedCategory, searchQuery, catalogCategories]);
+    const query = normalizeVietnamese(searchQuery.trim());
+    return dishes.filter(dish => dish.modes.includes(activeMode) && (
+      !query || [dish.name, dish.description, ...(dish.tags ?? [])].some(value => normalizeVietnamese(value).includes(query))
+    ));
+  }, [dishes, activeMode, searchQuery]);
+
+  const menuSections = useMemo(() => {
+    const categories = [...catalogCategories].sort((a, b) => a.sort_order - b.sort_order);
+    const sections = categories.map(category => ({
+      id: category.id,
+      name: category.name,
+      dishes: filteredDishes.filter(dish => dish.category_id === category.id),
+    })).filter(section => section.dishes.length > 0);
+    const assigned = new Set(sections.flatMap(section => section.dishes.map(dish => dish.id)));
+    const remaining = filteredDishes.filter(dish => !assigned.has(dish.id));
+    if (remaining.length > 0) sections.push({ id: 'uncategorized', name: 'Món khác', dishes: remaining });
+    return sections;
+  }, [catalogCategories, filteredDishes]);
+
+  const currentCategory = menuSections.some(section => section.id === activeCategory)
+    ? activeCategory
+    : menuSections[0]?.id;
+  const visibleSections = useMemo(() => searchQuery.trim()
+    ? menuSections
+    : menuSections.filter(section => section.id === currentCategory), [menuSections, currentCategory, searchQuery]);
+  const orderedDishes = useMemo(() => visibleSections.flatMap(section => section.dishes), [visibleSections]);
+  const { isVisible: isDishVisible, registerSlot, reveal: revealDishes } = useVisibleMenuItems(orderedDishes);
+
+  const navigateToCategory = (id: string) => {
+    setSearchQuery('');
+    setActiveCategory(id);
+    const list = menuListRef.current;
+    const nav = categoryNavRef.current;
+    if (!list || !nav) return;
+    const offset = (Number.parseFloat(getComputedStyle(nav).top) || 0) + nav.offsetHeight;
+    window.scrollTo({ top: Math.max(0, window.scrollY + list.getBoundingClientRect().top - offset), behavior: 'instant' });
+  };
+
+  useEffect(() => {
+    const rail = categoryScrollRef.current;
+    const button = currentCategory ? categoryButtonRefs.current[currentCategory] : null;
+    if (!rail || !button) return;
+    const railBounds = rail.getBoundingClientRect();
+    const buttonBounds = button.getBoundingClientRect();
+    const delta = buttonBounds.left < railBounds.left
+      ? buttonBounds.left - railBounds.left
+      : buttonBounds.right > railBounds.right ? buttonBounds.right - railBounds.right : 0;
+    if (delta) rail.scrollBy({ left: delta, behavior: 'instant' });
+  }, [currentCategory]);
+
+  const highlightedMenu = useMemo(() => {
+    const available = dishes.filter((dish) => dish.available !== false && dish.modes.includes(activeMode));
+    const bestsellers = available.filter((dish) => dish.isBestseller);
+    const items = bestsellers.length > 0 ? bestsellers : available.filter((dish) =>
+      dish.is_featured || dish.isSignature || (dish.featured_rank ?? 0) > 0,
+    ).sort((a, b) => (a.featured_rank ?? Infinity) - (b.featured_rank ?? Infinity));
+    return { title: bestsellers.length > 0 ? 'Món bán chạy' : 'Tiger gợi ý', items: items.slice(0, 6) };
+  }, [dishes, activeMode]);
 
   const handleBookTableForDish = (dishName: string) => {
     navigate('/reservation', { state: { dishName } });
@@ -417,32 +600,35 @@ export const MenuPage: FC = () => {
   }, []);
 
   return (
-    <div className="pt-24 pb-20 md:pt-32 md:pb-28 bg-[#fbf9f6] min-h-screen">
+    <div className="pt-[3.75rem] pb-6 md:pt-32 md:pb-28 bg-[#fbf9f6] min-h-screen">
+      {favoriteNotice && (
+        <div role={favoriteNotice.error ? 'alert' : 'status'} className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl border border-[#234386]/15 bg-white px-4 py-3 text-sm text-[#234386] shadow-md md:bottom-6">
+          <span>{favoriteNotice.text}</span>
+          {favoriteNotice.login && <Link to="/login?returnTo=%2Fmenu" className="shrink-0 font-semibold underline">Đăng nhập</Link>}
+          {favoriteNotice.error && !favoritesReady && <button type="button" onClick={retryFavorites} className="shrink-0 font-semibold underline">Thử lại</button>}
+          <button type="button" onClick={dismissFavoriteNotice} aria-label="Đóng thông báo yêu thích" className="min-h-10 min-w-10 text-xl">×</button>
+        </div>
+      )}
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
 
-        {/* ========================================================================= */}
-        {/* PAGE HEADER */}
-        {/* ========================================================================= */}
-        <div className="mb-4 pb-6 border-b border-warm-sand/30">
+        <div className="mb-6 hidden items-end justify-between gap-6 border-b border-warm-sand/30 pb-6 md:flex">
           <div>
-            <div className="flex items-center gap-2.5 mb-2.5">
-              <span className="font-['Be_Vietnam_Pro',sans-serif] text-[11px] font-semibold tracking-[0.18em] uppercase text-[#ed7328]">
-                THỰC ĐƠN TIGER 345
-              </span>
-              <span className="w-8 h-[1.5px] bg-[#d2b68c]" />
-            </div>
-            <h1 className="font-['Noto_Serif',serif] text-3xl sm:text-4xl lg:text-[44px] font-bold text-[#234386] tracking-tight leading-tight">
-              Hương vị đương đại, trải nghiệm trọn vẹn
-            </h1>
-            <p className="font-['Be_Vietnam_Pro',sans-serif] text-[#000000]/70 text-sm sm:text-base mt-2 font-normal max-w-xl leading-relaxed">
-              Thưởng thức món ăn trong không gian ấm cúng tại Vĩnh An, Vĩnh Cửu hoặc đặt món giao tận nơi nóng sốt giữ trọn hương vị.
-            </p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-burnt-orange">Bếp Tiger 345</p>
+            <h1 className="font-heading text-4xl font-bold tracking-tight text-deep-indigo lg:text-5xl">Thực đơn</h1>
           </div>
+          <p className="text-sm text-ink-black/60">Chọn món ngon, dùng theo cách bạn thích.</p>
         </div>
+        <h1 className="sr-only md:hidden">Thực đơn</h1>
 
-        <div className="sticky top-16 z-30 -mx-4 mb-6 bg-cream-paper/95 px-4 py-2 backdrop-blur-sm md:static md:mx-0 md:bg-transparent md:px-0 md:backdrop-blur-none">
-          <fieldset className="m-0 grid min-w-0 grid-cols-3 gap-2 border-0 p-0 font-sans md:w-fit md:gap-3">
+        <div className="mb-1 py-2 md:mb-2">
+          <fieldset className="relative isolate m-0 grid min-w-0 grid-cols-3 rounded-full border-0 bg-[#234386]/[0.055] p-1 font-sans md:max-w-lg">
             <legend className="sr-only">Chọn hình thức thưởng thức</legend>
+            <div aria-hidden="true" className="pointer-events-none absolute inset-1 -z-10">
+              <span
+                className="block h-full w-1/3 rounded-full bg-white shadow-[0_1px_4px_rgba(35,67,134,0.08)] transition-transform duration-250 ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+                style={{ transform: `translateX(${orderModeOptions.findIndex(option => option.value === activeMode) * 100}%)` }}
+              />
+            </div>
             {orderModeOptions.map(({ value, label, icon: Icon }) => (
               <label key={value} className="relative min-w-0 cursor-pointer">
                 <input
@@ -453,231 +639,143 @@ export const MenuPage: FC = () => {
                   onChange={() => handleModeSelect(value)}
                   className="peer sr-only"
                 />
-                <span className="relative flex h-full min-h-12 flex-col items-center justify-center gap-2 rounded-2xl border border-warm-sand/40 bg-pure-white px-2 py-3 text-center text-sm font-semibold leading-5 text-deep-indigo hover:border-deep-indigo/40 hover:bg-deep-indigo/5 active:bg-deep-indigo/10 peer-checked:border-deep-indigo peer-checked:bg-deep-indigo peer-checked:text-pure-white peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-deep-indigo md:flex-row md:gap-3 md:px-5">
-                  <Icon size={20} className="shrink-0" aria-hidden="true" />
+                <span className="relative flex min-h-11 items-center justify-center gap-1.5 rounded-full px-2 py-2 text-center text-xs font-medium leading-5 text-[#77736d] transition-colors duration-200 hover:text-[#234386] peer-checked:text-[#234386] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#234386] motion-reduce:transition-none md:gap-2 md:text-sm">
+                  <Icon size={16} strokeWidth={1.7} className="shrink-0" aria-hidden="true" />
                   <span>{label}</span>
-                  <Check size={14} aria-hidden="true" className={`absolute right-2 top-2 shrink-0 md:static ${activeMode === value ? 'visible' : 'invisible'}`} />
                 </span>
               </label>
             ))}
           </fieldset>
         </div>
 
-        {/* ========================================================================= */}
-        {/* CONTEXTUAL MODE HIGHLIGHT BANNER */}
-        {/* ========================================================================= */}
-        <div className="mb-8">
+        <div className="mb-3 flex min-h-11 items-center justify-between gap-3 border-b border-warm-sand/30 pb-2 text-xs text-deep-indigo md:mb-5 md:max-w-lg">
           {activeMode === 'dine-in' ? (
-            session ? (
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#ed7328]/10 via-[#ffc400]/15 to-white border border-[#ed7328]/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#ed7328] text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <Utensils size={18} />
-                  </div>
-                  <div className="text-xs sm:text-sm">
-                    <span className="font-semibold text-[#ed7328] block sm:inline">
-                      Đang dùng bữa tại {session.tableName}:
-                    </span>{' '}
-                    <span className="text-[#000000]/75">
-                      Món ăn bạn chọn sẽ được gửi trực tiếp đến Bếp Tiger 345 và phục vụ tận bàn.
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCartOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white text-xs font-semibold shrink-0 shadow-xs active:scale-95 transition-all"
-                >
-                  <ShoppingBag size={13} />
-                  <span>Xem thực đơn đã chọn ({cartItems.length})</span>
-                </button>
-              </div>
-            ) : (
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#234386]/10 via-[#6aa8dc]/10 to-white border border-[#234386]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#234386] text-[#ffc400] flex items-center justify-center shrink-0">
-                    <QrCode size={18} />
-                  </div>
-                  <div className="text-xs sm:text-sm">
-                    <span className="font-semibold text-[#234386] block sm:inline">Đang dùng thực đơn tại quán:</span>{' '}
-                    <span className="text-[#000000]/75">
-                      Quét mã QR trên bàn để gọi món hoặc nhập số bàn nếu bạn đang có mặt tại nhà hàng.
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQrError(null);
-                      setIsQrDialogOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
-                  >
-                    <QrCode size={13} />
-                    <span>Nhập số bàn</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/reservation')}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-[#234386]/30 text-[#234386] hover:border-[#234386] text-xs font-semibold shadow-xs active:scale-95 transition-all"
-                  >
-                    <Calendar size={13} />
-                    <span>Đặt bàn trực tuyến</span>
-                  </button>
-                </div>
-              </div>
-            )
+            <>
+              <button type="button" onClick={() => { setQrError(null); setIsQrDialogOpen(true); }}
+                className="flex min-h-11 min-w-0 items-center gap-2 text-left hover:text-burnt-orange focus-visible:outline-2 focus-visible:outline-deep-indigo">
+                <QrCode size={16} className="shrink-0" aria-hidden="true" />
+                <span className="truncate">{session ? session.tableName : 'Chưa chọn bàn'}</span>
+                <span className="shrink-0 font-semibold underline underline-offset-4">{session ? 'Đổi bàn' : 'Nhập số bàn'}</span>
+              </button>
+              {session ? (
+                <button type="button" onClick={() => setCartOpen(true)} className="min-h-11 shrink-0 font-semibold hover:text-burnt-orange">Món đã chọn ({cartItems.length})</button>
+              ) : (
+                <Link to="/reservation" className="flex min-h-11 shrink-0 items-center gap-1 text-ink-black/60 hover:text-deep-indigo">Đặt bàn <ChevronRight size={13} aria-hidden="true" /></Link>
+              )}
+            </>
           ) : activeMode === 'delivery' ? (
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#ed7328]/10 via-[#ffc400]/15 to-white border border-[#ed7328]/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#ed7328] text-white flex items-center justify-center shrink-0">
-                  <Bike size={18} />
-                </div>
-                <div className="text-xs sm:text-sm">
-                  <span className="font-semibold text-[#ed7328] block sm:inline">Chính sách giao hàng nóng sốt:</span>{' '}
-                  <span className="text-[#000000]/75">
-                    Freeship cho đơn từ 300.000đ trong bán kính 5km. Đóng gói hộp giấy giữ nhiệt sinh thái bảo toàn độ ngon.
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#ed7328] bg-white px-3 py-1.5 rounded-full border border-[#ed7328]/30">
-                  <ShieldCheck size={14} />
-                  <span>Cam kết nóng sốt 30–40p</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={openAddressDialog}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#ed7328]/40 text-[#ed7328] hover:border-[#ed7328] text-xs font-semibold shadow-xs active:scale-95 transition-all"
-                >
-                  <MapPin size={13} />
-                  <span>Nhập địa chỉ giao</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCartOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
-                >
-                  <ShoppingBag size={13} />
-                  <span>Xem giỏ hàng</span>
-                </button>
-              </div>
-            </div>
+            <>
+              <button type="button" onClick={openAddressDialog} className="flex min-h-11 min-w-0 items-center gap-2 text-left hover:text-burnt-orange">
+                <MapPin size={16} className="shrink-0" aria-hidden="true" />
+                <span className="truncate">{cartContext.mode === 'delivery' && cartContext.address ? cartContext.address : 'Nhập địa chỉ giao'}</span>
+                <ChevronRight size={14} className="shrink-0" aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => setCartOpen(true)} className="min-h-11 shrink-0 font-semibold hover:text-burnt-orange">Xem giỏ hàng</button>
+            </>
           ) : (
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#ed7328]/10 via-[#ffc400]/15 to-white border border-[#ed7328]/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#ed7328] text-white flex items-center justify-center shrink-0">
-                  <ShoppingBag size={18} />
-                </div>
-                <div className="text-xs sm:text-sm">
-                  <span className="font-semibold text-[#ed7328] block sm:inline">Đặt trước, đến nhận:</span>{' '}
-                  <span className="text-[#000000]/75">
-                    Chọn món trước và ghé Tiger 345 nhận món khi đã sẵn sàng. Nhận tại Tiger 345 – Vĩnh An, Vĩnh Cửu.
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#ed7328] bg-white px-3 py-1.5 rounded-full border border-[#ed7328]/30">
-                  <Clock size={14} />
-                  <span>Dự kiến sẵn sàng 20–30 phút</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCartOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all"
-                >
-                  <ShoppingBag size={13} />
-                  <span>Xem giỏ hàng</span>
-                </button>
-              </div>
-            </div>
+            <>
+              <span className="flex min-w-0 items-center gap-2"><ShoppingBag size={16} className="shrink-0" aria-hidden="true" />Nhận món tại Tiger 345</span>
+              <button type="button" onClick={() => setCartOpen(true)} className="min-h-11 shrink-0 font-semibold hover:text-burnt-orange">Xem giỏ hàng</button>
+            </>
           )}
         </div>
 
-        {/* ========================================================================= */}
-        {/* CATEGORY FILTER CHIPS & SEARCH */}
-        {/* ========================================================================= */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-4 border-b border-[#d2b68c]/30">
-          {/* Scrollable Categories */}
-          <div className="flex items-center gap-2 overflow-hidden flex-grow">
-            <div
-              ref={categoryScrollRef}
-              className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto scrollbar-none py-1 scroll-smooth touch-pan-x"
-            >
-              {displayCategories.map((cat) => {
-                const isActive = selectedCategory === cat.id;
-                const isSpecialty = cat.id === 'specialty';
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-200 border active:scale-95 cursor-pointer ${
-                      isActive
-                        ? 'bg-[#ed7328] text-white border-[#ed7328] shadow-xs'
-                        : isSpecialty
-                        ? 'bg-[#ffc400]/15 text-[#234386] border-[#ffc400]/50 hover:bg-[#ffc400]/30 hover:border-[#ed7328]'
-                        : 'bg-white text-[#000000]/75 border-[#d2b68c]/35 hover:border-[#ed7328] hover:text-[#ed7328]'
-                    }`}
-                  >
-                    {isSpecialty && (
-                      <Sparkles size={12} className={isActive ? 'text-white' : 'text-[#ed7328]'} />
-                    )}
-                    <span>{cat.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Scroll buttons on desktop */}
-            <div className="hidden lg:flex items-center gap-1 shrink-0 pl-2">
-              <button
-                type="button"
-                onClick={() => scrollCategories('left')}
-                className="w-7 h-7 rounded-full bg-white border border-[#d2b68c]/40 text-[#234386] hover:bg-[#234386] hover:text-white flex items-center justify-center transition-colors"
-                aria-label="Cuộn danh mục sang trái"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollCategories('right')}
-                className="w-7 h-7 rounded-full bg-white border border-[#d2b68c]/40 text-[#234386] hover:bg-[#234386] hover:text-white flex items-center justify-center transition-colors"
-                aria-label="Cuộn danh mục sang phải"
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Search */}
-          <div className="w-full md:w-72 shrink-0">
-            <div className="relative">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#000000]/45" />
-              <input
-                type="text"
-                placeholder="Tìm món ngon theo tên, nguyên liệu..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 rounded-full bg-white border border-[#d2b68c]/35 text-xs sm:text-sm text-[#000000] focus:outline-none focus:border-[#234386] placeholder:text-[#000000]/40"
-              />
-            </div>
-          </div>
+        <div className="relative mb-3 md:mb-5 md:max-w-lg">
+          <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-deep-indigo/50" aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Tìm món"
+            placeholder="Tìm món, nguyên liệu…"
+            value={searchQuery}
+            onChange={event => setSearchQuery(event.target.value)}
+            className="min-h-12 w-full rounded-xl border border-deep-indigo/10 bg-white py-3 pl-11 pr-12 text-base text-ink-black placeholder:text-ink-black/45 focus:border-deep-indigo/40 focus:outline-2 focus:outline-deep-indigo/15 md:text-sm [&::-webkit-search-cancel-button]:appearance-none"
+          />
+          {searchQuery && (
+            <button type="button" aria-label="Xóa tìm kiếm" onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-ink-black/50 hover:text-deep-indigo focus-visible:outline-2 focus-visible:outline-deep-indigo">
+              <X size={18} aria-hidden="true" />
+            </button>
+          )}
         </div>
+
+        {menuSections.length > 0 && (
+          <nav ref={categoryNavRef} aria-label="Danh mục món ăn"
+            className="sticky top-14 z-30 -mx-4 mb-2 border-b border-warm-sand/40 bg-cream-paper px-4 sm:-mx-6 sm:px-6 md:top-20 md:mb-4 lg:-mx-10 lg:px-10">
+            <div className="flex items-center gap-2">
+              <div ref={categoryScrollRef} className="flex min-w-0 flex-1 gap-6 overflow-x-auto overscroll-x-contain scrollbar-none">
+                {menuSections.map(section => (
+                  <button key={section.id} type="button" ref={element => { categoryButtonRefs.current[section.id] = element; }}
+                    onClick={() => navigateToCategory(section.id)}
+                    aria-current={currentCategory === section.id ? 'location' : undefined}
+                    aria-controls={`menu-section-${section.id}`}
+                    className={`min-h-12 shrink-0 whitespace-nowrap border-b-2 py-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-deep-indigo ${
+                      currentCategory === section.id ? 'border-burnt-orange text-deep-indigo' : 'border-transparent text-ink-black/55 hover:text-deep-indigo'
+                    }`}>
+                    {section.name}
+                  </button>
+                ))}
+              </div>
+              <div className="hidden shrink-0 items-center lg:flex">
+                <button type="button" onClick={() => scrollCategories('left')} aria-label="Cuộn danh mục sang trái"
+                  className="flex size-11 items-center justify-center rounded-full text-deep-indigo hover:bg-deep-indigo/5 focus-visible:outline-2 focus-visible:outline-deep-indigo"><ChevronLeft size={18} /></button>
+                <button type="button" onClick={() => scrollCategories('right')} aria-label="Cuộn danh mục sang phải"
+                  className="flex size-11 items-center justify-center rounded-full text-deep-indigo hover:bg-deep-indigo/5 focus-visible:outline-2 focus-visible:outline-deep-indigo"><ChevronRight size={18} /></button>
+              </div>
+            </div>
+          </nav>
+        )}
+
+        {!searchQuery.trim() && highlightedMenu.items.length > 0 && (
+          <section aria-label={highlightedMenu.title} className="relative isolate -mx-4 mb-5 overflow-hidden bg-[#e8eee4] pb-5 pt-5 sm:hidden">
+            <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[185px] bg-[url('/images/menu/mountain-mist.svg')] bg-cover bg-bottom bg-no-repeat" />
+            <div aria-hidden="true" className="pointer-events-none absolute -right-5 -top-3 -z-10 h-[150px] w-[200px] bg-[url('/images/menu/bamboo-corner.svg')] bg-contain bg-no-repeat opacity-65" />
+            <div aria-hidden="true" className="pointer-events-none absolute -bottom-10 -left-12 -z-10 h-[150px] w-[200px] rotate-180 bg-[url('/images/menu/bamboo-corner.svg')] bg-contain bg-no-repeat opacity-35" />
+            <div className="mb-2.5 flex items-center justify-between gap-3 px-4">
+              <div className="flex items-center gap-2.5">
+                <h2 className="font-['Noto_Serif',serif] text-lg sm:text-xl font-bold tracking-tight text-[#294936]">{highlightedMenu.title}</h2>
+              </div>
+              {!hasSwipedHighlights && (<span className="flex items-center gap-1 text-[11px] font-medium text-[#98451f]">Vuốt xem <ArrowRight size={13} aria-hidden="true" /></span>)}
+            </div>
+            <div className="flex snap-x snap-proximity scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 scrollbar-none"
+              onScroll={event => {
+                if (!hasSwipedHighlights && event.currentTarget.scrollLeft > 8) setHasSwipedHighlights(true);
+              }}>
+              {highlightedMenu.items.map((dish) => (
+                <button key={dish.id} type="button" onClick={() => setSelectedDishDetail(dish)}
+                  data-bestseller={dish.isBestseller || undefined}
+                  className="menu-featured-card w-[156px] shrink-0 snap-start overflow-hidden rounded-xl border border-[#b7c4b0] bg-[#fffdf9] text-left shadow-[0_3px_8px_rgba(35,63,43,0.10)] transition-colors hover:border-[#ed7328] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#294936]">
+                  <div className="relative aspect-[4/3] overflow-hidden bg-[#234386]/5">
+                    <DishImage dish={dish} categoryName={categoryMap.get(dish.category)} isAvailable />
+                    {dish.isBestseller && (
+                      <span className="menu-bestseller-label absolute left-2 top-2 overflow-hidden rounded-full px-2.5 py-1 text-[10px] font-bold leading-4 tracking-wide">
+                        Bán chạy
+                      </span>
+                    )}
+                  </div>
+                  <span className="block p-2.5">
+                    <span className="block min-h-10 text-[13px] font-semibold leading-5 text-[#234386] line-clamp-2">{dish.name}</span>
+                    <span className="mt-1.5 block text-[11px] font-semibold leading-4 text-[#b44d12]">{featuredPrice(dish)}</span>
+                    <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#746c62]">Xem món <ChevronRight size={12} aria-hidden="true" /></span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ========================================================================= */}
         {/* DISH CARDS GRID */}
         {/* ========================================================================= */}
+        {searchQuery.trim() && <p role="status" className="py-3 text-sm text-ink-black/60">{filteredDishes.length} món phù hợp</p>}
         {isLoading && catalogItems.length === 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 sm:gap-4">
             {Array.from({ length: 8 }).map((_, idx) => (
               <div
                 key={`menu-skeleton-${idx}`}
-                className="animate-pulse flex flex-col bg-white rounded-[22px] border border-[#d2b68c]/30 p-3.5 shadow-xs"
+                className="animate-pulse flex flex-row sm:flex-col gap-3 py-3 sm:p-3.5 sm:bg-white sm:rounded-[18px] border-b sm:border border-[#d2b68c]/30"
               >
-                <div className="aspect-[4/3] rounded-[16px] bg-[#234386]/10 mb-3" />
-                <div className="space-y-2.5 p-2">
+                <div className="w-[92px] h-[92px] shrink-0 sm:w-auto sm:h-auto sm:aspect-[4/3] rounded-xl bg-[#234386]/10 sm:mb-3" />
+                <div className="flex-1 space-y-2.5 p-2">
                   <div className="h-4 bg-[#234386]/10 rounded-sm w-3/4" />
                   <div className="h-3 bg-[#234386]/10 rounded-sm w-full" />
                   <div className="h-3 bg-[#234386]/10 rounded-sm w-2/3" />
@@ -718,209 +816,45 @@ export const MenuPage: FC = () => {
               Không tìm thấy món ăn phù hợp
             </h3>
             <p className="text-xs text-[#000000]/60 max-w-sm mx-auto">
-              Vui lòng thử tìm kiếm với từ khóa khác hoặc chọn lại danh mục món ăn nhé.
+              Thử tên món hoặc nguyên liệu khác, hoặc xóa tìm kiếm để xem thực đơn.
             </p>
             <button
               type="button"
-              onClick={() => {
-                setSelectedCategory('all');
-                setSearchQuery('');
-              }}
+              onClick={() => setSearchQuery('')}
               className="mt-2 px-5 py-2 rounded-full bg-[#234386] text-white text-xs font-semibold"
             >
               Xem tất cả món
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-            {filteredDishes.map((dish) => {
-              const isJustAdded = addedId === dish.id;
-              const isFav = !!favorites[dish.id];
-              const isAvailable = dish.available !== false;
-
-              return (
-                <article
-                  key={dish.id}
-                  data-dish-id={dish.id}
-                  className={`group flex flex-col bg-white rounded-[22px] border border-[#d2b68c]/30 p-3.5 shadow-xs transition-all duration-300 ${
-                    isAvailable
-                      ? 'hover:shadow-xl hover:-translate-y-1'
-                      : 'opacity-75 bg-[#fbf9f6]'
-                  }`}
-                >
-                  {/* Dish Image */}
-                  <div
-                    onClick={() => setSelectedDishDetail(dish)}
-                    className="relative aspect-[4/3] rounded-[16px] overflow-hidden bg-[#234386]/5 cursor-pointer"
-                  >
-                    <DishImage
-                      dish={dish}
-                      categoryName={categoryMap.get(dish.category) || categoryMap.get(dish.category_id || '')}
-                      isAvailable={isAvailable}
-                    />
-
-                    {/* Badge: Đặc sản / Signature / Bán chạy / Mới */}
-                    <div className="absolute top-2.5 left-2.5">
-                      {dish.featured_rank ? (
-                        <span className="inline-block bg-[#ed7328] text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
-                          ★ Đặc sản #{dish.featured_rank}
-                        </span>
-                      ) : dish.isSignature ? (
-                        <span className="inline-block bg-[#ed7328] text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
-                          ★ Đặc sản
-                        </span>
-                      ) : dish.isBestseller ? (
-                        <span className="inline-block bg-[#234386] text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
-                          Bán chạy
-                        </span>
-                      ) : dish.isNew ? (
-                        <span className="inline-block bg-[#3d5a45] text-white text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
-                          Món mới
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {/* Badge: Tạm hết (khi available = false) */}
-                    {!isAvailable && (
-                      <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center">
-                        <span className="bg-black/80 text-white font-medium text-xs px-3 py-1 rounded-full border border-white/20">
-                          Tạm hết
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Favorite Heart Icon */}
-                    <button
-                      type="button"
-                      onClick={(e) => toggleFavorite(dish.id, e)}
-                      className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/80 backdrop-blur-xs text-[#000000]/60 hover:text-red-500 flex items-center justify-center transition-colors shadow-2xs active:scale-95"
-                      aria-label="Yêu thích món"
-                    >
-                      <Heart
-                        size={14}
-                        className={isFav ? 'fill-red-500 text-red-500' : ''}
-                      />
-                    </button>
-
-                    {/* Mode-specific Badge */}
-                    {activeMode === 'delivery' && dish.deliveryETA && (
-                      <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-xs text-white text-[9px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Clock size={10} />
-                        <span>{dish.deliveryETA}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-2.5 pt-3.5 flex flex-col flex-grow justify-between">
-                    <div>
-                      <h3
-                        onClick={() => setSelectedDishDetail(dish)}
-                        className="font-['Noto_Serif',serif] text-base font-bold text-[#000000] group-hover:text-[#234386] transition-colors line-clamp-1 mb-1 cursor-pointer"
-                      >
-                        {dish.name}
-                      </h3>
-                      <p className="font-['Be_Vietnam_Pro',sans-serif] text-[12px] text-[#000000]/70 line-clamp-2 leading-relaxed mb-3 font-normal">
-                        {dish.description}
-                      </p>
-
-                      {/* Dine-in pairing note chip */}
-                      {activeMode === 'dine-in' && dish.pairingNote && (
-                        <div className="p-1.5 rounded-lg bg-[#ffc400]/15 text-[10px] text-[#234386] mb-3 flex items-center gap-1.5 line-clamp-1">
-                          <Wine size={12} className="text-[#ed7328] shrink-0" />
-                          <span className="italic truncate">{dish.pairingNote}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Price & Action Row */}
-                    <div className="pt-2.5 border-t border-[#d2b68c]/20 flex items-center justify-between mt-auto gap-2">
-                      <div className="min-w-0 flex-1">
-                        {dish.pricing_mode === 'market' ? (
-                          <span className="font-['Noto_Serif',serif] text-xs sm:text-sm font-bold text-[#ed7328] block truncate">
-                            Theo thời giá
-                          </span>
-                        ) : dish.pricing_mode === 'unknown' ? (
-                          <span className="font-['Noto_Serif',serif] text-xs sm:text-sm font-bold text-[#ed7328] block truncate">
-                            Liên hệ
-                          </span>
-                        ) : dish.pricing_mode === 'range' ? (
-                          <span
-                            className="font-['Noto_Serif',serif] text-[11px] sm:text-xs font-bold text-[#ed7328] block truncate"
-                            title={`${(dish.price_min ?? dish.price).toLocaleString('vi-VN')} – ${(dish.price_max ?? dish.price).toLocaleString('vi-VN')} đ`}
-                          >
-                            {(dish.price_min ?? dish.price).toLocaleString('vi-VN')} – {(dish.price_max ?? dish.price).toLocaleString('vi-VN')} đ
-                          </span>
-                        ) : (
-                          <span className="font-['Noto_Serif',serif] text-sm sm:text-base font-bold text-[#ed7328] block truncate">
-                            {dish.price.toLocaleString('vi-VN')} đ
-                          </span>
-                        )}
-                      </div>
-
-                      {dish.pricing_mode === 'range' ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedDishDetail(dish)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#ed7328]/10 text-[#ed7328] hover:bg-[#ed7328] hover:text-white transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
-                        >
-                          <span>Tùy phần</span>
-                          <ArrowRight size={12} />
-                        </button>
-                      ) : dish.pricing_mode === 'market' ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedDishDetail(dish)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#234386]/10 text-[#234386] hover:bg-[#234386] hover:text-white transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
-                        >
-                          <span>Hỏi giá</span>
-                          <ArrowRight size={12} />
-                        </button>
-                      ) : dish.pricing_mode === 'unknown' ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedDishDetail(dish)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#000000]/5 text-[#000000]/70 hover:bg-[#234386] hover:text-white transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
-                        >
-                          <span>Liên hệ</span>
-                          <ArrowRight size={12} />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={!isAvailable}
-                          onClick={() => isAvailable && add(dish)}
-                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer ${
-                            !isAvailable
-                              ? 'bg-[#000000]/15 text-[#000000]/40 cursor-not-allowed'
-                              : isJustAdded
-                              ? 'bg-[#3d5a45] text-white active:scale-95'
-                              : activeMode === 'delivery'
-                              ? 'bg-[#234386] hover:bg-[#ed7328] text-white shadow-2xs active:scale-95'
-                              : 'bg-[#ed7328] hover:bg-[#d86218] text-white shadow-2xs active:scale-95'
-                          }`}
-                        >
-                          {!isAvailable ? (
-                            <span>Tạm hết</span>
-                          ) : isJustAdded ? (
-                            <>
-                              <Check size={13} className="stroke-[3]" />
-                              <span>Đã thêm</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus size={13} />
-                              <span>Thêm món</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-
-                  </div>
-                </article>
-              );
-            })}
+          <div ref={menuListRef} className="space-y-8 md:space-y-10">
+            {visibleSections.map(section => (
+              <section key={section.id} id={`menu-section-${section.id}`} aria-labelledby={`menu-heading-${section.id}`}>
+                <div className="flex items-baseline gap-3 border-b border-warm-sand/30 pb-3 pt-4">
+                  <h2 id={`menu-heading-${section.id}`} className="font-heading text-2xl font-bold tracking-tight text-deep-indigo">{section.name}</h2>
+                  <span className="text-xs tabular-nums text-ink-black/45">{section.dishes.length} món</span>
+                </div>
+                <div className="grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-4 sm:pt-4 lg:grid-cols-4">
+            {section.dishes.map(dish => (
+              <div key={dish.id} data-menu-slot-id={dish.id}
+                ref={isDishVisible(dish.id) ? undefined : element => registerSlot(dish.id, element)}>
+              {isDishVisible(dish.id) ? <MenuDishCard dish={dish} activeMode={activeMode}
+                categoryName={categoryMap.get(dish.category) || categoryMap.get(dish.category_id || '')}
+                quantity={quantityByDish.get(dish.id) ?? 0} isFav={!!favorites[dish.id]}
+                favoritePending={!!favoritePending[dish.id]}
+                favoritesDisabled={!!favoritePending[dish.id] || (role === 'customer' && !favoritesReady)}
+                onSelect={setSelectedDishDetail} onToggleFavorite={toggleFavorite} onAdd={add} onDecrease={decreaseDish} /> : (
+                  <button type="button" aria-label={`Xem món ${dish.name}`}
+                    onFocus={() => revealDishes([dish.id])} onClick={() => setSelectedDishDetail(dish)}
+                    className="flex h-[113px] w-full items-center border-b border-deep-indigo/10 text-left text-sm font-semibold text-deep-indigo sm:aspect-[3/5] sm:h-auto sm:rounded-[18px] sm:border sm:bg-white sm:p-3">
+                    {dish.name}
+                  </button>
+                )}
+              </div>
+            ))}
+                </div>
+              </section>
+            ))}
           </div>
         )}
 
@@ -1086,16 +1020,7 @@ export const MenuPage: FC = () => {
                       <span>Đặt bàn thưởng thức món này</span>
                     </button>
                   )
-                ) : (
-                  /* Non-fixed pricing modes: Guide customer appropriately */
-                  <a
-                    href="tel:0962345345"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[#234386] hover:bg-[#1a3468] text-white text-xs font-semibold shadow-xs active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Phone size={14} />
-                    <span>Gọi hotline 0962.345.345 tư vấn giá</span>
-                  </a>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

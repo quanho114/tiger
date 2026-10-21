@@ -28,35 +28,129 @@ CI kiểm tra các quy tắc này trên mỗi pull request.
 Người mới bắt đầu tại [hướng dẫn contributor](docs/contributing.md): cài đặt,
 dựng database riêng, chạy backend/frontend, tạo admin local, kiểm thử và gửi PR.
 
+### 1. Chuẩn bị lần đầu
+
+Yêu cầu Node.js >= 22.12.0, npm và Docker đang chạy. Các lệnh bên dưới
+chạy tại thư mục gốc repo; lệnh `<(...)` dùng Bash (Ubuntu).
+
 ```bash
+cd ~/Projects/tiger
 npm ci
+```
+
+Trên Ubuntu dùng Docker Engine, nếu Docker chưa chạy:
+
+```bash
+sudo systemctl start docker
+```
+
+Kiểm tra Docker rồi khởi động Supabase local:
+
+```bash
+docker ps
 npm run db:start
 ```
 
 Supabase local lần đầu dựng schema từ migrations và nạp `supabase/seed.sql`.
-Sao chép `.env.example` thành `.env.local`, rồi thay public anon key bằng giá trị
-của instance local trong Supabase Studio → Settings → API. Chỉ dùng URL/key local;
-không dùng cấu hình production. Vite tự đọc `.env.local`.
+Các lần khởi động sau giữ lại dữ liệu hiện có.
 
-Chạy hai terminal từ thư mục repo:
+Nếu chưa có `.env.local`, sao chép `.env.example` thành `.env.local`.
+Đặt `VITE_SUPABASE_URL=http://127.0.0.1:54321` và public anon/publishable key
+của instance local vào `VITE_SUPABASE_ANON_KEY` (Studio → Settings → API).
+Không dùng secret/service-role key cho frontend. Vite tự đọc `.env.local`;
+khởi động lại Vite nếu thay đổi file này. Không ghi đè file cấu hình đã có.
+
+### 2. Chạy backend — terminal thứ nhất
+
+Nếu đã có `supabase/functions/.env`, giữ nguyên cấu hình và dùng lệnh đã
+khôi phục thành công kết nối database trên môi trường local Tiger:
 
 ```bash
-# Terminal 1: backend; mẫu này không chứa bí mật
-npx supabase functions serve --env-file supabase/functions/.env.example --no-verify-jwt
+npx supabase functions serve --env-file <(
+  cat supabase/functions/.env
+  printf '\nDATABASE_URL=postgresql://postgres:postgres@db.supabase.internal:5432/postgres\n'
+)
 ```
 
+Lệnh đọc cấu hình hiện tại rồi ghi đè địa chỉ database cho phiên chạy,
+không sửa file `.env`. Giữ terminal này mở trong khi dùng website.
+Không in hoặc chia sẻ nội dung file cấu hình chứa bí mật.
+
+Nếu mới clone và chưa có `supabase/functions/.env`, dùng mẫu local
+không chứa bí mật với cùng hostname database:
+
 ```bash
-# Terminal 2: frontend
+npx supabase functions serve --env-file <(
+  cat supabase/functions/.env.example
+  printf '\nDATABASE_URL=postgresql://postgres:postgres@db.supabase.internal:5432/postgres\n'
+)
+```
+
+`db.supabase.internal:5432` là địa chỉ database bên trong Docker.
+`127.0.0.1:54322` là địa chỉ truy cập từ máy host, không dùng thay thế
+trong container Edge Runtime. Các gateway đã có `verify_jwt = false`
+trong `supabase/config.toml`; ứng dụng tự kiểm tra JWT và quyền truy cập.
+
+### 3. Chạy frontend — terminal thứ hai
+
+```bash
+cd ~/Projects/tiger
 npm run dev
 ```
 
-Mở `http://localhost:5173`; Studio tại `http://127.0.0.1:54323`.
-`--no-verify-jwt` chỉ dành cho local: gateway của ứng dụng vẫn tự xác thực JWT
-và quyền truy cập. Không áp dụng tùy tiện vào cấu hình triển khai.
+Giữ cả terminal backend và frontend mở. Mở URL Vite in ra; mặc định là
+`http://localhost:5173` (Vite có thể chọn cổng khác nếu cổng này đang bận).
+
+| Thành phần | Địa chỉ mặc định |
+| --- | --- |
+| Website Tiger | http://localhost:5173 |
+| Supabase Studio | http://127.0.0.1:54323 |
+| Table Editor | http://127.0.0.1:54323/project/default/editor |
+| API thực đơn | http://127.0.0.1:54321/functions/v1/public-api/menu |
+| Mailpit — email local | http://127.0.0.1:54324 |
+
+### 4. Kiểm tra dữ liệu và xử lý lỗi
+
+Tại terminal khác, kiểm tra API thực đơn:
+
+```bash
+curl -sS --max-time 15 -o /tmp/tiger-menu-check.json \
+  -w 'HTTP %{http_code}\n' \
+  http://127.0.0.1:54321/functions/v1/public-api/menu
+```
+
+Mong đợi HTTP 200. Sau đó mở trang Thực đơn và xác nhận món/giá hiển thị;
+HTTP 200 riêng lẻ chưa chứng minh dữ liệu trên giao diện đã đúng.
+
+Nếu website báo không tải được danh mục hoặc API trả 500:
+
+```bash
+docker ps
+docker logs --since 2m --tail 40 supabase_edge_runtime_tiger
+```
+
+Lỗi đã gặp: `getaddrinfo ENOTFOUND supabase_db_tiger`. Docker vẫn có thể
+phân giải tên này nhưng Edge Runtime thất bại; dùng lệnh backend ở bước 2
+với alias `db.supabase.internal` đã khôi phục tải dữ liệu trên máy local.
+Nguyên nhân chi tiết bên trong bộ phân giải runtime chưa được xác minh;
+không kết luận dữ liệu bị mất hoặc lỗi frontend chỉ từ thông báo 500.
+Che khóa, token và thông tin riêng tư trước khi chia sẻ log.
+
+### 5. Dừng và chạy lại
+
+Nhấn `Ctrl+C` ở từng terminal frontend/backend. Nếu muốn dừng cả Supabase:
+
+```bash
+npm run db:stop
+```
+
+Lần làm việc tiếp theo: bật Docker, chạy `npm run db:start`, rồi chạy lại
+backend và frontend theo bước 2–3. Không cần chạy lại `npm ci` mỗi lần.
 
 `npm run db:reset:test` chỉ dùng cho database test có marker cách ly; không dùng
-để khởi tạo hoặc làm mới database phát triển. Xem hướng dẫn contributor trước
-khi chạy kiểm thử có ghi database.
+để khởi tạo hoặc làm mới database phát triển. Không chạy `supabase db reset`
+để sửa lỗi kết nối vì lệnh này tạo lại database local. Xem hướng dẫn contributor
+trước khi chạy kiểm thử có ghi database.
 
 ### Phát triển chatbot trên Tiger
 

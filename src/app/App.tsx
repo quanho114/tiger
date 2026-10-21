@@ -1,6 +1,7 @@
-import { useEffect, Suspense, lazy } from 'react';
-import type { FC, ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useLayoutEffect, Suspense, lazy } from 'react';
+import type { FC } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { MobileBottomNav } from '@/app/layout/MobileBottomNav';
 import { Header } from '@/app/layout/Header';
 import { Footer } from '@/app/layout/Footer';
 import { CartDrawer } from '@/features/ordering/checkout/CartDrawer';
@@ -46,28 +47,26 @@ const RouteFallback: FC = () => (
   <AdminLoading variant="screen" label="Đang tải trang quản trị..." />
 );
 
-/** Calm route change: start at top on every navigation. */
+/** Reset before paint; instant avoids inheriting the global smooth-scroll rule. */
 const ScrollToTop: FC = () => {
   const { pathname, search } = useLocation();
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [pathname, search]);
   return null;
 };
 
-/** Subtle page transition wrapper (replays per route). */
-const PageTransition: FC<{ children: ReactNode }> = ({ children }) => {
-  const { pathname } = useLocation();
-  return (
-    <div key={pathname} className="page-enter">
-      {children}
-    </div>
-  );
-};
-
 const PublicShell: FC = () => {
+  const navigate = useNavigate();
   const { cartItems, updateQty, remove, clear, isCartOpen, setCartOpen } = useCart();
   const { key: navigationKey, pathname } = useLocation();
+  const isCartScreen = pathname === '/cart';
+  const isMenuScreen = /^\/(menu|thuc-don)\/*$/.test(pathname);
+  const isAccountScreen = pathname === '/account' || pathname.startsWith('/account/');
+  const isLoginScreen = pathname === '/login';
+  const isMobileScreen = isMenuScreen || isAccountScreen || isLoginScreen;
+  const showBottomNav = !pathname.startsWith('/auth/');
+  const screenTitle = isMenuScreen ? 'Thực đơn' : isLoginScreen ? 'Đăng nhập' : 'Tài khoản';
   const isAuthPage = /^\/(login|auth\/callback)\/*$/i.test(pathname);
 
   // The shell persists across routes, but its cart overlay must not persist across navigation.
@@ -76,13 +75,20 @@ const PublicShell: FC = () => {
   }, [navigationKey, setCartOpen]);
 
   return (
-    <div className="min-h-screen bg-[#fbf9f6] text-[#000000] font-body selection:bg-[#ffc400] selection:text-[#234386] relative">
-      <Header />
+    <div className={`${showBottomNav ? 'pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0' : ''} min-h-screen bg-[#fbf9f6] text-[#000000] font-body selection:bg-[#ffc400] selection:text-[#234386] relative`}>
+      <div className={isMobileScreen || isCartScreen ? 'hidden md:block' : undefined}><Header /></div>
+      {isMobileScreen && (
+        <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center border-b border-[#234386]/8 bg-[#fffdf9]/95 px-5 backdrop-blur-md md:hidden">
+          <span className={isMenuScreen
+            ? "font-['Fraunces',serif] text-[25px] font-bold leading-tight tracking-[-0.035em] text-[#294936]"
+            : 'text-xl font-semibold tracking-tight text-[#234386]'}>{screenTitle}</span>
+        </header>
+      )}
 
       <main>
-        <PageTransition>
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/cart" element={<CartDrawer presentation="page" isOpen onClose={() => navigate('/menu')} cartItems={cartItems} onUpdateQuantity={updateQty} onRemoveItem={remove} onClearCart={clear} />} />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/thuc-don" element={<MenuPage />} />
             <Route path="/table/:token" element={<TableResolvePage />} />
@@ -111,10 +117,9 @@ const PublicShell: FC = () => {
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </PageTransition>
       </main>
 
-      {!isAuthPage && <Footer />}
+      {!isAuthPage && <div className={isMobileScreen || isCartScreen ? 'hidden md:block' : undefined}><Footer /></div>}
 
       <CartDrawer
         isOpen={isCartOpen}
@@ -125,10 +130,13 @@ const PublicShell: FC = () => {
         onClearCart={clear}
       />
 
-      {!isAuthPage && (
+      {showBottomNav && <MobileBottomNav />}
+      {!isAuthPage && !isCartScreen && (
         <>
-          <StickyCartBar />
-          <ContactHub />
+          <div className="hidden md:block"><StickyCartBar /></div>
+          <div className="max-md:[&>aside]:bottom-[calc(5rem+env(safe-area-inset-bottom))]">
+            <ContactHub />
+          </div>
         </>
       )}
     </div>

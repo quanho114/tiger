@@ -47,6 +47,7 @@ export const DishImage: FC<DishImageProps> = ({
         }
         onError={() => setHasError(true)}
         loading="lazy"
+        decoding="async"
         className={`w-full h-full object-cover transition-transform duration-500 ${
           isAvailable ? 'group-hover:scale-105' : 'grayscale-[40%]'
         } ${imgClassName}`}

@@ -17,10 +17,11 @@
 }
 @media (max-width: 767px) {
   .hero-food-carousel { width: min(100%, 380px); padding-left: 5%; }
-  .hero-food-stage, .hero-food-pagination { width: 88%; }
+  .hero-food-stage { width: 76%; }
+  .hero-food-pagination { width: calc(100% + 5%); margin-left: -5%; }
   .hero-food-slide { border-width: 5px; }
-  .hero-food-slide[data-layer='1'] { transform: translate(17%, -4%) scale(.84); opacity: .94; }
-  .hero-food-slide[data-layer='2'] { transform: translate(12%, -4%) scale(.7); opacity: 0; }
+  .hero-food-slide[data-layer='1'] { transform: translate(30%, -4%) scale(.82); opacity: .94; }
+  .hero-food-slide[data-layer='2'] { transform: translate(51%, -8%) scale(.65); opacity: .90; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-food-slide { transition: opacity 150ms ease; }

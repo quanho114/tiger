@@ -37,13 +37,13 @@ export function AccountLayout() {
     'Quý khách'
 
   return (
-    <div className="min-h-screen bg-[#fbf9f6] text-slate-800 pt-24 md:pt-32 pb-16">
+    <div className="min-h-screen bg-[#fbf9f6] text-slate-800 pt-14 md:pt-32 pb-6 md:pb-16">
       {/* Account Hero Bar */}
-      <div className="bg-white border-b border-amber-100 shadow-xs">
+      <div className="bg-white border-b border-[#234386]/10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-full bg-linear-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-[#234386] text-white flex items-center justify-center font-bold text-lg shadow-sm">
                 {displayName.charAt(0).toUpperCase()}
               </div>
               <div>
@@ -75,8 +75,8 @@ export function AccountLayout() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Side Navigation (Desktop) & Top Tabs (Mobile) */}
           <aside className="md:col-span-1">
-            <div className="bg-white rounded-2xl p-2 sm:p-3 border border-amber-100/80 shadow-xs">
-              <nav className="flex md:flex-col gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+            <div className="bg-white rounded-xl p-2 sm:p-3 border border-[#234386]/10">
+              <nav className="flex flex-col gap-0.5">
                 {navItems.map((item) => {
                   const Icon = item.icon
                   return (
@@ -85,10 +85,10 @@ export function AccountLayout() {
                       to={item.to}
                       end={item.end}
                       className={({ isActive }) =>
-                        `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap md:whitespace-normal ${
+                        `flex items-center justify-between min-h-12 px-3.5 py-3 rounded-lg text-sm font-medium transition-colors ${
                           isActive
-                            ? 'bg-amber-500 text-white font-semibold shadow-xs'
-                            : 'text-slate-600 hover:bg-amber-50/60 hover:text-amber-700'
+                            ? 'bg-[#234386]/6 text-[#234386] font-semibold'
+                            : 'text-slate-600 hover:bg-[#234386]/4 hover:text-[#234386]'
                         }`
                       }
                     >
@@ -96,7 +96,7 @@ export function AccountLayout() {
                         <Icon className="w-4 h-4 shrink-0" />
                         <span>{item.label}</span>
                       </div>
-                      <ChevronRight className="w-3.5 h-3.5 opacity-40 hidden md:block" />
+                      <ChevronRight className="w-3.5 h-3.5 opacity-40" />
                     </NavLink>
                   )
                 })}
