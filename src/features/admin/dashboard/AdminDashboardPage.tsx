@@ -156,7 +156,7 @@ export const AdminDashboardPage: FC = () => {
   return (
     <div className="admin-dashboard space-y-6 max-w-7xl mx-auto pb-12">
       {/* 1. Operational Header (Elera Style) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-1">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[#171a17] flex flex-wrap items-center gap-2.5">
             <span>Tổng quan vận hành</span>
@@ -305,7 +305,7 @@ export const AdminDashboardPage: FC = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Top: "Đơn cần xử lý" */}
           <div className="bg-white border border-[#e2e3e3] rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-[#e2e3e3] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+            <div className="p-4 border-b border-[#e2e3e3] flex flex-wrap items-center justify-between gap-3 bg-white">
               <div>
                 <h2 className="text-sm font-bold text-[#171a17]">
                   Đơn cần xử lý
@@ -469,7 +469,7 @@ export const AdminDashboardPage: FC = () => {
 
           {/* Bottom: "Sơ đồ bàn" */}
           <div className="bg-white border border-[#e2e3e3] rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-[#e2e3e3] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 border-b border-[#e2e3e3] flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-[#171a17]">
                   Sơ đồ bàn
@@ -502,7 +502,7 @@ export const AdminDashboardPage: FC = () => {
 
             {/* Grid of Tables */}
             <div className="p-4 bg-[#faf9f7]">
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-4 gap-3">
                 {tables.map((table) => {
                   const isServing = Boolean(table.current_visit_id)
                   const isInactive = !table.active
@@ -567,7 +567,7 @@ export const AdminDashboardPage: FC = () => {
         </div>
 
         {/* RIGHT COLUMN: 1/3 width on large screens */}
-        <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1">
           {/* Top: "Thao tác nhanh" (Elera Sleek Buttons) */}
           <div className="bg-white border border-[#e2e3e3] rounded-2xl p-4.5 shadow-sm">
             <h2 className="text-sm font-bold text-[#171a17] mb-3 flex items-center justify-between">

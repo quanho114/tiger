@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" preserveAspectRatio="none" fill="none">
+  <defs>
+    <linearGradient id="green" x1=".15" y1="0" x2=".8" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#91ad43"/><stop offset=".45" stop-color="#648f2e"/><stop offset="1" stop-color="#326724"/>
+    </linearGradient>
+    <linearGradient id="sage" x1=".1" y1="0" x2=".8" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#dce1c8"/><stop offset=".5" stop-color="#bac69e"/><stop offset="1" stop-color="#92a175"/>
+    </linearGradient>
+    <radialGradient id="sheen" cx=".35" cy=".3" r=".7">
+      <stop stop-color="#ecf1c9" stop-opacity=".26"/><stop offset="1" stop-color="#ecf1c9" stop-opacity="0"/>
+    </radialGradient>
+    <path id="single" d="M105 414C155 351 169 307 229 264C298 215 405 215 463 250C487 265 520 270 548 276C502 285 477 302 457 332C410 389 325 410 259 404C204 399 154 406 105 414Z"/>
+    <path id="sage-top" d="M1088 368C1047 287 1000 197 1043 122C1080 66 1150 41 1205 28C1163 104 1158 208 1139 276C1128 318 1109 347 1088 368Z"/>
+    <path id="sage-left" d="M1062 358C943 326 890 227 709 190C793 139 886 158 950 218C1006 271 1020 318 1062 358Z"/>
+    <path id="sage-small" d="M891 337C817 323 727 343 658 251C744 252 804 268 891 337Z"/>
+    <path id="sage-low" d="M1115 390C1030 418 920 400 848 472C798 514 763 569 711 596C732 485 754 409 846 373C940 343 1042 358 1115 390Z"/>
+    <path id="sprig-top" d="M380 990C337 949 249 958 198 888C141 816 127 741 117 692C213 728 311 782 346 861C366 911 367 957 380 990Z"/>
+    <path id="sprig-low" d="M477 1135C375 1147 292 1155 234 1097C201 1063 180 1030 156 1008C242 973 336 967 394 1022C434 1059 451 1104 477 1135Z"/>
+    <path id="sprig-right" d="M438 1060C402 1032 391 973 410 923C421 897 440 877 449 858C479 930 483 1000 438 1060Z"/>
+  </defs>
+  <!-- Separate quadrants keep the existing responsive placements unchanged. -->
+  <g fill="url(#green)"><use href="#single"/><use href="#sprig-top"/><use href="#sprig-low"/><use href="#sprig-right"/></g>
+  <g fill="url(#sage)"><use href="#sage-top"/><use href="#sage-left"/><use href="#sage-small"/><use href="#sage-low"/></g>
+  <g fill="url(#sheen)"><use href="#single"/><use href="#sprig-top"/><use href="#sprig-low"/><use href="#sprig-right"/><use href="#sage-top"/><use href="#sage-left"/><use href="#sage-small"/><use href="#sage-low"/></g>
+  <path d="M1254 540C1190 498 1145 440 1088 378C1019 321 966 327 880 333" stroke="#98a778" stroke-width="7" stroke-linecap="round"/>
+  <g stroke="#f0f1d8" stroke-width="3" stroke-opacity=".55" stroke-linecap="round">
+    <path d="M1088 368C1099 255 1141 130 1205 28M1062 358C957 257 849 210 709 190M891 337C808 299 732 272 658 251M1115 390C949 408 816 484 711 596"/>
+  </g>
+  <path d="M559 1205C497 1144 431 1072 380 990" stroke="#5c8132" stroke-width="10" stroke-linecap="round"/>
+  <g stroke="#cfdd8e" stroke-width="4" stroke-opacity=".7" stroke-linecap="round">
+    <path d="M105 414C237 337 362 283 546 278M380 990C271 884 194 778 117 692M477 1135C365 1093 258 1049 156 1008M438 1060C443 985 451 928 449 858"/>
+  </g>
+  <g stroke="#b8cd7c" stroke-width="2" stroke-opacity=".3" stroke-linecap="round">
+    <path d="M234 347Q218 307 229 264M283 324Q282 265 307 242M336 303Q356 264 392 235M233 348Q249 380 296 401M306 316Q345 367 397 376M254 849Q269 805 252 771M300 907Q310 861 296 821M307 1067Q308 1020 277 992M369 1092Q365 1052 344 1000"/>
+  </g>
+</svg>

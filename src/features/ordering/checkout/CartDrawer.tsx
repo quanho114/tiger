@@ -1,7 +1,8 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { CartItem } from '@/features/cart'
 import {
   X,
   ChevronLeft,
-  Trash2,
   Plus,
   Minus,
   ShoppingBag,
@@ -13,6 +14,7 @@ import {
   RotateCcw,
   MapPin,
 } from 'lucide-react'
+import { SwipeCartRow } from './SwipeCartRow'
 import { Field } from '@/shared/ui/Field'
 import { useDrawerFocus } from '@/shared/hooks/useDrawerFocus'
 import { useCheckout } from './useCheckout'
@@ -26,8 +28,16 @@ import { DeliveryReceipt } from './DeliveryReceipt'
 import { DineInReceipt } from './DineInReceipt'
 
 export function CartDrawer(props: CartDrawerProps & { presentation?: 'drawer' | 'page' }) {
+  const [openRow, setOpenRow] = useState<string | null>(null)
+  const [removedItems, setRemovedItems] = useState<CartItem[]>([])
+  useEffect(() => { if (!props.isOpen) setRemovedItems([]) }, [props.isOpen])
+  const removeWithUndo = (item: CartItem) => {
+    if (props.onRestoreItem) setRemovedItems(previous => [...previous, item])
+    if (item.note === undefined) props.onRemoveItem(item.dish.id)
+    else props.onRemoveItem(item.dish.id, item.note)
+  }
   const isPage = props.presentation === 'page'
-  const { isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem } = props
+  const { isOpen, onClose, cartItems, onUpdateQuantity } = props
   const {
     hasActiveTable,
     dineInQuote,
@@ -80,6 +90,23 @@ export function CartDrawer(props: CartDrawerProps & { presentation?: 'drawer' | 
     handleCloseTakeawayReceipt,
     activeTableName,
   } = useCheckout(props)
+  useEffect(() => { setRemovedItems([]) }, [isDineIn, isTakeaway, activeTableName])
+  useEffect(() => {
+    if (dineInReceipt || deliveryReceipt || takeawayReceipt) setRemovedItems([])
+  }, [dineInReceipt, deliveryReceipt, takeawayReceipt])
+  const emptyStateRef = useRef<HTMLDivElement>(null)
+  const previousItemCount = useRef(cartItems.length)
+  useLayoutEffect(() => {
+    const becameEmpty = previousItemCount.current > 0 && cartItems.length === 0
+    previousItemCount.current = cartItems.length
+    const element = emptyStateRef.current
+    if (!isOpen || !becameEmpty || !element || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const animation = element.animate?.(
+      [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }],
+      { duration: 220, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+    )
+    return () => animation?.cancel()
+  }, [cartItems.length, isOpen])
   const drawerRef = useDrawerFocus(isOpen && !isPage, onClose)
   if (!isOpen) return null
 
@@ -172,6 +199,18 @@ export function CartDrawer(props: CartDrawerProps & { presentation?: 'drawer' | 
               </button>
             </div>
           )}
+          {removedItems.length > 0 && !dineInReceipt && !deliveryReceipt && !takeawayReceipt && !dineInQuote && !deliveryQuote && (
+            <div className="my-3 flex items-center gap-3 rounded-xl border border-[#4f6958]/15 bg-[#eef3ec] px-3 py-2">
+              <div role="status" className="min-w-0 flex-1 text-xs leading-5 text-[#354b3d]">
+                {removedItems.length === 1 ? <>Đã bỏ <span className="font-semibold">{removedItems[0].dish.name}</span></> : <>Đã bỏ <span className="font-semibold">{removedItems.length} món</span> khỏi giỏ</>}
+              </div>
+              <button type="button" className="min-h-11 shrink-0 text-xs font-semibold text-[#354b3d] underline underline-offset-4 focus-visible:outline-2" onClick={() => {
+                removedItems.forEach(item => props.onRestoreItem?.(item))
+                setRemovedItems([])
+              }}>{removedItems.length > 1 ? 'Hoàn tác tất cả' : 'Hoàn tác'}</button>
+              <button type="button" aria-label="Ẩn thông báo bỏ món" className="flex min-h-11 w-6 shrink-0 items-center justify-center text-[#4f6958]" onClick={() => setRemovedItems([])}><X size={14} /></button>
+            </div>
+          )}
           {dineInReceipt ? (
             <DineInReceipt
               dineInReceipt={dineInReceipt}
@@ -226,32 +265,57 @@ export function CartDrawer(props: CartDrawerProps & { presentation?: 'drawer' | 
               selectedZone={selectedZone}
             />
           ) : cartItems.length === 0 ? (
-            <div className="py-16 text-center space-y-3">
-              <div className="w-16 h-16 rounded-full bg-[#fbf9f6] border border-[#d2b68c]/40 flex items-center justify-center mx-auto text-[#000000]/40">
-                <ShoppingBag size={28} />
+            <div ref={emptyStateRef} className="py-8 sm:py-10 text-center space-y-3">
+              <div className="relative mx-auto mb-5 h-60 w-72 max-w-full sm:h-[260px] sm:w-80" aria-hidden="true">
+                <img
+                  src="/images/cart/empty-cart-garnish.svg"
+                  alt=""
+                  width={320}
+                  height={260}
+                  className="absolute inset-0 h-full w-full object-contain"
+                />
+                <img
+                  src="/images/cart/tiger-empty-cart.webp"
+                  alt=""
+                  width={640}
+                  height={640}
+                  className="relative mx-auto h-auto w-52 pt-2 sm:w-60"
+                />
               </div>
               <p className="text-base font-semibold text-[#000000]/80">
                 Giỏ hàng của bạn đang trống
               </p>
-              <p className="text-xs text-[#000000]/50 max-w-xs mx-auto">
-                Chọn vài món ngon cho bữa ăn của bạn.
+              <p className="text-sm leading-6 text-[#6b625b] max-w-xs mx-auto">
+                Khám phá thực đơn và chọn món bạn thích.
               </p>
-              <button type="button" onClick={() => { onClose(); navigate('/menu') }} className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#234386] px-6 text-sm font-semibold text-white hover:bg-[#1a3468]">Xem thực đơn</button>
+              <button
+                type="button"
+                onClick={() => { onClose(); navigate('/menu') }}
+                className="mt-4 inline-flex min-h-12 w-56 max-w-full items-center justify-center gap-3 rounded-full bg-[#4f6958] px-6 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#425b4b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4f6958] active:bg-[#354b3d] motion-reduce:transition-none"
+              >
+                Chọn món ngon
+                <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
+              </button>
             </div>
           ) : (
             <>
+              <p className="text-[11px] text-[#6b625b]">Vuốt món sang trái để xóa</p>
               {/* Items List */}
               <div className="divide-y divide-[#234386]/10">
                 {cartItems.map((item) => (
-                  <div
+                  <SwipeCartRow
                     key={`${item.dish.id}:${item.note ?? ''}`}
-                    className="py-4 flex flex-wrap items-center justify-between gap-3"
+                    name={item.dish.name}
+                    open={openRow === `${item.dish.id}:${item.note ?? ''}`}
+                    onOpenChange={open => setOpenRow(open ? `${item.dish.id}:${item.note ?? ''}` : null)}
+                    onRemove={() => removeWithUndo(item)}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex flex-1 items-center gap-2 min-w-0 sm:gap-3">
                       <img
                         src={item.dish.image}
+                        draggable={false}
                         alt={item.dish.name}
-                        className="w-16 h-16 rounded-lg object-cover shrink-0 border border-[#d2b68c]/20"
+                        className="size-12 sm:size-16 rounded-lg object-cover shrink-0"
                       />
                       <div className="min-w-0">
                         <h4 className="font-semibold text-sm text-[#234386] line-clamp-2">
@@ -263,39 +327,31 @@ export function CartDrawer(props: CartDrawerProps & { presentation?: 'drawer' | 
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex items-center border border-[#d2b68c]/40 rounded-full bg-[#fbf9f6]">
+                    <div inert={openRow === `${item.dish.id}:${item.note ?? ''}`} className="flex items-center gap-0 shrink-0 transition-opacity motion-reduce:transition-none" style={{ opacity: 'calc(1 - var(--swipe-progress, 0))', transitionDuration: 'var(--swipe-duration, 150ms)' }}>
+                      <div className="flex items-center">
                         <button
                           type="button"
-                          onClick={() => item.note === undefined ? onUpdateQuantity(item.dish.id, -1) : onUpdateQuantity(item.dish.id, -1, item.note)}
+                          onClick={() => item.quantity === 1 ? removeWithUndo(item) : item.note === undefined ? onUpdateQuantity(item.dish.id, -1) : onUpdateQuantity(item.dish.id, -1, item.note)}
                           aria-label="Giảm số lượng"
-                          className="h-10 w-10 flex items-center justify-center text-[#234386] hover:bg-[#234386]/5 transition-colors"
+                          className="h-11 w-8 flex items-center justify-center rounded-lg text-[#234386] hover:bg-[#234386]/5 transition-colors"
                         >
                           <Minus size={13} />
                         </button>
-                        <span className="text-xs font-semibold px-2 min-w-[20px] text-center">
+                        <span className="text-sm font-semibold min-w-5 text-center tabular-nums">
                           {item.quantity}
                         </span>
                         <button
                           type="button"
                           onClick={() => item.note === undefined ? onUpdateQuantity(item.dish.id, 1) : onUpdateQuantity(item.dish.id, 1, item.note)}
                           aria-label="Tăng số lượng"
-                          className="h-10 w-10 flex items-center justify-center text-[#234386] hover:bg-[#234386]/5 transition-colors"
+                          className="h-11 w-8 flex items-center justify-center rounded-lg text-[#234386] hover:bg-[#234386]/5 transition-colors"
                         >
                           <Plus size={13} />
                         </button>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => item.note === undefined ? onRemoveItem(item.dish.id) : onRemoveItem(item.dish.id, item.note)}
-                        aria-label="Xóa món khỏi giỏ"
-                        className="p-1.5 text-red-500/70 hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 size={15} />
-                      </button>
                     </div>
-                  </div>
+                  </SwipeCartRow>
                 ))}
               </div>
 

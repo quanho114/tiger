@@ -1,6 +1,7 @@
 export interface DineInQuoteItem {
   menu_item_id: string
   quantity: number
+  selected_price_vnd?: number
   note?: string
 }
 

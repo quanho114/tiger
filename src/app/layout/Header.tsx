@@ -183,6 +183,7 @@ export const Header: FC = () => {
   return (
     <>
       <header
+        data-home={location.pathname === '/' || undefined}
         style={{ paddingRight: 'var(--scrollbar-compensation, 0px)' }}
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${isScrolled
             ? 'bg-[#fbf9f6]/95 backdrop-blur-md shadow-xs py-2.5 md:py-3'

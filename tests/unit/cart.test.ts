@@ -224,3 +224,20 @@ describe('Cart Reducer State Transitions', () => {
     expect(cleared.orderNote).toBeUndefined()
   })
 })
+
+
+describe('Selected portion price persistence', () => {
+  it('preserves separate prices and quantities for the same dish across reloads', () => {
+    let state = createDefaultCartState()
+    for (const price of [280000, 290000]) {
+      state = cartReducer(state, { type: 'ADD_ITEM', dishId: 'range-chicken', quantity: 2,
+        note: `Giá phần: ${price}`, dishSnapshot: { id: 'range-chicken', name: 'Gà', price, selected_price_vnd: price } })
+    }
+    setStoredCart(state)
+    const restored = getStoredCart()!
+    expect(restored.items).toHaveLength(2)
+    expect(restored.items.map(i => [i.dishSnapshot?.selected_price_vnd, i.quantity])).toEqual([[280000, 2], [290000, 2]])
+    const updated = cartReducer(restored, { type: 'UPDATE_QUANTITY', dishId: 'range-chicken', note: 'Giá phần: 290000', quantity: 3 })
+    expect(updated.items.map(i => i.quantity)).toEqual([2, 3])
+  })
+})

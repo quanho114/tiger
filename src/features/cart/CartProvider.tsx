@@ -60,7 +60,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const add = useCallback((dish: MenuItem, note?: string, quantity = 1) => {
-    if (dish.pricing_mode && dish.pricing_mode !== 'fixed') {
+    if (dish.pricing_mode === 'range') {
+      const price = dish.selected_price_vnd
+      const min = dish.price_min
+      const max = dish.price_max
+      if (price == null || min == null || max == null || !Number.isSafeInteger(price)) return
+      const step = min % 10000 === 0 && max % 10000 === 0 ? 10000 : 5000
+      if (price < min || price > max || ((price - min) % step !== 0 && price !== max)) return
+    } else if (dish.pricing_mode && dish.pricing_mode !== 'fixed') {
       return
     }
     dispatch({
@@ -71,7 +78,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       dishSnapshot: {
         id: dish.id,
         name: dish.name,
-        price: dish.price,
+        price: dish.selected_price_vnd ?? dish.price,
+        selected_price_vnd: dish.selected_price_vnd,
         image: dish.image,
       },
     })
@@ -121,6 +129,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         id: item.dishId,
         name: item.dishSnapshot?.name || 'Món ăn',
         price: item.dishSnapshot?.price || 0,
+        selected_price_vnd: item.dishSnapshot?.selected_price_vnd,
         image: item.dishSnapshot?.image || '/tiger.svg',
         category: '',
         description: '',

@@ -8,6 +8,7 @@ import { CartProvider, useCart } from '@/features/cart'
 import { TableSessionProvider, useTableSession } from '@/features/table-session'
 import * as catalogApi from '@/features/catalog/api'
 import type { MenuItem, MenuResponse, RestaurantSettings } from '@/features/catalog/types'
+import { publicApi } from '@/shared/lib/api/client'
 
 vi.mock('@/features/catalog/components/DishImage', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/features/catalog/components/DishImage')>()
@@ -155,6 +156,37 @@ describe('MenuPage category navigation', () => {
 
   afterEach(() => vi.unstubAllGlobals())
 
+  it('orders bestsellers by priority across categories before limiting the rail', async () => {
+    vi.mocked(catalogApi.fetchMenu).mockResolvedValue({
+      ...navigationMenu,
+      items: [
+        menuDish('chicken-1', 'chicken', 'Gà nướng muối ớt', { is_bestseller: true, featured_rank: 1 }),
+        ...Array.from({ length: 5 }, (_, index) => menuDish(`other-${index}`, 'chicken', `Món ${index}`, { is_bestseller: true, featured_rank: index + 3 })),
+        menuDish('rice', 'seafood', 'Cơm lam', { is_bestseller: true, featured_rank: 2 }),
+      ],
+    })
+    renderMenu()
+    const rail = await screen.findByRole('region', { name: 'Món bán chạy' })
+    const cards = within(rail).getAllByRole('button')
+    expect(cards).toHaveLength(6)
+    expect(cards[0]).toHaveTextContent('Gà nướng muối ớt')
+    expect(cards[1]).toHaveTextContent('Cơm lam')
+  })
+
+  it('adds a range portion to a dine-in draft without redirecting to reservations or inventing a table', async () => {
+    vi.mocked(catalogApi.fetchMenu).mockResolvedValue({ ...navigationMenu, items: [menuDish('chicken-range', 'chicken', 'Gà chọn phần', { pricing_mode: 'range', price_min: 280000, price_max: 300000, price_vnd: 280000 })] })
+    const user = userEvent.setup()
+    renderMenu()
+    await user.click(await screen.findByRole('button', { name: 'Chọn phần Gà chọn phần' }))
+    await user.click(screen.getByRole('radio', { name: '290.000 đ' }))
+    await user.click(screen.getByRole('button', { name: 'Thêm vào giỏ hàng' }))
+    expect(readState().itemCount).toBe(1)
+    expect(readState().context).toMatchObject({ mode: 'dine-in', tableId: '', visitId: '' })
+    expect(readState().session).toBeNull()
+    expect(readState().search).toBe('')
+    expect(readState().lines[0].note).toContain('290.000')
+  })
+
   it('adjusts a dish quantity inline and returns to the add button at zero', async () => {
     const user = userEvent.setup()
     renderMenu()
@@ -266,6 +298,79 @@ describe('MenuPage order-mode selector', () => {
     window.sessionStorage.clear()
     vi.mocked(catalogApi.fetchMenu).mockResolvedValue(menu)
     vi.mocked(catalogApi.fetchSettings).mockResolvedValue(settings)
+  })
+
+  afterEach(() => vi.restoreAllMocks())
+
+  it('explains that a table number cannot authenticate a table without sending a QR request', async () => {
+    const user = userEvent.setup()
+    const resolve = vi.spyOn(publicApi, 'post').mockRejectedValue(new Error('Mã QR bàn không tồn tại hoặc không hợp lệ'))
+    renderMenu()
+    await user.click(await screen.findByRole('button', { name: /Chưa chọn bàn/ }))
+    const dialog = within(screen.getByRole('dialog'))
+    const input = dialog.getByLabelText(/^Liên kết hoặc mã QR bàn/)
+    await user.type(input, '2')
+    await user.click(dialog.getByRole('button', { name: 'Kết nối tới bàn' }))
+
+    expect(await dialog.findByRole('alert')).toHaveTextContent('Số bàn chưa đủ để kết nối. Vui lòng quét mã QR trên bàn hoặc nhờ nhân viên hỗ trợ.')
+    expect(resolve).not.toHaveBeenCalled()
+    expect(readState().session).toBeNull()
+
+    await user.clear(input)
+    await user.type(input, '/table/test-qr-token')
+    expect(dialog.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('still resolves a pasted table QR link and applies the authenticated table session', async () => {
+    const user = userEvent.setup()
+    const resolve = vi.spyOn(publicApi, 'post').mockResolvedValue({
+      requestId: 'test-table-request',
+      data: {
+        table_id: 'table-2', table_code: 'B02', table_name: 'Bàn 2',
+        visit_id: 'visit-2', visit_capability: 'test-capability-2',
+        expires_at: new Date(Date.now() + 60_000).toISOString(),
+      },
+    })
+    renderMenu()
+    await user.click(await screen.findByRole('button', { name: /Chưa chọn bàn/ }))
+    const dialog = within(screen.getByRole('dialog'))
+    await user.type(dialog.getByLabelText(/^Liên kết hoặc mã QR bàn/), 'https://tiger.example/table/test-qr-token?source=qr')
+    await user.click(dialog.getByRole('button', { name: 'Kết nối tới bàn' }))
+
+    expect(resolve).toHaveBeenCalledWith('/tables/resolve', { token: 'test-qr-token' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(readState().session).toMatchObject({ tableId: 'table-2', visitId: 'visit-2' })
+    expect(readState().context).toMatchObject({ mode: 'dine-in', tableId: 'table-2', visitId: 'visit-2' })
+  })
+
+  it('chooses a delivery zone inside the form and saves the selected zone', async () => {
+    const user = userEvent.setup()
+    renderMenu('/menu?mode=delivery')
+    await user.click(await screen.findByRole('button', { name: 'Nhập địa chỉ giao' }))
+    const dialog = within(screen.getByRole('dialog', { name: 'Nhập địa chỉ giao' }))
+    await user.type(dialog.getByLabelText(/^Địa chỉ giao/), 'Địa chỉ kiểm thử')
+    await user.click(dialog.getByText('Chọn khu vực giao hàng'))
+    const zone = dialog.getByRole('radio', { name: /Khu vực lân cận Vĩnh Tân/ })
+    await user.click(zone)
+    expect(zone).toBeChecked()
+    expect(zone.closest('details')).not.toHaveAttribute('open')
+    await user.click(dialog.getByRole('button', { name: 'Lưu địa chỉ giao' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(readState().context).toMatchObject({
+      mode: 'delivery', address: 'Địa chỉ kiểm thử', zoneId: '40000000-0000-0000-0000-000000000002',
+    })
+  })
+
+  it('closes the zone list with Escape without closing the address dialog', async () => {
+    const user = userEvent.setup()
+    renderMenu('/menu?mode=delivery')
+    await user.click(await screen.findByRole('button', { name: 'Nhập địa chỉ giao' }))
+    await user.click(screen.getByText('Chọn khu vực giao hàng'))
+    const zone = screen.getByRole('radio', { name: /Nội ô Thị trấn/ })
+    expect(zone.closest('details')).toHaveAttribute('open')
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('dialog', { name: 'Nhập địa chỉ giao' })).toBeVisible()
+    expect(zone.closest('details')).not.toHaveAttribute('open')
   })
 
   it.each([

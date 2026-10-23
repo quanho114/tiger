@@ -373,12 +373,12 @@ export const ContactHub: FC = () => {
       {/* ------------------------------------------------------------- */}
       {/* 4. AI-NATIVE FLOATING ACTION BUTTON TRIGGER (Shown when closed) */}
       {/* ------------------------------------------------------------- */}
-      {!isOpen && !isChatOpen && hiddenLauncherLocation !== location && (
-        <FloatingAssistantButton
+      <FloatingAssistantButton
+          key={location.pathname}
+          hidden={isOpen || isChatOpen || hiddenLauncherLocation === location}
           open={false}
           onClick={handleOpenChat}
         />
-      )}
     </aside>
   );
 };

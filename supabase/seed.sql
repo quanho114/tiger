@@ -192,7 +192,7 @@ VALUES
         true,
         true,
         false,
-        2,
+        3,
         NULL,
         NULL,
         NULL,
@@ -354,7 +354,7 @@ VALUES
         true,
         true,
         false,
-        3,
+        4,
         NULL,
         NULL,
         NULL,
@@ -489,7 +489,7 @@ VALUES
         true,
         true,
         false,
-        4,
+        5,
         NULL,
         NULL,
         NULL,
@@ -1191,7 +1191,7 @@ VALUES
         true,
         true,
         false,
-        5,
+        6,
         NULL,
         NULL,
         NULL,
@@ -1866,7 +1866,7 @@ VALUES
         true,
         true,
         false,
-        6,
+        7,
         NULL,
         NULL,
         NULL,
@@ -2244,7 +2244,7 @@ VALUES
         true,
         true,
         false,
-        7,
+        2,
         NULL,
         NULL,
         NULL,
@@ -2793,3 +2793,29 @@ SET image_path =
     image_source = 'illustration'
 FROM stock_images
 WHERE menu_item.slug = stock_images.slug;
+-- Generated illustration composed for square and 4:3 menu cards.
+UPDATE public.menu_items
+SET image_path = '/images/menu/dishes/com-lam.png',
+    image_source = 'illustration'
+WHERE slug = 'com-lam';
+
+-- AI-assisted restyling of the restaurant-supplied chicken photograph.
+UPDATE public.menu_items
+SET image_path = '/images/menu/dishes/ga-nuong-muoi-ot.webp',
+    image_source = 'illustration'
+WHERE slug = 'ga-nuong-muoi-ot';
+
+-- Photo-style generated illustrations; never label these as restaurant photographs.
+-- Change only image fields; keep prices, availability and bestseller ordering intact.
+UPDATE public.menu_items AS item
+SET image_path = '/images/menu/dishes/' || images.slug || '.webp',
+    image_source = 'illustration'
+FROM (VALUES
+    ('ga-u-muoi'),
+    ('suon-nuong-tay-bac'),
+    ('suon-thai-chua-cay'),
+    ('oc-nhoi-ong-tre'),
+    ('goi-rau-ma-tep-dong'),
+    ('combo-doi-sun')
+) AS images(slug)
+WHERE item.slug = images.slug;

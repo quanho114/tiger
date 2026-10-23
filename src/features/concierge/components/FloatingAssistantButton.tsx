@@ -1,9 +1,10 @@
-import type { FC } from 'react'
+import { useEffect, useRef, useState, type FC } from 'react'
 import { X } from 'lucide-react'
 
 export type AssistantStatus = 'idle' | 'online' | 'thinking' | 'offline'
 
 export interface FloatingAssistantButtonProps {
+  hidden?: boolean
   open: boolean
   status?: AssistantStatus
   unreadCount?: number
@@ -12,9 +13,53 @@ export interface FloatingAssistantButtonProps {
 }
 
 export const FloatingAssistantButton: FC<FloatingAssistantButtonProps> = ({
-  open, status = 'idle', unreadCount = 0, onClick, className = '',
-}) => (
-  <div className={`group relative inline-flex ${className}`}>
+  hidden = false, open, status = 'idle', unreadCount = 0, onClick, className = '',
+}) => {
+  const element = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ id: number; x: number; y: number; left: number; top: number; moved: boolean } | null>(null)
+  const suppressClick = useRef(false)
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const clamp = (left: number, top: number) => ({
+    left: Math.max(8, Math.min(left, window.innerWidth - 72)),
+    top: Math.max(40, Math.min(top, window.innerHeight - 144)),
+  })
+  useEffect(() => {
+    const resize = () => setPosition(value => value ? clamp(value.left, value.top) : null)
+    window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
+  }, [])
+  return (
+  <div ref={element} hidden={hidden}
+    style={{ display: hidden ? 'none' : undefined, ...(position ? { position: 'fixed', ...position } : {}) }}
+    onPointerDown={event => {
+      if (!event.isPrimary || event.button !== 0) return
+      const bounds = element.current!.getBoundingClientRect()
+      suppressClick.current = false
+      drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, left: bounds.left, top: bounds.top, moved: false }
+      element.current?.querySelector('button')?.setPointerCapture(event.pointerId)
+    }}
+    onPointerMove={event => {
+      const active = drag.current
+      if (!active || active.id !== event.pointerId) return
+      const dx = event.clientX - active.x
+      const dy = event.clientY - active.y
+      if (!active.moved && Math.hypot(dx, dy) < 6) return
+      active.moved = true
+      suppressClick.current = true
+      setPosition(clamp(active.left + dx, active.top + dy))
+    }}
+    onPointerUp={() => { drag.current = null }}
+    onPointerCancel={() => { drag.current = null }}
+    onLostPointerCapture={() => { drag.current = null }}
+    onClickCapture={event => {
+      if (suppressClick.current && event.detail !== 0) {
+        event.preventDefault()
+        event.stopPropagation()
+        suppressClick.current = false
+      }
+    }}
+    className={`group relative inline-flex touch-none select-none cursor-grab active:cursor-grabbing ${className}`}>
+
     <span id="concierge-button-label"
       className="pointer-events-none absolute right-full top-1/2 mr-3 hidden -translate-y-1/2 whitespace-nowrap rounded-lg bg-[#173866] px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 md:block">
       {open ? 'Đóng hội thoại' : 'Tiger Concierge'}
@@ -38,4 +83,5 @@ export const FloatingAssistantButton: FC<FloatingAssistantButtonProps> = ({
       </span>}
     </button>
   </div>
-)
+  )
+}

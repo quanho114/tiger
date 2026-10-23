@@ -31,4 +31,4 @@ Runner chỉ nhận URL `/v1` dạng HTTP loopback, cấm redirect và dừng g�
 
 Có thể thử riêng một tình huống bằng `npm run --silent benchmark:concierge -- --confirm-live --case group-budget` để giới hạn request trong lần chẩn đoán. Gateway tại máy đã trả SSE nếu thiếu `stream: false`; backend nay ghi rõ tham số này cho request nonstream. Báo cáo chạy thật ngày 2026-09-25 nằm ở `reports/2026-09-25-live-smoke.md`.
 
-Thao tác này **khác** Jev browser eval và không chứng minh checkout/đặt bàn thực. So với benchmark offline tại `reports/2026-09-25-offline.md`; để đo trải nghiệm toàn hệ thống cần staging được cô lập và bộ hội thoại có đánh giá người thật theo `../concierge-v2/live-evaluation.md`.
+Thao tác này không chứng minh checkout/đặt bàn thực. So với benchmark offline tại `reports/2026-09-25-offline.md`; để đo trải nghiệm toàn hệ thống cần staging được cô lập và bộ hội thoại có đánh giá người thật theo `../concierge-v2/live-evaluation.md`.

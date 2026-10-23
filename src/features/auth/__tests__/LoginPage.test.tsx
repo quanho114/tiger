@@ -10,8 +10,6 @@ vi.mock('@/shared/lib/supabase', () => ({
   supabase: {
     auth: {
       signInWithOAuth: vi.fn(),
-      signInWithOtp: vi.fn(),
-      verifyOtp: vi.fn(),
     },
   },
 }))
@@ -44,28 +42,20 @@ describe('LoginPage Component', () => {
     vi.clearAllMocks()
   })
 
-  it('renders login heading, Google OAuth button, and guest continuation button', () => {
+  it('renders login heading and Google OAuth without a guest continuation button', () => {
     renderLoginPage()
 
     expect(
       screen.getByRole('heading', { name: /Tài khoản của bạn/i })
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Đăng nhập với Google/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Tiếp tục với tư cách Khách/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Tiếp tục với tư cách Khách/i })).not.toBeInTheDocument()
   })
 
-  it('switches between Magic Link and OTP tab modes', () => {
+  it('offers only Google login', () => {
     renderLoginPage()
-
-    const otpTab = screen.getByRole('button', { name: /Mã OTP 6 số/i })
-    fireEvent.click(otpTab)
-
-    expect(screen.getByRole('button', { name: /Gửi Mã Xác Thực OTP/i })).toBeInTheDocument()
-
-    const magicLinkTab = screen.getByRole('button', { name: /Liên kết Đăng nhập/i })
-    fireEvent.click(magicLinkTab)
-
-    expect(screen.getByRole('button', { name: /Gửi Liên kết Đăng nhập/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   it('handles Google OAuth click and calls supabase.auth.signInWithOAuth', async () => {
@@ -89,17 +79,14 @@ describe('LoginPage Component', () => {
     })
   })
 
-  it('validates email before sending Magic Link', async () => {
-    renderLoginPage()
-
-    const submitBtn = screen.getByRole('button', { name: /Gửi Liên kết Đăng nhập/i })
-    const emailInput = screen.getByLabelText(/Địa chỉ Email của bạn/i)
-
-    fireEvent.change(emailInput, { target: { value: 'invalid-email' } })
-    fireEvent.submit(submitBtn.closest('form')!)
-
-    await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(/địa chỉ email hợp lệ/i)
+  it('reports unavailable Google login without suggesting SMS', async () => {
+    vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({
+      data: { provider: 'google', url: null },
+      error: { message: 'Provider not enabled', name: 'AuthApiError', status: 400 } as never,
     })
+    renderLoginPage()
+    fireEvent.click(screen.getByRole('button', { name: /Đăng nhập với Google/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('chưa được kích hoạt')
+    expect(screen.getByRole('alert')).not.toHaveTextContent('điện thoại')
   })
 })

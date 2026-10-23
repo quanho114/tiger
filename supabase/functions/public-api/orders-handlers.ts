@@ -235,7 +235,8 @@ export async function handleOrdersRoutes({
       if (
         qItem.menu_item_id !== nItem.menu_item_id ||
         qItem.quantity !== nItem.quantity ||
-        qItem.note !== nItem.note
+        qItem.note !== nItem.note ||
+        qItem.selected_price_vnd !== nItem.selected_price_vnd
       ) {
         throw new AppError(
           'QUOTE_CHANGED',

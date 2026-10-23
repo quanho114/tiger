@@ -87,7 +87,7 @@
   transition: box-shadow 0.2s ease-out;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1536px) {
   .elera-stats-strip {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -98,14 +98,18 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  border-right: 1px solid var(--stroke);
+  min-width: 0;
   border-bottom: 1px solid var(--stroke);
   position: relative;
   transition: background-color 0.15s ease-out;
 }
 
-@media (min-width: 1024px) {
+.elera-stat-tile:nth-child(odd) { border-right: 1px solid var(--stroke); }
+.elera-stat-tile:nth-last-child(-n + 2) { border-bottom: none; }
+
+@media (min-width: 1536px) {
   .elera-stat-tile {
+    border-right: 1px solid var(--stroke);
     border-bottom: none;
   }
   .elera-stat-tile:last-child {
@@ -511,9 +515,56 @@
 }
 
 
-/* Admin navigation keeps one toolbar at every viewport size. */
 .admin-mobile-brand,
 .admin-elera-scope .admin-mobile-search-toggle { display: none; }
+
+/* Tablet gets a full-width workspace with an on-demand navigation drawer. */
+.admin-topbar-actions { flex-shrink: 0; }
+.admin-topbar .elera-icon-btn,
+.admin-topbar .elera-btn-primary { flex-shrink: 0; white-space: nowrap; }
+.admin-dashboard .elera-stat-tile a { flex-shrink: 0; white-space: nowrap; }
+.admin-dashboard .elera-stat-tile > div:last-child > div:last-child { gap: 12px; }
+.admin-dashboard .elera-stat-tile p { line-height: 1.4; }
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .admin-topbar { height: 76px; gap: 12px; padding-inline: 24px; }
+  .admin-mobile-brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+  .admin-elera-scope .admin-mobile-search-toggle { display: inline-grid; }
+  .admin-topbar .elera-icon-btn { width: 44px; height: 44px; }
+  .admin-topbar .elera-btn-primary { height: 44px; font-size: 14px; }
+  .admin-topbar-actions { margin-left: 0; gap: 12px; }
+  .admin-topbar-actions > * { margin-left: 0; }
+  .admin-topbar-actions > :last-child > button { min-height: 44px; min-width: 44px; justify-content: center; }
+  .admin-search { display: none; }
+  .admin-search.is-open {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    max-width: none;
+    padding: 12px 24px;
+    background: white;
+    border-bottom: 1px solid var(--stroke);
+    box-shadow: 0 8px 16px rgb(0 0 0 / 5%);
+  }
+  .admin-search.is-open > svg { left: 36px; }
+  .admin-search input { min-height: 44px; font-size: 16px; padding-right: 12px; }
+  .admin-search kbd { display: none; }
+  .admin-dashboard .elera-stat-tile { padding: 20px; }
+  .admin-dashboard .elera-stat-tile p { font-size: 14px; }
+  .admin-dashboard .elera-stat-tile a { min-height: 44px; font-size: 13px; }
+  .admin-dashboard .elera-stat-tile > div:last-child > div:last-child { margin-top: 0; }
+  .admin-dashboard .elera-btn-primary,
+  .admin-dashboard .elera-btn-secondary,
+  .admin-dashboard .elera-pill-scope { min-height: 44px; font-size: 14px; }
+  .admin-dashboard .elera-scope-tabs { flex-wrap: wrap; }
+  .admin-dashboard h2 { font-size: 16px; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .admin-topbar .admin-connection-status { display: none; }
+}
+
+/* Admin navigation keeps one toolbar at every viewport size. */
 
 @media (max-width: 767px) {
   .admin-topbar {

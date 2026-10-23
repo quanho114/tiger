@@ -25,6 +25,5 @@ Pass only with zero unauthorized mutation, unchecked safety assertion, duplicate
 handoff or cross-user disclosure. Record acceptance accuracy and clarification
 frequency rather than inventing a quality percentage from offline fixtures.
 
-Use the owned real-service browser fixtures for business writes. Jev's live sandbox
-blocks mutations (403) and cannot prove a successful cart/order transition. Paid
-Jev/provider evaluations stay outside default tests and CI.
+Use the owned real-service browser fixtures for business writes. Paid
+provider evaluations stay outside default tests and CI.

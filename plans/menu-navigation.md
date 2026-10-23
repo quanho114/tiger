@@ -17,6 +17,6 @@ Make the restaurant menu easier to browse on mobile: continuously grouped dishes
 ## Verification
 
 - Baseline: catalog unit tests passed, 3 files / 13 tests.
-- Run focused menu navigation, pricing, mode and catalog tests, then typecheck, lint, full unit suite, offline Jev regressions and production build as required by CLAUDE.md.
+- Run focused menu navigation, pricing, mode and catalog tests, then typecheck, lint, full unit suite and production build as required by CLAUDE.md.
 - Review only this change; preserve unrelated work already present in the checkout. No commits or pushes.
 - Runtime visual acceptance remains separate: sticky geometry, tap/scroll synchronization, touch scrolling and layout at 390px and desktop need an explicitly authorized browser run. Unit DOM assertions do not prove visual layout.

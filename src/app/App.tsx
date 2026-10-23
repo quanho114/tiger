@@ -58,7 +58,7 @@ const ScrollToTop: FC = () => {
 
 const PublicShell: FC = () => {
   const navigate = useNavigate();
-  const { cartItems, updateQty, remove, clear, isCartOpen, setCartOpen } = useCart();
+  const { cartItems, add, updateQty, remove, clear, isCartOpen, setCartOpen } = useCart();
   const { key: navigationKey, pathname } = useLocation();
   const isCartScreen = pathname === '/cart';
   const isMenuScreen = /^\/(menu|thuc-don)\/*$/.test(pathname);
@@ -88,7 +88,7 @@ const PublicShell: FC = () => {
       <main>
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/cart" element={<CartDrawer presentation="page" isOpen onClose={() => navigate('/menu')} cartItems={cartItems} onUpdateQuantity={updateQty} onRemoveItem={remove} onClearCart={clear} />} />
+            <Route path="/cart" element={<CartDrawer presentation="page" isOpen onClose={() => navigate('/menu')} cartItems={cartItems} onUpdateQuantity={updateQty} onRemoveItem={remove} onRestoreItem={item => add(item.dish, item.note, item.quantity)} onClearCart={clear} />} />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/thuc-don" element={<MenuPage />} />
             <Route path="/table/:token" element={<TableResolvePage />} />
@@ -119,14 +119,14 @@ const PublicShell: FC = () => {
           </Routes>
       </main>
 
-      {!isAuthPage && <div className={isMobileScreen || isCartScreen ? 'hidden md:block' : undefined}><Footer /></div>}
+      {!isAuthPage && <div className={isMobileScreen || isCartScreen ? 'hidden md:block' : undefined}><Footer compact={pathname === '/'} /></div>}
 
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setCartOpen(false)}
         cartItems={cartItems}
         onUpdateQuantity={updateQty}
-        onRemoveItem={remove}
+        onRemoveItem={remove} onRestoreItem={item => add(item.dish, item.note, item.quantity)}
         onClearCart={clear}
       />
 

@@ -1,37 +1,37 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useCart } from '@/features/cart';
 import { useAuth } from '@/features/auth';
+import './MobileBottomNav.css';
 
 type TabIconName = 'home' | 'menu' | 'cart' | 'account';
 
-/** Matching outline / solid silhouettes keep selected tabs easy to recognize. */
+/** Tiger's own 28px icon set: rounded strokes and warm selected details. */
 function TabIcon({ name, active }: { name: TabIconName; active: boolean }) {
+  const surface = active ? 'currentColor' : 'none';
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"
-      className={`h-[25px] w-[25px] transition-transform duration-200 motion-reduce:transition-none ${active ? '-translate-y-0.5' : ''}`}
-      stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round">
-      {name === 'home' && (active ? <>
-        <path d="m3 10 9-7.5 9 7.5v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z" fill="currentColor" stroke="currentColor" />
-        <path d="M10 10h4" stroke="#fffdf9" />
-      </> : <>
-        <path d="m2.5 10 9.5-8 9.5 8M4.5 8.5V21H9v-7h6v7h4.5V8.5" />
-        <path d="M10 9h4" />
-      </>)}
+    <svg viewBox="0 0 28 28" width="28" height="28" fill="none" aria-hidden="true"
+      stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      {name === 'home' && <>
+        <path d="M6 13v10h16V13" fill={surface} />
+        <path className="tiger-bottom-nav__accent" d="m4 10 2.5-5h15L24 10v1a3.3 3.3 0 0 1-5 2.8 3.3 3.3 0 0 1-5 0 3.3 3.3 0 0 1-5 0A3.3 3.3 0 0 1 4 11Z" fill={surface} />
+        <path className="tiger-bottom-nav__detail" d="M11 23v-6h6v6" fill={active ? '#fffdf9' : 'none'} />
+        <path className="tiger-bottom-nav__detail" d="M10 5 9 10m9-5 1 5" />
+      </>}
       {name === 'menu' && <>
-        <path d="M4 3.5h6a3 3 0 0 1 2 1 3 3 0 0 1 2-1h6v16h-6a3 3 0 0 0-2 1 3 3 0 0 0-2-1H4Z"
-          fill={active ? 'currentColor' : 'none'} />
-        <g stroke={active ? '#fffdf9' : 'currentColor'}>
-          <path d="M12 5v13M7 8h2M7 11h2M15 8h2M15 11h2M15 14h2" />
-        </g>
+        <path d="M14 7c-2.5-2-6-2.5-10-1v17c4-1.5 7.5-1 10 1 2.5-2 6-2.5 10-1V6c-4-1.5-7.5-1-10 1Z" fill={surface} />
+        <path className="tiger-bottom-nav__detail" d="M14 7v17m4-13h3m-3 4h3m-3 4h2" />
+        <path className="tiger-bottom-nav__accent" d="M7 14h4a2 2 0 0 1-4 0Zm1-4 1-1m1 2 1-1" />
       </>}
       {name === 'cart' && <>
-        <path d="M5 7h14l1 14H4Z" fill={active ? 'currentColor' : 'none'} />
-        <path d="M8 7V5a4 4 0 0 1 8 0v2" />
-        <path d="M9 11a3 3 0 0 0 6 0" stroke={active ? '#fffdf9' : 'currentColor'} />
+        <path d="M6.5 9h15L23 24H5Z" fill={surface} />
+        <path d="M10 10V7a4 4 0 0 1 8 0v3" />
+        <path className="tiger-bottom-nav__accent" d="m10 15 2 2m1-3 2 2m1-3 2 2" />
+        <path className="tiger-bottom-nav__detail" d="M11 20h6" />
       </>}
       {name === 'account' && <>
-        <circle cx="12" cy="7" r="4" fill={active ? 'currentColor' : 'none'} />
-        <path d="M4.5 21v-2a7.5 7.5 0 0 1 15 0v2Z" fill={active ? 'currentColor' : 'none'} />
+        <circle className="tiger-bottom-nav__accent" cx="14" cy="9" r="4.5" fill={surface} />
+        <path d="M5.5 24v-1.5a8.5 8.5 0 0 1 17 0V24Z" fill={surface} />
+        <path className="tiger-bottom-nav__detail" d="M11.5 19a4.2 4.2 0 0 0 5 0" />
       </>}
     </svg>
   );
@@ -43,30 +43,33 @@ export function MobileBottomNav() {
   const { role, user, isLoading } = useAuth();
   const { pathname } = useLocation();
   const cartActive = pathname === '/cart' || isCartOpen;
-  const itemClass = (active: boolean) =>
-    `relative flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#234386] ${active ? 'font-semibold text-[#4D6655]' : 'text-[#85827d] hover:text-[#234386]'}`;
-  const iconClass = 'relative flex h-7 w-8 items-center justify-center';
   const accountActive = !isCartOpen && (pathname === '/login' || pathname === '/account' || pathname.startsWith('/account/'));
   const menuActive = !isCartOpen && (pathname === '/menu' || pathname === '/thuc-don');
 
+  const homeActive = pathname === '/' && !isCartOpen;
+
   return (
-    <nav aria-label="Điều hướng chính trên điện thoại"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-[#234386]/10 bg-[#fffdf9]/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(35,67,134,0.04)] backdrop-blur-md md:hidden">
-      <NavLink to="/" end className={({ isActive }) => itemClass(isActive && !isCartOpen)}>
-        {({ isActive }) => <><span className={iconClass}><TabIcon name="home" active={isActive && !isCartOpen} /></span><span>Trang chủ</span></>}
+    <nav aria-label="Điều hướng chính trên điện thoại" className="tiger-bottom-nav">
+      <NavLink to="/" end className="tiger-bottom-nav__item" data-active={homeActive}>
+        <span className="tiger-bottom-nav__icon"><TabIcon name="home" active={homeActive} /></span>
+        <span>Trang chủ</span>
       </NavLink>
-      <NavLink to="/menu" className={() => itemClass(menuActive)}
+      <NavLink to="/menu" className="tiger-bottom-nav__item" data-active={menuActive}
         aria-current={pathname === '/thuc-don' ? 'page' : undefined}>
-        <span className={iconClass}><TabIcon name="menu" active={menuActive} /></span><span>Thực đơn</span>
+        <span className="tiger-bottom-nav__icon"><TabIcon name="menu" active={menuActive} /></span>
+        <span>Thực đơn</span>
       </NavLink>
-      <NavLink to="/cart" className={itemClass(cartActive)}
+      <NavLink to="/cart" className="tiger-bottom-nav__item" data-active={cartActive}
         aria-label={`Giỏ hàng${totalCount > 0 ? `, ${totalCount} món` : ''}`}>
-        <span className={iconClass}><TabIcon name="cart" active={cartActive} />
-          {totalCount > 0 && <span aria-hidden="true" className="absolute -top-1 -right-1.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full border-2 border-[#fffdf9] bg-[#ed7328] px-1 text-[9px] font-bold leading-none text-white">{totalCount > 99 ? '99+' : totalCount}</span>}
-        </span><span>Giỏ hàng</span>
+        <span className="tiger-bottom-nav__icon"><TabIcon name="cart" active={cartActive} />
+          {totalCount > 0 && <span aria-hidden="true" className="tiger-bottom-nav__badge">{totalCount > 99 ? '99+' : totalCount}</span>}
+        </span>
+        <span>Giỏ hàng</span>
       </NavLink>
-      <NavLink to={role === 'admin' ? '/admin' : !isLoading && !user ? '/login?returnTo=%2Faccount' : '/account'} className={itemClass(accountActive)}>
-        <span className={iconClass}><TabIcon name="account" active={accountActive} /></span><span>Tài khoản</span>
+      <NavLink to={role === 'admin' ? '/admin' : !isLoading && !user ? '/login?returnTo=%2Faccount' : '/account'}
+        className="tiger-bottom-nav__item" data-active={accountActive}>
+        <span className="tiger-bottom-nav__icon"><TabIcon name="account" active={accountActive} /></span>
+        <span>Tài khoản</span>
       </NavLink>
     </nav>
   );

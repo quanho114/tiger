@@ -1,0 +1,92 @@
+.tiger-bottom-nav {
+  --tab-ink: #123b79;
+  --tab-muted: #646b7b;
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 0 8px env(safe-area-inset-bottom);
+  border-radius: 0;
+  background: #fffdf9f5;
+  box-shadow: 0 -6px 28px #18345c0a, 0 -1px 0 #18345c08;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.tiger-bottom-nav__item {
+  display: flex;
+  min-width: 0;
+  min-height: 64px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 0;
+  border-radius: 16px;
+  color: var(--tab-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 16px;
+  text-decoration: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.tiger-bottom-nav__item[data-active='true'] {
+  color: var(--tab-ink);
+  font-weight: 700;
+}
+
+.tiger-bottom-nav__item:focus-visible {
+  outline: 2px solid var(--tab-ink);
+  outline-offset: -3px;
+}
+
+.tiger-bottom-nav__icon {
+  position: relative;
+  display: flex;
+  width: 52px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+}
+
+.tiger-bottom-nav__accent,
+.tiger-bottom-nav__detail { color: currentColor; }
+.tiger-bottom-nav__item[data-active='true'] .tiger-bottom-nav__accent { color: #ed7328; }
+.tiger-bottom-nav__item[data-active='true'] .tiger-bottom-nav__detail { color: #fffdf9; }
+
+.tiger-bottom-nav__badge {
+  position: absolute;
+  top: -2px;
+  right: 1px;
+  display: flex;
+  height: 17px;
+  min-width: 17px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 2px solid #fffdf9;
+  border-radius: 20px;
+  color: #fff;
+  background: #c64f12;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: hover) {
+  .tiger-bottom-nav__item:hover { color: var(--tab-ink); }
+}
+
+@media (min-width: 768px) {
+  .tiger-bottom-nav { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tiger-bottom-nav__item { transition: none; }
+}

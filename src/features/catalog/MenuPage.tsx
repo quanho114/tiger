@@ -6,7 +6,7 @@
  */
 import { memo, useCallback, useState, useMemo, useRef, useEffect, useContext } from 'react';
 import type { FC } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   Utensils,
   Bike,
@@ -18,7 +18,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Wine,
-  Calendar,
   QrCode,
   ShoppingBag,
   AlertCircle,
@@ -40,6 +39,7 @@ import { Field } from '@/shared/ui/Field';
 import { useAuth } from '@/features/auth';
 import { useConciergeSession } from '@/features/concierge/ConciergeProvider';
 import { FALLBACK_DELIVERY_ZONES } from '@/features/ordering/delivery/zones';
+import { PortionPicker } from './components/PortionPicker';
 import { useMenuFavorites } from './useMenuFavorites';
 import { useVisibleMenuItems } from './useVisibleMenuItems';
 
@@ -191,10 +191,13 @@ const MenuDishCard = memo(function MenuDishCard({
             <button
               type="button"
               onClick={() => onSelect(dish)}
-              className="inline-flex min-h-11 items-center gap-1 px-3 py-2 rounded-full text-xs font-semibold bg-burnt-orange/10 text-deep-indigo hover:bg-burnt-orange hover:text-white transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo"
+              disabled={!isAvailable}
+              aria-label={`Chọn phần ${dish.name}`}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo"
             >
-              <span>Tùy phần</span>
-              <ArrowRight size={12} />
+              <span className={`flex size-6 sm:size-8 items-center justify-center rounded-full ${activeMode === 'delivery' ? 'bg-[#234386]' : 'bg-[#ed7328]'}`}>
+                <Plus size={16} aria-hidden="true" />
+              </span>
             </button>
           ) : dish.pricing_mode === 'market' ? (
             <button
@@ -261,7 +264,6 @@ const MenuDishCard = memo(function MenuDishCard({
 
 export const MenuPage: FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const {
     items: catalogItems,
     categories: catalogCategories,
@@ -272,7 +274,7 @@ export const MenuPage: FC = () => {
     refreshMenu,
   } = useCatalog();
   const {
-    add,
+    add: addCartItem,
     updateQty,
     setCartOpen,
     cartItems,
@@ -320,6 +322,13 @@ export const MenuPage: FC = () => {
       }
     }
   }, [activeMode, session, cartContext, setCartContext]);
+
+  const add = (dish: MenuItem, note?: string, quantity?: number) => {
+    if (activeMode === 'dine-in' && !session && cartContext.mode !== 'dine-in') {
+      setCartContext({ mode: 'dine-in', tableId: '', tableCode: '', tableName: '', visitId: '' });
+    }
+    addCartItem(dish, note, quantity);
+  };
 
   const handleModeSelect = (targetMode: OrderMode) => {
     if (targetMode === activeMode) return;
@@ -397,11 +406,16 @@ export const MenuPage: FC = () => {
     zoneId: '',
   });
   const [addressError, setAddressError] = useState<string | null>(null);
+  const closeAddressDialog = () => {
+    setIsAddressDialogOpen(false);
+    setAddressError(null);
+  };
 
   const deliveryZoneOptions =
     catalogContext?.settings?.delivery_zones?.length
       ? catalogContext.settings.delivery_zones
       : FALLBACK_DELIVERY_ZONES;
+  const selectedDeliveryZone = deliveryZoneOptions.find((zone) => zone.id === addressDraft.zoneId);
 
   const applyResolvedTable = (resolved: TableSession) => {
     setCartContext({
@@ -418,6 +432,10 @@ export const MenuPage: FC = () => {
     const token = extractQrToken(qrInput);
     if (!token) {
       setQrError('Vui lòng dán liên kết hoặc mã QR bàn.');
+      return;
+    }
+    if (/^\d+$/.test(token)) {
+      setQrError('Số bàn chưa đủ để kết nối. Vui lòng quét mã QR trên bàn hoặc nhờ nhân viên hỗ trợ.');
       return;
     }
     setIsResolvingQr(true);
@@ -482,8 +500,7 @@ export const MenuPage: FC = () => {
       address: addressDraft.address.trim(),
       zoneId: addressDraft.zoneId,
     });
-    setAddressError(null);
-    setIsAddressDialogOpen(false);
+    closeAddressDialog();
   };
 
   const [activeCategory, setActiveCategory] = useState('');
@@ -578,15 +595,11 @@ export const MenuPage: FC = () => {
   const highlightedMenu = useMemo(() => {
     const available = dishes.filter((dish) => dish.available !== false && dish.modes.includes(activeMode));
     const bestsellers = available.filter((dish) => dish.isBestseller);
-    const items = bestsellers.length > 0 ? bestsellers : available.filter((dish) =>
+    const items = (bestsellers.length > 0 ? bestsellers : available.filter((dish) =>
       dish.is_featured || dish.isSignature || (dish.featured_rank ?? 0) > 0,
-    ).sort((a, b) => (a.featured_rank ?? Infinity) - (b.featured_rank ?? Infinity));
+    )).sort((a, b) => (a.featured_rank ?? Infinity) - (b.featured_rank ?? Infinity));
     return { title: bestsellers.length > 0 ? 'Món bán chạy' : 'Tiger gợi ý', items: items.slice(0, 6) };
   }, [dishes, activeMode]);
-
-  const handleBookTableForDish = (dishName: string) => {
-    navigate('/reservation', { state: { dishName } });
-  };
 
   // Close modal on escape
   useEffect(() => {
@@ -655,7 +668,7 @@ export const MenuPage: FC = () => {
                 className="flex min-h-11 min-w-0 items-center gap-2 text-left hover:text-burnt-orange focus-visible:outline-2 focus-visible:outline-deep-indigo">
                 <QrCode size={16} className="shrink-0" aria-hidden="true" />
                 <span className="truncate">{session ? session.tableName : 'Chưa chọn bàn'}</span>
-                <span className="shrink-0 font-semibold underline underline-offset-4">{session ? 'Đổi bàn' : 'Nhập số bàn'}</span>
+                <span className="shrink-0 font-semibold underline underline-offset-4">{session ? 'Đổi bàn' : 'Quét QR bàn'}</span>
               </button>
               {session ? (
                 <button type="button" onClick={() => setCartOpen(true)} className="min-h-11 shrink-0 font-semibold hover:text-burnt-orange">Món đã chọn ({cartItems.length})</button>
@@ -872,7 +885,7 @@ export const MenuPage: FC = () => {
       >
         {selectedDishDetail && (
           <div>
-            <div className="relative aspect-video overflow-hidden rounded-t-[24px] sm:rounded-t-[28px] bg-[#234386]/5">
+            <div className="relative aspect-[2/1] sm:aspect-video overflow-hidden rounded-t-[24px] sm:rounded-t-[28px] bg-[#234386]/5">
               <DishImage
                 dish={selectedDishDetail}
                 categoryName={categoryMap.get(selectedDishDetail.category) || categoryMap.get(selectedDishDetail.category_id || '')}
@@ -888,8 +901,8 @@ export const MenuPage: FC = () => {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between gap-3">
+            <div className="p-5 space-y-3 sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <div>
                   <h3 className="font-['Noto_Serif',serif] text-xl font-bold text-[#234386]">
                     {selectedDishDetail.name}
@@ -923,15 +936,12 @@ export const MenuPage: FC = () => {
 
               {/* Pricing Mode Explanatory Notice */}
               {selectedDishDetail.pricing_mode === 'range' && (
-                <div className="p-3 rounded-xl bg-[#ed7328]/10 text-xs text-[#ed7328] flex items-start gap-2.5">
-                  <Info size={16} className="shrink-0 mt-0.5 text-[#ed7328]" />
-                  <div>
-                    <span className="font-semibold block text-[#ed7328]">Món ăn tùy chọn phần / trọng lượng</span>
-                    <span className="text-[#000000]/75 leading-relaxed">
-                      Giá thực tế sẽ dao động theo kích cỡ hoặc số lượng khách. Quý khách vui lòng ghi chú hoặc trao đổi cùng nhân viên phục vụ khi đặt món.
-                    </span>
-                  </div>
-                </div>
+                <PortionPicker key={selectedDishDetail.id} dish={selectedDishDetail}
+                  addLabel="Thêm vào giỏ hàng"
+                  onAdd={(price, quantity) => {
+                    add({ ...selectedDishDetail, selected_price_vnd: price }, `Giá phần: ${price.toLocaleString('vi-VN')} đ`, quantity);
+                    setSelectedDishDetail(null);
+                  }} />
               )}
 
               {selectedDishDetail.pricing_mode === 'market' && (
@@ -965,18 +975,10 @@ export const MenuPage: FC = () => {
                 </div>
               )}
 
+              {(!selectedDishDetail.pricing_mode || selectedDishDetail.pricing_mode === 'fixed') && (
               <div className="pt-3 border-t border-[#d2b68c]/25 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedDishDetail(null)}
-                  className="px-4 py-2.5 text-xs font-semibold text-[#000000]/60 hover:text-[#000000] text-center cursor-pointer"
-                >
-                  Đóng
-                </button>
-
                 {/* Fixed pricing mode allows adding to cart */}
                 {(!selectedDishDetail.pricing_mode || selectedDishDetail.pricing_mode === 'fixed') ? (
-                  activeMode !== 'dine-in' || session ? (
                     <button
                       type="button"
                       disabled={selectedDishDetail.available === false}
@@ -999,29 +1001,18 @@ export const MenuPage: FC = () => {
                           <span>
                             {session
                               ? `Thêm vào bàn (${session.tableName})`
-                              : activeMode === 'takeaway'
-                                ? 'Thêm vào giỏ mang đi'
-                                : 'Thêm vào giỏ giao hàng'}
+                              : activeMode === 'dine-in'
+                                ? 'Thêm vào giỏ hàng'
+                                : activeMode === 'takeaway'
+                                  ? 'Thêm vào giỏ mang đi'
+                                  : 'Thêm vào giỏ giao hàng'}
                           </span>
                         </>
                       )}
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const dish = selectedDishDetail;
-                        setSelectedDishDetail(null);
-                        handleBookTableForDish(dish.name);
-                      }}
-                      className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full bg-[#234386] text-white text-xs font-semibold shadow-xs hover:bg-[#1a3468] active:scale-95 transition-all cursor-pointer"
-                    >
-                      <Calendar size={14} />
-                      <span>Đặt bàn thưởng thức món này</span>
-                    </button>
-                  )
                 ) : null}
               </div>
+              )}
             </div>
           </div>
         )}
@@ -1077,7 +1068,7 @@ export const MenuPage: FC = () => {
           setIsQrDialogOpen(false);
           setQrError(null);
         }}
-        title="Nhập số bàn"
+        title="Kết nối bàn bằng QR"
         description="Kết nối giỏ hàng với bàn của bạn tại nhà hàng"
       >
         <form
@@ -1094,29 +1085,22 @@ export const MenuPage: FC = () => {
             <div className="text-xs text-black/75 leading-relaxed space-y-1">
               <p className="font-semibold text-[#234386]">Quét QR</p>
               <p>
-                Quét mã QR trên bàn để gọi món hoặc nhập số bàn nếu bạn đang có mặt tại nhà hàng.
-                Mở camera điện thoại, quét mã trên bàn, rồi dán liên kết hoặc mã QR vào ô bên dưới.
+                Mở camera điện thoại và quét mã QR trên bàn để vào thực đơn của bàn.
+                Nếu đã sao chép liên kết hoặc mã QR, hãy dán vào ô bên dưới. Số bàn riêng lẻ chưa đủ để kết nối.
               </p>
             </div>
           </div>
 
-          {qrError && (
-            <div
-              role="alert"
-              className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600 flex items-center gap-2"
-            >
-              <AlertCircle size={14} className="shrink-0" />
-              <span>{qrError}</span>
-            </div>
-          )}
-
-          <Field label="Liên kết hoặc mã QR bàn" required>
+          <Field label="Liên kết hoặc mã QR bàn" required error={qrError ?? undefined}>
             <input
               type="text"
               required
               placeholder="Dán liên kết /table/... hoặc mã QR"
               value={qrInput}
-              onChange={(e) => setQrInput(e.target.value)}
+              onChange={(e) => {
+                setQrInput(e.target.value);
+                setQrError(null);
+              }}
               className="w-full text-sm sm:text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
             />
           </Field>
@@ -1184,85 +1168,137 @@ export const MenuPage: FC = () => {
       {/* ========================================================================= */}
       <Dialog
         isOpen={isAddressDialogOpen}
-        onClose={() => {
-          setIsAddressDialogOpen(false);
-          setAddressError(null);
-        }}
+        onClose={closeAddressDialog}
         title="Nhập địa chỉ giao"
         description="Lưu địa chỉ và khu vực để ước tính phí giao hàng"
+        className="max-w-[400px]! rounded-[22px]! border-0! shadow-xl!"
       >
         <form
           onSubmit={(e) => {
             e.preventDefault();
             confirmAddressDraft();
           }}
-          className="p-6 space-y-3"
+          className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:p-6"
         >
-          {addressError && (
-            <div
-              role="alert"
-              className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600 flex items-center gap-2"
-            >
-              <AlertCircle size={14} className="shrink-0" />
-              <span>{addressError}</span>
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold leading-7 tracking-tight text-ink-black">Giao đến đâu?</h2>
+              <p className="mt-1 text-xs leading-5 text-ink-black/60">Địa chỉ nhận món và ước tính phí giao.</p>
             </div>
-          )}
-
-          <Field label="Họ và tên người nhận">
-            <input
-              type="text"
-              placeholder="Ví dụ: Nguyễn Văn A"
-              value={addressDraft.recipientName}
-              onChange={(e) => setAddressDraft((prev) => ({ ...prev, recipientName: e.target.value }))}
-              className="w-full text-sm sm:text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
-            />
-          </Field>
-
-          <Field label="Số điện thoại liên hệ">
-            <input
-              type="tel"
-              placeholder="Ví dụ: 090 280 99 29"
-              value={addressDraft.phone}
-              onChange={(e) => setAddressDraft((prev) => ({ ...prev, phone: e.target.value }))}
-              className="w-full text-sm sm:text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
-            />
-          </Field>
-
-          <Field label="Địa chỉ giao" required>
-            <input
-              type="text"
-              required
-              placeholder="Số nhà, đường, khu dân cư..."
-              value={addressDraft.address}
-              onChange={(e) => setAddressDraft((prev) => ({ ...prev, address: e.target.value }))}
-              className="w-full text-sm sm:text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
-            />
-          </Field>
-
-          <Field label="Khu vực" required>
-            <select
-              required
-              value={addressDraft.zoneId}
-              onChange={(e) => setAddressDraft((prev) => ({ ...prev, zoneId: e.target.value }))}
-              className="w-full text-sm sm:text-xs px-3.5 py-2.5 rounded-xl border border-[#d2b68c]/50 focus:outline-none focus:border-[#234386] bg-[#fbf9f6]"
+            <button
+              type="button"
+              aria-label="Đóng địa chỉ giao"
+              onClick={closeAddressDialog}
+              className="-mr-2 -mt-2 flex size-11 shrink-0 items-center justify-center rounded-full text-ink-black/50 transition-colors hover:bg-ink-black/5 hover:text-ink-black focus-visible:outline-2 focus-visible:outline-deep-indigo"
             >
-              <option value="" disabled>
-                Chọn khu vực giao hàng
-              </option>
-              {deliveryZoneOptions.map((zone) => (
-                <option key={zone.id} value={zone.id}>
-                  {zone.name} — {zone.fee_vnd.toLocaleString('vi-VN')} đ
-                </option>
-              ))}
-            </select>
-          </Field>
+              <X size={18} strokeWidth={1.5} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {addressError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 text-sm text-red-700"
+              >
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{addressError}</span>
+              </div>
+            )}
+
+            <Field label="Họ và tên người nhận" className="[&>label]:font-medium [&>label]:text-ink-black/60">
+              <input
+                type="text"
+                autoComplete="name"
+                placeholder="Ví dụ: Nguyễn Văn A"
+                value={addressDraft.recipientName}
+                onChange={(e) => setAddressDraft((prev) => ({ ...prev, recipientName: e.target.value }))}
+                className="min-h-11 w-full rounded-xl border border-ink-black/15 bg-cream-paper/50 px-3 py-2 text-base sm:text-sm text-ink-black shadow-none placeholder:text-sm placeholder:text-ink-black/40 transition-colors hover:border-ink-black/30 focus:border-deep-indigo focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo/25"
+              />
+            </Field>
+
+            <Field label="Số điện thoại liên hệ" className="[&>label]:font-medium [&>label]:text-ink-black/60">
+              <input
+                type="tel"
+                autoComplete="tel"
+                placeholder="Ví dụ: 090 280 99 29"
+                value={addressDraft.phone}
+                onChange={(e) => setAddressDraft((prev) => ({ ...prev, phone: e.target.value }))}
+                className="min-h-11 w-full rounded-xl border border-ink-black/15 bg-cream-paper/50 px-3 py-2 text-base sm:text-sm text-ink-black shadow-none placeholder:text-sm placeholder:text-ink-black/40 transition-colors hover:border-ink-black/30 focus:border-deep-indigo focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo/25"
+              />
+            </Field>
+
+            <Field label="Địa chỉ giao" required className="[&>label]:font-medium [&>label]:text-ink-black/60">
+              <textarea
+                rows={2}
+                autoComplete="street-address"
+                required
+                placeholder="Số nhà, đường, khu dân cư..."
+                value={addressDraft.address}
+                onChange={(e) => setAddressDraft((prev) => ({ ...prev, address: e.target.value }))}
+                className="min-h-16 w-full resize-y rounded-xl border border-ink-black/15 bg-cream-paper/50 px-3 py-2 text-base sm:text-sm text-ink-black shadow-none placeholder:text-sm placeholder:text-ink-black/40 transition-colors hover:border-ink-black/30 focus:border-deep-indigo focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo/25"
+              />
+            </Field>
+
+            <fieldset className="min-w-0 space-y-1.5">
+              <legend className="text-xs font-medium text-ink-black/60">
+                Khu vực<span className="ml-1 text-burnt-orange" aria-hidden="true">*</span>
+              </legend>
+              <details
+                className="group min-w-0"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && event.currentTarget.open) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.currentTarget.open = false;
+                    event.currentTarget.querySelector('summary')?.focus();
+                  }
+                }}
+              >
+                <summary className="flex min-h-11 w-full cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-ink-black/15 bg-cream-paper/50 px-3 py-2 text-sm text-ink-black transition-colors hover:border-ink-black/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo/25 [&::-webkit-details-marker]:hidden">
+                  <span className="min-w-0 break-words">
+                    {selectedDeliveryZone ? selectedDeliveryZone.name : 'Chọn khu vực giao hàng'}
+                    {selectedDeliveryZone && (
+                      <span className="mt-1 block text-xs text-ink-black/60">Phí giao {selectedDeliveryZone.fee_vnd.toLocaleString('vi-VN')} đ</span>
+                    )}
+                  </span>
+                  <ChevronRight size={16} aria-hidden="true" className="shrink-0 rotate-90 transition-transform group-open:-rotate-90" />
+                </summary>
+                <div role="radiogroup" aria-label="Khu vực giao hàng" aria-required="true" className="mt-2 w-full min-w-0 space-y-1 rounded-xl border border-ink-black/15 p-1.5">
+                  {deliveryZoneOptions.map((zone) => (
+                    <label key={zone.id} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg px-2 py-2.5 text-sm text-ink-black hover:text-deep-indigo">
+                      <input
+                        type="radio"
+                        name="delivery-address-zone"
+                        value={zone.id}
+                        checked={addressDraft.zoneId === zone.id}
+                        onChange={(event) => {
+                          setAddressDraft((prev) => ({ ...prev, zoneId: zone.id }));
+                          const details = event.currentTarget.closest('details');
+                          if (details) {
+                            details.open = false;
+                            details.querySelector('summary')?.focus();
+                          }
+                        }}
+                        className="mt-0.5 size-4 shrink-0 accent-deep-indigo"
+                      />
+                      <span className="min-w-0 break-words leading-relaxed">
+                        {zone.name}
+                        <span className="mt-1 block text-xs text-ink-black/60">Phí giao {zone.fee_vnd.toLocaleString('vi-VN')} đ</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </details>
+            </fieldset>
+          </div>
 
           <button
             type="submit"
-            className="w-full py-3 rounded-full bg-[#ed7328] hover:bg-[#d86218] text-white font-semibold text-sm shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
+            className="group mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-deep-indigo px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-deep-indigo/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-deep-indigo"
           >
-            <MapPin size={16} />
             <span>Lưu địa chỉ giao</span>
+            <ArrowRight size={16} strokeWidth={2} aria-hidden="true" className="transition-transform duration-150 group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none" />
           </button>
         </form>
       </Dialog>

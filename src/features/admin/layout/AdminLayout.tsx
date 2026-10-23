@@ -29,6 +29,7 @@ import { useAuth } from '../../auth'
 import { AdminContext } from './AdminContext'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 import { AdminPageSkeleton } from '../components/AdminLoading'
+import { useDrawerFocus } from '@/shared/hooks/useDrawerFocus'
 import '../elera.css'
 
 export const AdminLayout: FC = () => {
@@ -47,6 +48,15 @@ export const AdminLayout: FC = () => {
   const [searchKeyword, setSearchKeyword] = useState<string>('')
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const closeSidebar = useCallback(() => setIsSidebarOpen(false), [])
+  const sidebarRef = useDrawerFocus(isSidebarOpen, closeSidebar)
+
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 1280px)')
+    const closeOnDesktop = () => { if (desktop.matches) closeSidebar() }
+    desktop.addEventListener('change', closeOnDesktop)
+    return () => desktop.removeEventListener('change', closeOnDesktop)
+  }, [closeSidebar])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -164,10 +174,13 @@ export const AdminLayout: FC = () => {
       <div className="admin-elera-scope min-h-screen flex flex-col md:flex-row antialiased selection:bg-[#7cd56e]/30 selection:text-[#121212]">
         {/* Sidebar (Elera Collapsible 270px ⇄ 72px) */}
         <aside
-          className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-[#e2e3e3] flex flex-col transition-all duration-200 ${
-            isCollapsed ? 'w-[min(300px,calc(100vw-48px))] md:w-[72px]' : 'w-[min(300px,calc(100vw-48px))] md:w-[270px]'
+          id="admin-navigation"
+          aria-label="Menu quản trị"
+          ref={sidebarRef}
+          className={`fixed inset-y-0 left-0 z-40 bg-white border-r border-[#e2e3e3] flex flex-col transition-[width,margin-left,transform,visibility] duration-200 ${
+            isCollapsed ? 'w-[min(300px,calc(100vw-48px))] xl:w-[72px]' : 'w-[min(300px,calc(100vw-48px))] xl:w-[270px]'
           } ${
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+            isSidebarOpen ? 'translate-x-0 visible' : '-translate-x-full invisible xl:translate-x-0 xl:visible'
           }`}
         >
           {/* Brand Header */}
@@ -179,7 +192,7 @@ export const AdminLayout: FC = () => {
                 className="w-8 h-8 rounded-xl object-contain shadow-xs shrink-0"
               />
               {(
-                <div className={`min-w-0 ${isCollapsed ? 'md:hidden' : ''}`}>
+                <div className={`min-w-0 ${isCollapsed ? 'xl:hidden' : ''}`}>
                   <h1 className="text-[13.5px] font-bold tracking-tight text-[#171a17] leading-tight truncate">
                     TIGER 345
                   </h1>
@@ -193,12 +206,12 @@ export const AdminLayout: FC = () => {
             <button
               type="button"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden md:flex p-1.5 text-[#787979] hover:text-[#171a17] hover:bg-[#edece9] rounded-lg transition"
+              className="hidden xl:flex p-1.5 text-[#787979] hover:text-[#171a17] hover:bg-[#edece9] rounded-lg transition"
               title={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
             >
               {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
             </button>
-            <button type="button" className="md:hidden inline-flex size-11 items-center justify-center rounded-lg text-[#5c5e63] hover:bg-[#edece9]" aria-label="Đóng menu quản trị" onClick={() => setIsSidebarOpen(false)}>
+            <button type="button" className="xl:hidden inline-flex size-11 items-center justify-center rounded-lg text-[#5c5e63] hover:bg-[#edece9]" aria-label="Đóng menu quản trị" onClick={() => setIsSidebarOpen(false)}>
               <X className="size-5" />
             </button>
           </div>
@@ -208,7 +221,7 @@ export const AdminLayout: FC = () => {
             {navGroups.map((group, gIdx) => (
               <div key={gIdx} className="space-y-1">
                 {group.group && (
-                  <p className={`px-3 text-[10px] font-bold tracking-wider text-[#8a8f89] uppercase mb-1.5 ${isCollapsed ? 'md:hidden' : ''}`}>
+                  <p className={`px-3 text-[10px] font-bold tracking-wider text-[#8a8f89] uppercase mb-1.5 ${isCollapsed ? 'xl:hidden' : ''}`}>
                     {group.group}
                   </p>
                 )}
@@ -221,16 +234,16 @@ export const AdminLayout: FC = () => {
                       to={item.path}
                       onClick={() => setIsSidebarOpen(false)}
                       title={isCollapsed ? item.label : undefined}
-                      className={`flex min-h-11 md:min-h-0 items-center gap-3 px-3 py-2 rounded-lg text-sm md:text-xs font-medium transition-colors ${
+                      className={`flex min-h-11 xl:min-h-0 items-center gap-3 px-3 py-2 rounded-lg text-sm xl:text-xs font-medium transition-colors ${
                         active
                           ? 'bg-[#7cd56e] text-[#0f170e] font-semibold shadow-xs'
                           : 'text-[#5c5e63] hover:bg-[#edece9] hover:text-[#171a17]'
                       }`}
                     >
                       <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#0f170e]' : 'text-[#787979]'}`} />
-                      <span className={`truncate ${isCollapsed ? 'md:hidden' : ''}`}>{item.label}</span>
+                      <span className={`truncate ${isCollapsed ? 'xl:hidden' : ''}`}>{item.label}</span>
                       {item.badge !== undefined && (
-                        <small className={`ml-auto px-1.5 py-0.5 rounded bg-[#e2e3e3] text-[#4f534e] text-[10px] font-bold ${isCollapsed ? 'md:hidden' : ''}`}>
+                        <small className={`ml-auto px-1.5 py-0.5 rounded bg-[#e2e3e3] text-[#4f534e] text-[10px] font-bold ${isCollapsed ? 'xl:hidden' : ''}`}>
                           {item.badge}
                         </small>
                       )}
@@ -243,13 +256,13 @@ export const AdminLayout: FC = () => {
 
           {/* User Profile Footer */}
           <div className="p-3 border-t border-[#e2e3e3] bg-white shrink-0">
-            <div className={`flex items-center justify-between p-2 rounded-xl bg-[#f6f5f3] border border-[#e2e3e3] ${isCollapsed ? 'md:justify-center md:p-1.5' : ''}`}>
+            <div className={`flex items-center justify-between p-2 rounded-xl bg-[#f6f5f3] border border-[#e2e3e3] ${isCollapsed ? 'xl:justify-center xl:p-1.5' : ''}`}>
               <div className="flex items-center space-x-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-[#7cd56e]/20 text-[#24541c] flex items-center justify-center font-bold text-xs shrink-0 border border-[#7cd56e]/40">
                   {initials}
                 </div>
                 {(
-                  <div className={`min-w-0 ${isCollapsed ? 'md:hidden' : ''}`}>
+                  <div className={`min-w-0 ${isCollapsed ? 'xl:hidden' : ''}`}>
                     <p className="text-xs font-semibold text-[#171a17] truncate">
                       {adminProfile?.displayName || 'Bếp Trưởng'}
                     </p>
@@ -263,7 +276,7 @@ export const AdminLayout: FC = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/')}
-                  className={`p-1.5 text-[#787979] hover:text-[#171a17] hover:bg-white rounded-lg transition ${isCollapsed ? 'md:hidden' : ''}`}
+                  className={`p-1.5 text-[#787979] hover:text-[#171a17] hover:bg-white rounded-lg transition ${isCollapsed ? 'xl:hidden' : ''}`}
                   title="Về trang chủ"
                   aria-label="Về trang chủ"
                 >
@@ -277,19 +290,19 @@ export const AdminLayout: FC = () => {
         {/* Backdrop for mobile */}
         {isSidebarOpen && (
           <div
-            className="fixed inset-0 z-30 bg-black/20 backdrop-blur-xs md:hidden"
+            className="fixed inset-0 z-30 bg-black/20 backdrop-blur-xs xl:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
 
         {/* Main Content Area */}
-        <div className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${
-          isCollapsed ? 'md:ml-[72px]' : 'md:ml-[270px]'
+        <div className={`flex-1 flex flex-col min-w-0 transition-[width,margin-left,transform,visibility] duration-200 ${
+          isCollapsed ? 'xl:ml-[72px]' : 'xl:ml-[270px]'
         }`}>
           {/* Top Bar (Elera Topbar 64px) */}
           <header className="admin-topbar h-16 bg-white border-b border-[#e2e3e3] px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
             <div className="admin-mobile-brand">
-              <button type="button" className="elera-icon-btn" onClick={() => setIsSidebarOpen(true)} aria-label="Mở menu quản trị" aria-expanded={isSidebarOpen}>
+              <button type="button" className="elera-icon-btn" onClick={() => setIsSidebarOpen(true)} aria-label="Mở menu quản trị" aria-expanded={isSidebarOpen} aria-controls="admin-navigation">
                 <Menu className="w-5 h-5" />
               </button>
               <Link to="/admin" className="min-w-0">
@@ -319,9 +332,9 @@ export const AdminLayout: FC = () => {
             {/* Right Top Bar Actions */}
             <div className="admin-topbar-actions flex items-center space-x-3 ml-4">
               {/* System status badge */}
-              <div className="hidden sm:inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#e4f7c6] border border-[#7cd56e]/30 text-[11px] text-[#3e6300] font-medium">
+              <div className="admin-connection-status hidden sm:inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#e4f7c6] border border-[#7cd56e]/30 text-[11px] text-[#3e6300] font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#7cd56e] animate-pulse" />
-                <span>{connectionError ? 'Mất kết nối máy chủ' : health ? 'Đã kết nối máy chủ' : 'Đang kết nối...'}</span>
+                <span>{connectionError ? 'Mất kết nối' : health ? 'Đã kết nối' : 'Đang kết nối...'}</span>
               </div>
 
               {/* Manual Refresh Button */}
@@ -365,6 +378,7 @@ export const AdminLayout: FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                  aria-label="Menu tài khoản quản trị"
                   className="flex items-center space-x-2 py-1 px-1.5 rounded-lg hover:bg-[#f6f5f3] transition cursor-pointer"
                   aria-expanded={isUserMenuOpen}
                   aria-haspopup="true"
@@ -372,10 +386,10 @@ export const AdminLayout: FC = () => {
                   <div className="w-7 h-7 rounded-full bg-[#7cd56e]/20 text-[#24541c] font-bold text-xs flex items-center justify-center border border-[#7cd56e]/40 shrink-0">
                     {initials}
                   </div>
-                  <span className="hidden lg:inline text-xs font-medium text-[#171a17] max-w-[120px] truncate">
+                  <span className="hidden 2xl:inline text-xs font-medium text-[#171a17] max-w-[120px] truncate">
                     {adminProfile?.displayName || 'Bếp Trưởng'}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-[#787979] hidden lg:inline" />
+                  <ChevronDown className="w-3.5 h-3.5 text-[#787979] hidden 2xl:inline" />
                 </button>
 
                 {isUserMenuOpen && (
@@ -429,7 +443,7 @@ export const AdminLayout: FC = () => {
           </header>
 
           {/* Routed Page Content */}
-          <main className="flex-1 p-4 md:p-6 lg:p-8">
+          <main className="flex-1 p-4 md:p-6 2xl:p-8">
             <ErrorBoundary variant="inline">
               <Suspense fallback={<AdminPageSkeleton />}>
                 <Outlet />

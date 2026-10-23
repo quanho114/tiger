@@ -49,7 +49,7 @@ supabase/
       ...                   Shared server authorization and domain services
   migrations/               Ordered, immutable database changes
 
-tests/                      Unit, server, integration, policy, E2E, and Jev suites
+tests/                      Unit, server, integration, policy, E2E, and tooling suites
 scripts/architecture/       Dependency boundary and cycle checks
 docs/                       Current developer and operational documentation
 plans/                      Implementation plans and historical reports
@@ -103,7 +103,7 @@ whether every cross-feature business dependency is appropriate.
    solely for cosmetic symmetry.
 5. Run architecture checks, relevant tests, both TypeScript checks, lint, and
    the production build. Database integration tests require the disposable test
-   environment; live Jev evaluations remain an explicit opt-in.
+   environment; live provider evaluations remain an explicit opt-in.
 
 ## Compatibility and remaining consolidation
 
