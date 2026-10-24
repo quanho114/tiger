@@ -73,6 +73,8 @@ export interface ItemAllergenProfile {
   verified_at?: string
   updated_by?: string
   updated_at?: string
+  /** Cache validity, independent from the kitchen verification date. */
+  snapshot_expires_at?: string
 }
 
 export type AppetiteLevel = 'light' | 'normal' | 'heavy'

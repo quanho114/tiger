@@ -257,8 +257,16 @@ describe('Concierge V2 V08 - Food Safety & Catalog Retrieval Contracts', () => {
       const ids = result.candidates.map((c) => c.id)
       expect(ids).not.toContain(goiCuon.id)
       expect(ids).not.toContain(caHoi.id)
-      // Sườn nướng does not contain seafood
-      expect(ids).toContain(dummyItem.id)
+      // Absence in an unverified demo profile is insufficient evidence.
+      expect(ids).not.toContain(dummyItem.id)
+      expect(ids).toEqual([])
+      const verified = await retrieveMenuCandidates(catalog, { allergies: ['tôm'] }, {
+        servingProfiles: {}, allergenProfiles: { [dummyItem.id]: {
+          item_id: dummyItem.id, allergens: { seafood: 'absent' }, source: 'kitchen_audited',
+          verified_by_kitchen: true, verified_at: '2026-01-01T00:00:00Z',
+        } },
+      })
+      expect(verified.candidates.map(item => item.id)).toEqual([dummyItem.id])
     })
 
     it('bounds result to 5-8 candidates and respects requested limit', async () => {

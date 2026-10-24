@@ -591,6 +591,7 @@ const INITIAL_ALLERGEN_SNAPSHOT = JSON.parse(JSON.stringify(ALLERGEN_PROFILES))
 const INITIAL_DOCS_SNAPSHOT = JSON.parse(JSON.stringify(RESTAURANT_KNOWLEDGE_DOCS))
 
 export interface KnowledgeSnapshot {
+  menuItems?: import('./menu/types.ts').MenuDomainItem[]
   config: RecommendationConfig
   servingProfiles: Record<string, ServingProfile>
   allergenProfiles: Record<string, ItemAllergenProfile>
@@ -792,7 +793,7 @@ export function adminUpdateAllergenProfile(
     }),
     ...profileUpdates,
     verified_by_kitchen: isVerified,
-    verified_at: isVerified ? (profileUpdates.verified_at || existing?.verified_at || now) : undefined,
+    verified_at: isVerified ? (profileUpdates.verified_by_kitchen === true ? now : existing?.verified_at) : undefined,
     source: isVerified ? 'kitchen_audited'
       : existing?.source === 'system_seed' && !profileUpdates.allergens ? 'system_seed' : 'demo_estimate',
     updated_by: auditedBy || 'bếp trưởng',

@@ -1,0 +1,36 @@
+{
+  "version": "a06-a08-synthetic-v1",
+  "source": "Synthetic menu and engineering relevance labels; not restaurant approval",
+  "policy": { "recall8": "nondecreasing; target >=0.9 for <=8 relevant eligible items", "ndcg4": "nondecreasing; target >=10% relative unless saturated", "exactCoverage": 1, "criticalViolations": 0, "plannerDefault": "retain greedy until independent restaurant usefulness and runtime latency evidence" },
+  "menu": [
+    { "name": "Cơm trắng", "category": "Cơm", "price": 20000, "tags": ["cơm"] },
+    { "name": "Rau luộc", "category": "Rau", "price": 35000, "tags": ["rau"] },
+    { "name": "Đậu hũ chiên", "category": "Món phụ", "price": 45000, "tags": ["đậu hũ"] },
+    { "name": "Trứng hấp", "category": "Món phụ", "price": 50000, "tags": ["trứng"] },
+    { "name": "Canh rau", "category": "Canh", "price": 55000, "tags": ["canh"] },
+    { "name": "Khoai chiên", "category": "Món phụ", "price": 60000, "tags": ["khoai"] },
+    { "name": "Nấm xào", "category": "Rau", "price": 65000, "tags": ["nấm"] },
+    { "name": "Mì xào rau", "category": "Mì", "price": 70000, "tags": ["mì"] },
+    { "name": "Gà hấp lá chanh", "category": "Gà", "price": 180000, "tags": ["hấp"], "signature": true },
+    { "name": "Bò xào rau củ", "category": "Bò", "price": 210000, "tags": ["bò", "xào"] },
+    { "name": "Gỏi rau", "category": "Rau", "price": 80000, "tags": ["gỏi"] },
+    { "name": "Lẩu nấm", "category": "Lẩu", "price": 230000, "tags": ["nấm", "lẩu"], "signature": true }
+  ],
+  "development": [
+    { "id": "d01", "query": "ga hap la chanh", "grades": { "9": 3 }, "exact": 9 },
+    { "id": "d02", "query": "bo xao rau cu", "grades": { "10": 3 }, "exact": 10 },
+    { "id": "d03", "query": "salad", "grades": { "11": 3 } },
+    { "id": "d04", "query": "hotpot", "grades": { "12": 3 } },
+    { "id": "d05", "query": "cơm trắng", "grades": { "1": 3 }, "exact": 1 },
+    { "id": "d06", "query": "đặc sản", "signature": true, "grades": { "9": 3, "12": 3 } }
+  ],
+  "holdout": [
+    { "id": "h01", "query": "lau nam", "grades": { "12": 3 }, "exact": 12 },
+    { "id": "h02", "query": "dau hu chien", "grades": { "3": 3 }, "exact": 3 },
+    { "id": "h03", "query": "nam xao", "grades": { "7": 3 }, "exact": 7 },
+    { "id": "h04", "query": "noodles", "grades": { "8": 3 } },
+    { "id": "h05", "query": "tofu", "grades": { "3": 3 } },
+    { "id": "h06", "query": "món đặc sản", "signature": true, "grades": { "9": 3, "12": 3 } },
+    { "id": "h07", "query": "menu", "budget": 1, "grades": {} }
+  ]
+}

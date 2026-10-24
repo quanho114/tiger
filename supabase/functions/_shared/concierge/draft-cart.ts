@@ -31,6 +31,7 @@ import {
   type ConciergeV2SessionStore,
   type ConciergeV2StoredTurnResult,
 } from '../contracts/concierge-v2.ts'
+import { withinMenuBudget } from './budget.ts'
 
 export interface CatalogItemDetails {
   id: string
@@ -56,6 +57,7 @@ export type DraftDomainErrorCode =
   | 'DRAFT_LINE_LIMIT_EXCEEDED'
   | 'INVALID_DRAFT_OPERATION'
   | 'INTERNAL_SAFE_FAILURE'
+  | 'BUDGET_EXCEEDED'
 
 export type DraftOperationResult =
   | { ok: true; draft: ConciergeV2Draft; message?: string }
@@ -186,6 +188,7 @@ export async function applySingleDraftOperation(
       let nextItems: ConciergeV2DraftItem[]
       if (existingIndex >= 0) {
         const existing = draft.items[existingIndex]
+        if (existing.unit_price_vnd !== authoritativePrice) return { ok: false, error: 'PRICE_CHANGED', message: 'Giá món đã thay đổi. Hãy kiểm tra và xác nhận lại giá.' }
         const updatedQuantity = existing.quantity + qtyToAdd
         if (updatedQuantity > 99) {
           return { ok: false, error: 'INVALID_DRAFT_OPERATION', message: 'Mỗi món chỉ được chọn tối đa 99 phần.' }
@@ -295,7 +298,8 @@ export async function applyDraftBatch(
   operations: ReadonlyArray<ConciergeV2DraftOperation>,
   catalogResolver: CatalogItemResolver,
   allowedPendingSuggestionIds?: ReadonlyArray<string>,
-  customerAllergies?: ReadonlyArray<string>
+  customerAllergies?: ReadonlyArray<string>,
+  budgetVnd?: number | null,
 ): Promise<DraftOperationResult> {
   let currentDraft = initialDraft ? initialDraft : createInitialDraft()
 
@@ -313,7 +317,16 @@ export async function applyDraftBatch(
     currentDraft = result.draft
   }
 
-  return { ok: true, draft: currentDraft }
+  // Validate the resulting draft once: replacement batches may remove before
+  // or after adding, but no intermediate draft is persisted.
+  const checked = await revalidateDraftAgainstCatalog(currentDraft, catalogResolver, customerAllergies)
+  if (checked.blocked_items.length) {
+    const blocked = checked.blocked_items[0]
+    return { ok: false, error: blocked.reason, message: blocked.message }
+  }
+  if (!withinMenuBudget(checked.subtotal_vnd, budgetVnd)) return {
+    ok: false, error: 'BUDGET_EXCEEDED', message: 'Tổng món sau thay đổi vượt ngân sách hiện tại. Hãy chọn lại món hoặc số lượng.' }
+  return { ok: true, draft: checked }
 }
 
 /**
@@ -527,6 +540,7 @@ function mapDomainErrorToSessionError(
     case 'ITEM_UNAVAILABLE':
       return { code: 'ITEM_UNAVAILABLE', message }
     case 'INVALID_HANDOFF':
+    case 'BUDGET_EXCEEDED':
     case 'DRAFT_LINE_LIMIT_EXCEEDED':
     case 'INVALID_DRAFT_OPERATION':
       return { code: 'INVALID_HANDOFF', message }
@@ -612,7 +626,8 @@ export async function applyDraftTurnToSession(
       operations,
       catalogResolver,
       currentRecord.pending_suggestion_ids,
-      customerAllergies
+      customerAllergies,
+      currentRecord.constraints.budget_vnd,
     )
     if (!batchResult.ok) {
       return {
@@ -625,6 +640,9 @@ export async function applyDraftTurnToSession(
 
   // 5. Explicit review transition if requested
   if (markReadyForReview) {
+    if (!withinMenuBudget(currentDraft.subtotal_vnd, currentRecord.constraints.budget_vnd)) {
+      return { ok: false, error: mapDomainErrorToSessionError('BUDGET_EXCEEDED', 'Tổng món vượt ngân sách hiện tại.') }
+    }
     const reviewResult = transitionDraftReviewState(currentDraft, 'ready_for_review')
     if (!reviewResult.ok) {
       return {

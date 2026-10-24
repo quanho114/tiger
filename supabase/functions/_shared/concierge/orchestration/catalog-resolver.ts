@@ -10,7 +10,6 @@
 import type { ConciergeV2SessionMutableState } from '../../contracts/concierge-v2.ts'
 import type { MenuItemCatalogExtended } from '../menu-retrieval.ts'
 import { evaluateFoodSafety } from '../food-safety.ts'
-import { ALLERGEN_PROFILES } from '../knowledge.ts'
 import type { KnowledgeSnapshot } from '../knowledge.ts'
 
 export function catalogResolver(catalog: MenuItemCatalogExtended[], state: ConciergeV2SessionMutableState, mode = state.constraints.order_mode,
@@ -20,6 +19,6 @@ export function catalogResolver(catalog: MenuItemCatalogExtended[], state: Conci
     if (!item) return null
     return { ...item, is_available: item.is_available && (item.pricing_mode ?? 'fixed') === 'fixed' &&
       (mode === 'delivery' ? item.allow_delivery !== false : mode === 'dine_in' ? item.allow_dine_in !== false : true),
-      ...evaluateFoodSafety(item, state.constraints.allergies, (knowledge?.allergenProfiles ?? ALLERGEN_PROFILES)[id]) }
+      ...evaluateFoodSafety(item, state.constraints.allergies, (knowledge?.allergenProfiles ?? {})[id], { ingredientOnly: true }) }
   }
 }

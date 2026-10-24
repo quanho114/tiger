@@ -18,7 +18,7 @@ import type { MenuDomainItem, MenuSnapshot } from './types.ts'
 
 export type { MenuDomainItem, MenuSnapshot }
 
-const SNAPSHOT_TTL_MS = 45_000
+export const SNAPSHOT_TTL_MS = 45_000
 
 interface CacheEntry {
   snapshot: MenuSnapshot
@@ -32,10 +32,10 @@ interface CacheEntry {
 const caches = new WeakMap<object, CacheEntry>()
 let epoch = 0
 
-export async function getMenuSnapshot(db: pg.Pool | pg.PoolClient): Promise<MenuSnapshot> {
+export async function getMenuSnapshot(db: pg.Pool | pg.PoolClient, forceRefresh = false): Promise<MenuSnapshot> {
   const now = Date.now()
   let entry = caches.get(db)
-  if (entry && entry.epoch === epoch && entry.expiresAt > now) return entry.snapshot
+  if (!forceRefresh && entry && entry.epoch === epoch && entry.expiresAt > now && entry.snapshot.freshness !== 'stale') return entry.snapshot
   if (entry && entry.epoch === epoch && entry.inflight) return entry.inflight
   if (!entry || entry.epoch !== epoch) {
     entry = { snapshot: { version: '', loadedAt: '', items: [] }, expiresAt: 0, inflight: null, epoch }
@@ -44,16 +44,22 @@ export async function getMenuSnapshot(db: pg.Pool | pg.PoolClient): Promise<Menu
   const current = entry
   current.inflight = loadMenuSnapshot(db).then(
     (snapshot) => {
-      current.snapshot = snapshot
+      // An admin invalidation during a read must not republish the older read.
+      if (current.epoch !== epoch) return getMenuSnapshot(db)
       current.expiresAt = Date.now() + SNAPSHOT_TTL_MS
+      current.snapshot = { ...snapshot, freshness: 'fresh', expiresAt: new Date(current.expiresAt).toISOString() }
       current.inflight = null
-      return snapshot
+      return current.snapshot
     },
     (error) => {
       current.inflight = null
       // Serve stale rather than fail when a previous snapshot exists;
       // fail closed when there is nothing safe to serve.
-      if (current.expiresAt > 0) return current.snapshot
+      if (current.epoch !== epoch) return getMenuSnapshot(db)
+      if (current.expiresAt > 0) {
+        current.snapshot = { ...current.snapshot, freshness: 'stale' }
+        return current.snapshot
+      }
       throw error
     },
   )
@@ -86,7 +92,11 @@ export function snapshotAllergenProfiles(snapshot: MenuSnapshot): Record<string,
   const out: Record<string, ItemAllergenProfile> = {}
   for (const item of snapshot.items) {
     if (item.provenance === 'menu:live_unprofiled') continue
-    out[item.id] = toLegacyAllergenProfile(item)
+    const profile = toLegacyAllergenProfile(item)
+    out[item.id] = { ...profile,
+      ...(snapshot.expiresAt ? { snapshot_expires_at: snapshot.expiresAt } : {}),
+      verified_by_kitchen: profile.verified_by_kitchen && snapshot.freshness !== 'stale' &&
+        (!snapshot.expiresAt || Date.parse(snapshot.expiresAt) > Date.now()) }
   }
   return out
 }

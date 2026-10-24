@@ -13,6 +13,7 @@ import { classifyConciergeTurn, namedMenuQuery } from './intent-classifier.ts'
 import { extractConstraintDelta } from './constraint-extractor.ts'
 import { resolveDraftIntent } from './draft-command.ts'
 import { classifyMemoryIntent } from '../memory-retrieval.ts'
+import { interpretReadNeeds, deferredRestaurantReads } from './read-needs.ts'
 import type {
   DraftCommand,
   TurnUnderstanding,
@@ -66,12 +67,24 @@ function confidenceFor(
   }
 }
 
-export function understandTurn(message: string, hasPendingSuggestion = false): TurnUnderstanding {
+export function understandTurn(message: string, hasPendingSuggestion = false, hasPendingMealPlan = false): TurnUnderstanding {
   const normalized = normalizeTurn(message)
   const intent = classifyConciergeTurn(message, hasPendingSuggestion)
   const constraintsDelta = extractConstraintDelta(message)
   const memoryIntent = classifyMemoryIntent(message)
-  const named = intent === 'food' ? namedMenuQuery(message) : null
+  const clauses = normalized.searchForm.split(/\s+(?:va|kem|dong thoi)\s+|[;,]/).map(part => part.trim()).filter(Boolean)
+  const namedQueries = [...new Set(clauses.map(namedMenuQuery).filter((query): query is string => Boolean(query)))]
+  const named = namedQueries[0] ?? namedMenuQuery(message)
+  const readNeeds = interpretReadNeeds(message, normalized.searchForm, intent, named)
+  if (constraintsDelta.partyTotal !== undefined && constraintsDelta.budgetVnd !== undefined &&
+      !/\b(?:menu|thuc don|danh sach mon|xem mon)\b/.test(normalized.searchForm)) {
+    for (const need of readNeeds) if (need.kind === 'menu' && need.mode !== 'detail') need.mode = 'recommendation'
+  }
+  if (hasPendingMealPlan && !/\b(?:menu|thuc don|danh sach mon|xem mon)\b/.test(normalized.searchForm) &&
+      (/^(?:doi|thay)\s+mon\s+/.test(normalized.searchForm) || constraintsDelta.spice !== undefined ||
+       constraintsDelta.partyTotal !== undefined || constraintsDelta.budgetVnd !== undefined)) {
+    for (const need of readNeeds) if (need.kind === 'menu') need.mode = 'recommendation'
+  }
   const draftSignal = detectDraftSignal(normalized.searchForm, message.includes('?'))
   const hasPartyOrBudget = constraintsDelta.partyTotal !== undefined || constraintsDelta.budgetVnd !== undefined
   const confidence = confidenceFor(intent, {
@@ -82,12 +95,17 @@ export function understandTurn(message: string, hasPendingSuggestion = false): T
   return {
     normalized,
     intent,
+    readNeeds,
+    deferredReadNeeds: [
+      ...namedQueries.slice(1).map(query => ({ kind: 'menu' as const, mode: 'detail' as const, merchandising: [], query: query.slice(0, 200) })),
+      ...deferredRestaurantReads(message, clauses),
+    ],
     confidence,
     constraintsDelta,
     draftSignal,
     memoryIntent,
     entities: { namedMenuQuery: named },
-    requiresClarification: confidence === 'low',
+    requiresClarification: confidence === 'low' && !readNeeds.length,
   }
 }
 

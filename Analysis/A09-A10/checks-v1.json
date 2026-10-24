@@ -1,0 +1,317 @@
+{
+  "version": "a09-a10-checks-v1",
+  "checks": [
+    {
+      "command": "npm run test:architecture",
+      "exit_code": 1,
+      "elapsed_seconds": 0.684,
+      "started_at_utc": "2026-10-19T03:06:43.171991+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline\\architecture-tests.log",
+      "phase": "baseline",
+      "classification": "ENVIRONMENT_SPAWN_EPERM"
+    },
+    {
+      "command": "npm run check:architecture",
+      "exit_code": 0,
+      "elapsed_seconds": 2.749,
+      "started_at_utc": "2026-10-19T03:06:40.421831+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline\\architecture.log",
+      "phase": "baseline",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:benchmark:offline",
+      "exit_code": 1,
+      "elapsed_seconds": 1.394,
+      "started_at_utc": "2026-10-19T03:07:12.183802+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline\\benchmark-tests.log",
+      "phase": "baseline",
+      "classification": "ENVIRONMENT_SPAWN_EPERM"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 1,
+      "elapsed_seconds": 36.834,
+      "started_at_utc": "2026-10-19T03:06:53.301356+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline\\build.log",
+      "phase": "baseline",
+      "classification": "ENVIRONMENT_SPAWN_EPERM"
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "elapsed_seconds": 1.841,
+      "started_at_utc": "2026-10-19T03:06:38.580065+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline\\lint.log",
+      "phase": "baseline",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:server",
+      "exit_code": 1,
+      "elapsed_seconds": 3.45,
+      "started_at_utc": "2026-10-19T03:06:49.850192+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline\\server.log",
+      "phase": "baseline",
+      "classification": "ENVIRONMENT_SPAWN_EPERM"
+    },
+    {
+      "command": "npm run typecheck:server",
+      "exit_code": 0,
+      "elapsed_seconds": 12.97,
+      "started_at_utc": "2026-10-19T03:06:25.605474+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline\\typecheck-server.log",
+      "phase": "baseline",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run typecheck",
+      "exit_code": 0,
+      "elapsed_seconds": 46.575,
+      "started_at_utc": "2026-10-19T03:06:25.605258+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline\\typecheck.log",
+      "phase": "baseline",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:unit",
+      "exit_code": 1,
+      "elapsed_seconds": 5.992,
+      "started_at_utc": "2026-10-19T03:06:43.857241+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline\\unit.log",
+      "phase": "baseline",
+      "classification": "ENVIRONMENT_SPAWN_EPERM"
+    },
+    {
+      "command": "npm run test:architecture",
+      "exit_code": 0,
+      "elapsed_seconds": 1.735,
+      "started_at_utc": "2026-10-19T03:07:29.102580+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline-process-enabled\\architecture-tests.log",
+      "phase": "baseline-process-enabled",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:benchmark:offline",
+      "exit_code": 1,
+      "elapsed_seconds": 6.964,
+      "started_at_utc": "2026-10-19T03:08:39.069893+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline-process-enabled\\benchmark-tests.log",
+      "phase": "baseline-process-enabled",
+      "classification": "BASELINE_FAILURE"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "elapsed_seconds": 51.343,
+      "started_at_utc": "2026-10-19T03:07:47.714155+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline-process-enabled\\build.log",
+      "phase": "baseline-process-enabled",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:server",
+      "exit_code": 0,
+      "elapsed_seconds": 16.87,
+      "started_at_utc": "2026-10-19T03:07:30.838986+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline-process-enabled\\server.log",
+      "phase": "baseline-process-enabled",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:unit",
+      "exit_code": 0,
+      "elapsed_seconds": 74.42,
+      "started_at_utc": "2026-10-19T03:07:29.102860+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\baseline-process-enabled\\unit.log",
+      "phase": "baseline-process-enabled",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:architecture",
+      "exit_code": 0,
+      "elapsed_seconds": 1.358,
+      "started_at_utc": "2026-10-19T03:18:50.855505+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\final\\architecture-tests.log",
+      "phase": "final",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run check:architecture",
+      "exit_code": 0,
+      "elapsed_seconds": 2.116,
+      "started_at_utc": "2026-10-19T03:18:48.737967+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\final\\architecture.log",
+      "phase": "final",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:benchmark:offline",
+      "exit_code": 1,
+      "elapsed_seconds": 5.501,
+      "started_at_utc": "2026-10-19T03:20:03.104136+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\final\\benchmark-tests.log",
+      "phase": "final",
+      "classification": "BASELINE_FAILURE"
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0,
+      "elapsed_seconds": 36.732,
+      "started_at_utc": "2026-10-19T03:19:51.622596+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\final\\build.log",
+      "phase": "final",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "elapsed_seconds": 1.89,
+      "started_at_utc": "2026-10-19T03:18:46.846630+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\final\\lint.log",
+      "phase": "final",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:server",
+      "exit_code": 0,
+      "elapsed_seconds": 22.43,
+      "started_at_utc": "2026-10-19T03:19:40.663751+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\final\\server.log",
+      "phase": "final",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run typecheck:server",
+      "exit_code": 0,
+      "elapsed_seconds": 6.577,
+      "started_at_utc": "2026-10-19T03:18:40.263783+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\final\\typecheck-server.log",
+      "phase": "final",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run typecheck",
+      "exit_code": 0,
+      "elapsed_seconds": 60.38,
+      "started_at_utc": "2026-10-19T03:18:40.263438+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\final\\typecheck.log",
+      "phase": "final",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run test:unit",
+      "exit_code": 0,
+      "elapsed_seconds": 59.401,
+      "started_at_utc": "2026-10-19T03:18:52.214354+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\final\\unit.log",
+      "phase": "final",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run check:architecture",
+      "exit_code": 0,
+      "elapsed_seconds": 1.83,
+      "started_at_utc": "2026-10-19T03:26:46.187886+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\verification\\architecture.log",
+      "phase": "verification",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run benchmark:concierge -- --dry-run",
+      "exit_code": 0,
+      "elapsed_seconds": 2.386,
+      "started_at_utc": "2026-10-19T03:25:18.411631+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\verification\\benchmark-dry-run.log",
+      "phase": "verification",
+      "classification": "PASS"
+    },
+    {
+      "command": "node scripts/concierge-response-evaluation.mjs --require-pass --output ../tiger-a09-a10-baseline/guard-after.json",
+      "exit_code": 0,
+      "elapsed_seconds": 0.589,
+      "started_at_utc": "2026-10-19T03:25:17.847967+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\verification\\guard-after.log",
+      "phase": "verification",
+      "classification": "PASS"
+    },
+    {
+      "command": "node scripts/concierge-response-evaluation.mjs --source ../tiger-a09-a10-baseline/before --output ../tiger-a09-a10-baseline/guard-before.json",
+      "exit_code": 0,
+      "elapsed_seconds": 0.563,
+      "started_at_utc": "2026-10-19T03:25:17.847603+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\verification\\guard-before.log",
+      "phase": "verification",
+      "classification": "PASS"
+    },
+    {
+      "command": "npm run lint",
+      "exit_code": 0,
+      "elapsed_seconds": 1.097,
+      "started_at_utc": "2026-10-19T03:26:46.187504+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\verification\\lint.log",
+      "phase": "verification",
+      "classification": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "elapsed_seconds": 0.108,
+      "started_at_utc": "2026-10-19T03:26:47.285580+00:00",
+      "environment": "local Windows; offline; existing workspace dependencies; no provider calls",
+      "log": "C:\\Users\\USER\\Downloads\\New Agent\\tiger-a09-a10-baseline\\verification\\whitespace.log",
+      "phase": "verification",
+      "classification": "PASS"
+    }
+  ],
+  "not_run": [
+    {
+      "command": "npm run test:integration -- tests/integration/concierge-streaming.test.ts tests/integration/concierge-browser.test.ts tests/integration/concierge-v2-persistence.test.ts",
+      "exit_code": null,
+      "reason": "No verified disposable database or backend; TEST_ENVIRONMENT/TEST_INSTANCE_IDENTITY/DATABASE_URL absent; Docker CLI and Chromium cache absent"
+    },
+    {
+      "command": "npm run test:integration (other affected PostgreSQL/memory/draft suites)",
+      "exit_code": null,
+      "reason": "No verified disposable test database"
+    },
+    {
+      "command": "npm run test:e2e:mock",
+      "exit_code": null,
+      "reason": "No Chromium cache; no browser dependencies installed in this run"
+    },
+    {
+      "command": "Real-provider website smoke",
+      "exit_code": null,
+      "reason": "User explicitly selected local checks only; no live provider calls or deployment"
+    }
+  ]
+}

@@ -15,6 +15,8 @@ import { prepareCartHandoff } from '../../cart-handoff.ts'
 import { understandDraft } from '../../understanding/engine.ts'
 import type { TurnScope } from '../turn-context.ts'
 import type { catalogResolver } from '../catalog-resolver.ts'
+import { clarify, conversationContext } from '../../conversation-context.ts'
+import { withinMenuBudget } from '../../budget.ts'
 
 export async function handleDraft(
   scope: TurnScope,
@@ -22,7 +24,9 @@ export async function handleDraft(
 ): Promise<'done' | 'continue'> {
   const { request, record, next, result } = scope
   const message = request.message ?? ''
-  const intent = understandDraft(message, next, scope.catalog)
+  const referenced = scope.referentItemId && scope.catalog.find(item => item.id === scope.referentItemId)
+  const resolvedMessage = referenced ? message.replace(/món\s+(?:thứ\s+)?(?:một|nhất|hai|ba|tư|bốn|năm|sáu|bảy|tám|[1-8])|mon\s+(?:thu\s+)?(?:mot|nhat|hai|ba|tu|bon|nam|sau|bay|tam|[1-8])|món đó|món này|cái này|mon do|mon nay|cai nay/iu, referenced.name) : message
+  const intent = understandDraft(resolvedMessage, next, scope.catalog)
   let operations = request.draft_operation ? [request.draft_operation] : intent.kind === 'operations' ? intent.operations : []
   if (request.action?.type === 'accept_meal_plan') {
     const action = request.action
@@ -48,18 +52,31 @@ export async function handleDraft(
     else next.constraints.appetite = request.action.choice_value as 'light' | 'normal' | 'heavy'
   }
   if (operations.length) {
+    if (operations.some(operation => operation.type === 'add_item' &&
+        next.pending_items?.some(item => item.menu_item_id === operation.menu_item_id && item.orderable_exact === false))) {
+      result.message = 'Mâm này còn món có giá khoảng hoặc chưa chốt giá. Cần nhà hàng xác nhận giá chính xác trước khi thêm vào giỏ nháp.'
+      result.warnings = ['PRICE_CONFIRMATION_REQUIRED']
+      return 'done'
+    }
+    // Short acceptance requires a current suggestion even when parsed from text.
+    if (/^(?:ok|okay|dong y|lay mon nay|lay mon do|lay cai nay)$/.test(scope.understanding?.normalized.searchForm ?? '') &&
+        !next.pending_items?.every(item => item.state_version === record.state_version && next.pending_suggestion_ids.includes(item.suggestion_id))) {
+      await clarify(scope, { goal: 'menu_detail', reason: 'stale_referent', unresolved_referent: message.slice(0, 120) })
+      return 'done'
+    }
     const applied = await applyDraftBatch(next.draft, operations, resolver,
       request.action?.type === 'accept_meal_plan' || request.draft_operation?.type === 'add_item' ? next.pending_suggestion_ids : undefined,
-      next.constraints.allergies)
+      next.constraints.allergies, next.constraints.budget_vnd)
     if (!applied.ok) { result.message = applied.message; result.warnings = [applied.error]; return 'done' }
-    if (next.constraints.is_hard_budget &&
-        next.constraints.budget_vnd != null && applied.draft.subtotal_vnd > next.constraints.budget_vnd) {
+    if (!withinMenuBudget(applied.draft.subtotal_vnd, next.constraints.budget_vnd)) {
       result.message = 'Giá hiện tại vượt ngân sách tối đa. Hãy chọn lại món.'
       result.warnings = ['BUDGET_EXCEEDED']
       return 'done'
     }
     next.draft = applied.draft
     next.pending_items = []; next.pending_suggestion_ids = []
+    delete conversationContext(scope).displayed
+    delete conversationContext(scope).pending_question
     result.message = 'Đã cập nhật giỏ nháp. Món chưa được chuyển vào giỏ hàng.'
     result.phase = 'BUILDING_DRAFT'
     return 'done'
@@ -73,15 +90,24 @@ export async function handleDraft(
       result.phase = 'REVIEWING'
       return 'done'
     }
-    next.draft.items = next.draft.items.map((i) => ({ ...i, unit_price_vnd: prices.find((p) => p.line_id === i.line_id)?.current_unit_price_vnd ?? i.unit_price_vnd }))
-    next.draft.blocked_items = []
-    next.draft.subtotal_vnd = calculateDraftSubtotal(next.draft.items)
-    next.draft.version++
+    const items = next.draft.items.map((i) => ({ ...i, unit_price_vnd: prices.find((p) => p.line_id === i.line_id)?.current_unit_price_vnd ?? i.unit_price_vnd }))
+    const subtotal = calculateDraftSubtotal(items)
+    if (!withinMenuBudget(subtotal, next.constraints.budget_vnd)) {
+      result.message = 'Giá mới làm tổng món vượt ngân sách hiện tại. Hãy điều chỉnh món trước khi xác nhận.'
+      result.warnings = ['BUDGET_EXCEEDED']; result.phase = 'REVIEWING'
+      return 'done'
+    }
+    next.draft = { ...next.draft, items, blocked_items: [], subtotal_vnd: subtotal, version: next.draft.version + 1 }
   }
   if (intent.kind === 'review' || ['review_draft', 'accept_prices', 'handoff_draft'].includes(request.action?.type ?? '')) {
     if (!next.draft) { result.message = 'Giỏ nháp đang trống. Hãy chọn món trước.'; return 'done' }
     const checked = await revalidateDraftAgainstCatalog(next.draft, resolver, next.constraints.allergies)
     next.draft = checked
+    if (!withinMenuBudget(checked.subtotal_vnd, next.constraints.budget_vnd)) {
+      result.message = 'Tổng món vượt ngân sách hiện tại. Hãy điều chỉnh trước khi duyệt hoặc chuyển vào giỏ hàng.'
+      result.warnings = ['BUDGET_EXCEEDED']; result.phase = 'REVIEWING'
+      return 'done'
+    }
     if (request.action?.type === 'handoff_draft') {
       if (checked.blocked_items.length) {
         result.message = 'Có món cần kiểm tra lại. Chưa chuyển món nào vào giỏ hàng.'
@@ -103,9 +129,15 @@ export async function handleDraft(
     return 'done'
   }
   if (intent.kind === 'clarify') {
-    await scope.helpers.modelConversation('The customer command is ambiguous. Ask which specific menu item and quantity they mean. Do not alter the draft.')
+    await clarify(scope, { goal: 'menu_detail', reason: 'ambiguous_referent', unresolved_referent: message.slice(0, 120) })
     return 'done'
   }
-  if (intent.kind === 'reject') { next.pending_items = []; next.pending_suggestion_ids = [] }
+  if (intent.kind === 'reject' && /^(?:nghe ngon|de xem)$/.test(scope.understanding?.normalized.searchForm ?? '')) {
+    await scope.helpers.modelConversation(message)
+    return 'done'
+  }
+  if (intent.kind === 'reject' && !/^(?:nghe ngon|de xem)$/.test(scope.understanding?.normalized.searchForm ?? '')) {
+    next.pending_items = []; next.pending_suggestion_ids = []; delete conversationContext(scope).displayed
+  }
   return 'continue'
 }

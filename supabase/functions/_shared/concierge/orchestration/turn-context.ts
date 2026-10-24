@@ -14,7 +14,7 @@ import type {
   ConciergeV2StoredTurnResult,
   ConciergeV2TurnRequest,
 } from '../../contracts/concierge-v2.ts'
-import type { TurnBudget, ToolExchange, ModelTool } from '../context.ts'
+import type { TurnBudget, ToolExchange, ModelTool, EvidenceStatus } from '../context.ts'
 import type { CapabilityContext } from '../capabilities/resolver.ts'
 import type { TurnUnderstanding } from '../understanding/types.ts'
 import type { KnowledgeSnapshot } from '../knowledge.ts'
@@ -32,7 +32,7 @@ export interface TurnHelpers {
   modelGroundedReply: (
     prompt: string,
     exchanges: ToolExchange[],
-    evidenceStatus?: 'known' | 'unknown' | 'unavailable',
+    evidenceStatus?: EvidenceStatus,
   ) => Promise<void>
   onActivity?: (activity: ConciergeV2Activity) => void
   onSafeText?: (text: string) => void
@@ -53,6 +53,8 @@ export interface TurnScope {
   /** Loaded by main-context for food/faq/account/draft routes; null otherwise. */
   knowledge: KnowledgeSnapshot | null
   catalog: MenuItemCatalogExtended[]
+  catalogUnavailable?: boolean
+  referentItemId?: string
   /** Set by reservation-handler before gateway executes availability. */
   reservationQuery: { startsAt: string; guests: number } | null
 }

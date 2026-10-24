@@ -1,5 +1,6 @@
 import { ConciergeV2HandoffResultSchema, type ConciergeV2SessionMutableState } from '../contracts/concierge-v2.ts'
 import type { CatalogItemDetails } from './draft-cart.ts'
+import { withinMenuBudget } from './budget.ts'
 
 export function prepareCartHandoff(
   state: ConciergeV2SessionMutableState,
@@ -13,6 +14,8 @@ export function prepareCartHandoff(
     if (Date.parse(state.handoff.expires_at) <= now) throw new Error('INVALID_HANDOFF')
     return { next: state, handoff: { ...state.handoff, replay: true } }
   }
+  const subtotal = draft.items.reduce((sum, line) => sum + line.unit_price_vnd * line.quantity, 0)
+  if (!withinMenuBudget(subtotal, state.constraints.budget_vnd)) throw new Error('INVALID_HANDOFF')
   if (draft.version !== request.draft_version || draft.review_state !== 'ready_for_review' ||
       draft.blocked_items.length || !draft.items.length || draft.exported_version) throw new Error('INVALID_HANDOFF')
   const lines = draft.items.map(line => {

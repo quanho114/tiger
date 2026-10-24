@@ -6,15 +6,16 @@
  */
 import { assertConciergeHealthy, recordConciergeDependencyFailure } from './health.ts'
 import { withConciergeTurnLease } from './turn-lease.ts'
-import { aggregateBehavioralMemory } from './behavioral-memory.ts'
-import { understandTurn } from './understanding/engine.ts'
 import { orchestrateGroundedTurn, recordMutable } from './orchestrator.ts'
-import { processAndPersistExplicitMemory } from './memory-extractor.ts'
+import { processAndPersistExplicitMemory, extractExplicitFacts } from './memory-extractor.ts'
 import { createConciergeV2MemoryRepository } from './memory-repository.ts'
+import { withMemoryBarrier, invalidateMemorySessions } from './memory-barrier.ts'
 import { emitConciergeMetric } from './observability.ts'
+import { ReplyGuardError, type ReplyGuardMetrics } from './response-guard.ts'
 import type pg from 'pg'
 import {
   ConciergeV2CompletionPayloadSchema,
+  ConciergeV2SessionRecordSchema,
   type ConciergeV2ActorBinding,
   type ConciergeV2Activity,
   type ConciergeV2Error,
@@ -53,7 +54,7 @@ export const emptyConciergeSession = (): ConciergeV2SessionMutableState => ({
 })
 
 export class ConciergeRuntimeError extends Error {
-  constructor(readonly detail: ConciergeV2Error) {
+  constructor(readonly detail: ConciergeV2Error, readonly guardMetrics?: ReplyGuardMetrics) {
     super(detail.code)
   }
 }
@@ -83,11 +84,21 @@ function completion(
 
 export async function processConciergeTurn(...args: Parameters<typeof processTurn>) {
   const started = Date.now()
-  try { return await processTurn(...args) }
+  try {
+    const [request, actor, dependencies] = args
+    return actor.authenticated_user_id
+      ? await withMemoryBarrier(dependencies.pool, actor.authenticated_user_id,
+        queryPool => processTurn(request, actor, dependencies, queryPool), false)
+      : await processTurn(...args)
+  }
   catch (error) {
+    if (error instanceof Error && error.message === 'STATE_CONFLICT') {
+      throw new ConciergeRuntimeError({ code: 'STATE_CONFLICT', message: 'Tài khoản đang xử lý một lượt khác. Vui lòng thử lại.' })
+    }
     const code = error instanceof ConciergeRuntimeError ? error.detail.code : ''
     const reason = code === 'STATE_CONFLICT' || code === 'SESSION_EXPIRED' || code === 'DEPENDENCY_UNAVAILABLE' ? code : 'SAFE_FAILURE'
-    emitConciergeMetric({ outcome: reason === 'DEPENDENCY_UNAVAILABLE' ? 'dependency_unavailable' : 'rejected', reason, latency_ms: Date.now() - started })
+    emitConciergeMetric({ outcome: reason === 'DEPENDENCY_UNAVAILABLE' ? 'dependency_unavailable' : 'rejected', reason, latency_ms: Date.now() - started,
+      ...(error instanceof ConciergeRuntimeError ? error.guardMetrics : {}) })
     throw error
   }
 }
@@ -103,7 +114,8 @@ async function processTurn(
     onSafeText?: (text: string) => void
     onReady?: (reference: ConciergeV2SessionReference) => void
     signal?: AbortSignal
-  }
+  },
+  memoryPool?: pg.Pool,
 ) {
   const started = Date.now()
   const { store, pool } = dependencies
@@ -117,7 +129,12 @@ async function processTurn(
     ('reference' in loaded ? (loaded.reference as ConciergeV2SessionReference) : undefined)
   if (!reference) fail('INTERNAL_SAFE_FAILURE', 'Không thể tạo phiên.')
   dependencies.onReady?.(reference)
-  const record = loaded.record
+  let record = loaded.record
+  if (memoryPool && actor.authenticated_user_id && record.memory_context?.imported.some(fact => fact.expires_at && Date.parse(fact.expires_at) <= Date.now())) {
+    await invalidateMemorySessions(memoryPool, actor.authenticated_user_id)
+    const latest = await memoryPool.query<{ record: string }>('SELECT record FROM public.concierge_v2_sessions WHERE session_id = $1', [record.session_id])
+    if (latest.rows[0]) record = ConciergeV2SessionRecordSchema.parse(JSON.parse(latest.rows[0].record))
+  }
   const operationHash = sha256(
     JSON.stringify({
       draft_operation: request.draft_operation,
@@ -176,29 +193,31 @@ async function processTurn(
     }
     if (request.action?.type !== 'feedback_proposal') {
       if (request.message) await assertConciergeHealthy(pool)
-      const memoryRepo = actor.authenticated_user_id && request.message && understandTurn(request.message, Boolean(record.pending_items?.length)).intent === 'food' && process.env.CONCIERGE_MEMORY_DISABLED !== 'true'
-        ? createConciergeV2MemoryRepository(pool, { role: 'customer', userId: actor.authenticated_user_id }) : undefined
+      const memoryRepo = actor.authenticated_user_id && request.message && extractExplicitFacts(request.message).extracted && process.env.CONCIERGE_MEMORY_DISABLED !== 'true'
+        ? createConciergeV2MemoryRepository(memoryPool ?? pool, { role: 'customer', userId: actor.authenticated_user_id }) : undefined
       const memorySettings = await memoryRepo?.getSettings().catch(() => undefined)
-      if (memoryRepo && memorySettings?.enabled && !record.transcript.length) {
-        await aggregateBehavioralMemory({ pool, actor, repository: memoryRepo }).catch(() => {})
-      }
       const turn = await withConciergeTurnLease(pool, record.session_id,
-        (queryPool) => orchestrateGroundedTurn(request, record, queryPool, dependencies.orchestrator, dependencies.onActivity,
+        (queryPool) => orchestrateGroundedTurn(request, record, memoryPool ?? queryPool, dependencies.orchestrator, dependencies.onActivity,
           undefined, dependencies.signal))
       checkCancelled()
       const committed = await store.compareAndSwap({ reference, actor, expected_state_version: record.state_version,
         request_id: request.request_id, operation_hash: operationHash, next: turn.next, result: turn.result })
       if (!committed.ok) throw new ConciergeRuntimeError(committed.error)
       didCommit = true
-      dependencies.onSafeText?.(committed.result.message)
       // Await admission; no raw-message queue or fire-and-forget Edge work.
+      let completionRecord = committed.record
       if (!committed.replay && request.message && memoryRepo && memorySettings?.enabled) {
-        await processAndPersistExplicitMemory({ message: request.message, actor, expectedMemoryEpoch: memorySettings.memory_epoch,
-          repository: memoryRepo }).catch(() => {})
+        const persisted = await processAndPersistExplicitMemory({ message: request.message, actor, expectedMemoryEpoch: memorySettings.memory_epoch,
+          repository: memoryRepo }).catch(() => undefined)
+        if (persisted?.deleted_corrections && memoryPool) {
+          const latest = await memoryPool.query<{ record: string }>('SELECT record FROM public.concierge_v2_sessions WHERE session_id = $1', [record.session_id])
+          if (latest.rows[0]) completionRecord = ConciergeV2SessionRecordSchema.parse(JSON.parse(latest.rows[0].record))
+        }
       }
+      dependencies.onSafeText?.(committed.result.message)
       emitConciergeMetric({ outcome: 'completed', reason: 'NONE', latency_ms: Date.now() - started,
         ...turn.metrics, draft: Boolean(turn.result.draft), handoff: Boolean(turn.result.handoff) })
-      return completion(request.request_id, reference, committed.record, committed.result)
+      return completion(request.request_id, reference, completionRecord, committed.result)
     }
     const action = request.action
     const suggested = record.pending_items?.some(item => item.suggestion_id === action.proposal_id && item.state_version === action.proposal_version)
@@ -234,7 +253,8 @@ async function processTurn(
     if (error instanceof AppError && error.status === 503) {
       fail('DEPENDENCY_UNAVAILABLE', 'Dịch vụ trợ lý tạm thời không khả dụng.')
     }
-    fail('INTERNAL_SAFE_FAILURE', 'Không thể xử lý yêu cầu an toàn. Vui lòng thử lại.')
+    throw new ConciergeRuntimeError({ code: 'INTERNAL_SAFE_FAILURE', message: 'Không thể xử lý yêu cầu an toàn. Vui lòng thử lại.' },
+      error instanceof ReplyGuardError ? error.guardMetrics : undefined)
   } finally {
     feedbackClient?.release()
   }

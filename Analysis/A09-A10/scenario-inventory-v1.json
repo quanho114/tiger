@@ -1,0 +1,179 @@
+{
+  "version": "a09-a10-scenario-inventory-v1",
+  "plan_reference": "Analysis/plan.md section 6 allocates counts but does not define a canonical manifest of 120 IDs.",
+  "planned_groups": [
+    {
+      "group": "Routing/tool coverage",
+      "planned": 25,
+      "available_suites": [
+        "concierge-a01-a02",
+        "concierge-grounding"
+      ],
+      "gap": "No canonical 25-ID acceptance mapping or live-provider evidence"
+    },
+    {
+      "group": "Clarification/conversation",
+      "planned": 15,
+      "available_suites": [
+        "concierge-a03",
+        "concierge-a09"
+      ],
+      "gap": "No canonical 15-ID mapping; human/provider evaluation pending"
+    },
+    {
+      "group": "Session/context",
+      "planned": 20,
+      "available_suites": [
+        "concierge-a04",
+        "concierge-context-budget"
+      ],
+      "gap": "No canonical 20-ID mapping; PostgreSQL/browser acceptance pending"
+    },
+    {
+      "group": "Memory/privacy",
+      "planned": 20,
+      "available_suites": [
+        "concierge-a05"
+      ],
+      "gap": "No canonical 20-ID mapping; cross-process PostgreSQL acceptance pending"
+    },
+    {
+      "group": "Retrieval/planner",
+      "planned": 25,
+      "available_suites": [
+        "concierge-a06",
+        "concierge-a07",
+        "concierge-a08"
+      ],
+      "gap": "No canonical 25-ID mapping; restaurant labels/coverage/usefulness missing"
+    },
+    {
+      "group": "Failure/transport/transaction",
+      "planned": 15,
+      "available_suites": [
+        "concierge-a09",
+        "concierge-stream-transport",
+        "concierge-v2-failures"
+      ],
+      "gap": "No canonical 15-ID mapping; real HTTP/browser/proxy acceptance pending"
+    }
+  ],
+  "legacy_fixtures": [
+    {
+      "fixture": "tests/fixtures/concierge-quality/cases.ts",
+      "version": "2026-09-25-v1",
+      "ids": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R05",
+        "R06",
+        "R07",
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+        "R18",
+        "R19",
+        "R20",
+        "R21",
+        "R22",
+        "R23",
+        "R24",
+        "R25",
+        "R26",
+        "R27",
+        "R28",
+        "R29",
+        "R30",
+        "R31",
+        "R32",
+        "R33",
+        "R34",
+        "R35",
+        "R36",
+        "R37",
+        "R38",
+        "R39",
+        "R40",
+        "R41",
+        "R42",
+        "R43",
+        "R44",
+        "R45",
+        "R46",
+        "R47",
+        "R48",
+        "R49",
+        "R50",
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "S11",
+        "S12",
+        "S13",
+        "S14",
+        "S15",
+        "S16",
+        "K01",
+        "K02",
+        "K03",
+        "K04",
+        "K05",
+        "K06",
+        "K07",
+        "K08",
+        "K09",
+        "K10"
+      ],
+      "proof_level": "deterministic classifier/constraints/knowledge helpers; not complete end-to-end agent acceptance"
+    },
+    {
+      "fixture": "tests/fixtures/concierge-quality/holdout.ts",
+      "version": "2026-09-25-v1",
+      "ids": [
+        "H-R01",
+        "H-R02",
+        "H-R03",
+        "H-R04",
+        "H-R05",
+        "H-R06",
+        "H-R07",
+        "H-R08",
+        "H-S01",
+        "H-S02",
+        "H-S03",
+        "H-S04",
+        "H-K01",
+        "H-K02",
+        "H-K03",
+        "H-K04"
+      ],
+      "proof_level": "deterministic classifier/constraints/knowledge helpers; not complete end-to-end agent acceptance"
+    }
+  ],
+  "new_guard_fixture": {
+    "version": "a09-response-v1",
+    "development": 32,
+    "holdout": 20,
+    "scope": "Response guard only; not 52 complete end-to-end scenarios"
+  },
+  "canonical_120_manifest_present": false,
+  "canonical_120_accepted": false,
+  "coverage_percent_of_120": null,
+  "reason": "92 legacy helper IDs and 52 new guard cases overlap concerns and differ in evidence level; do not sum them, subtract from 120, or report 120 accepted scenarios."
+}

@@ -7,6 +7,7 @@
  */
 
 import type { AllergenType, ItemAllergenProfile } from './types.ts'
+import { normalizeIntent } from './draft-intent.ts'
 import {
   type ConciergeV2FoodSafetyEvaluation,
 } from '../contracts/concierge-v2.ts'
@@ -102,6 +103,16 @@ const ALLERGEN_KEYWORD_PATTERNS: Record<AllergenType, RegExp[]> = {
   ],
 }
 
+// Explicit ingredient families, including sauces and derivatives. Never used
+// to infer absence from a dish name. Compound allergy inputs stay unresolved.
+const INGREDIENT_ALIASES: Record<string, AllergenType> = {
+  'hai san': 'seafood', 'nuoc mam': 'seafood', 'mam tom': 'seafood', 'mam ruoc': 'seafood',
+  'dau hao': 'seafood', 'fish sauce': 'seafood', 'oyster sauce': 'seafood',
+  'tep': 'seafood', 'ngheu': 'seafood', 'ngao': 'seafood', 'so': 'seafood', 'hen': 'seafood',
+  'dau phong': 'peanuts', 'dau lac': 'peanuts', 'dau dau phong': 'peanuts',
+  'bo dau phong': 'peanuts', 'bot dau phong': 'peanuts', 'peanut oil': 'peanuts', 'peanut butter': 'peanuts',
+}
+
 /**
  * Strips prompt-injection patterns, malicious tags, and control characters from menu descriptions.
  */
@@ -125,12 +136,15 @@ export function sanitizeCatalogText(text: string | null | undefined): string {
 export function normalizeAllergen(input: string): AllergenType | null {
   if (!input) return null
   const clean = input.toLowerCase().trim()
+  const search = normalizeIntent(input).replace(/_/g, ' ')
+  if (INGREDIENT_ALIASES[search]) return INGREDIENT_ALIASES[search]
   if (ALLERGEN_ALIAS_MAP[clean]) {
     return ALLERGEN_ALIAS_MAP[clean]
   }
 
   const matches = (Object.entries(ALLERGEN_KEYWORD_PATTERNS) as [AllergenType, RegExp[]][])
-    .filter(([, patterns]) => patterns.some((p) => p.test(clean)))
+    .filter(([allergen, patterns]) => patterns.some((p) => p.test(clean)) ||
+      Object.entries(ALLERGEN_ALIAS_MAP).some(([alias, type]) => type === allergen && normalizeIntent(alias).replace(/_/g, ' ') === search))
   // A compound constraint must never be reduced to its first allergen.
   return matches.length === 1 ? matches[0][0] : null
 }
@@ -146,6 +160,8 @@ export function checkAllergenConflict(
   const combinedText = `${item.name} ${item.description || ''} ${(item.tags || []).join(' ')}`.toLowerCase()
   const patterns = ALLERGEN_KEYWORD_PATTERNS[allergen] || []
   const textMentionsAllergen = patterns.some((p) => p.test(combinedText))
+    || Object.entries(INGREDIENT_ALIASES).some(([alias, type]) => type === allergen &&
+      ` ${normalizeIntent(combinedText)} `.includes(` ${alias} `))
 
   if (!profile) {
     return false
@@ -173,15 +189,23 @@ export function checkAllergenConflict(
 export function evaluateFoodSafety(
   item: CatalogItemForSafety,
   customerAllergies: string[],
-  profile?: ItemAllergenProfile
+  profile?: ItemAllergenProfile,
+  options: { ingredientOnly?: boolean } = {},
 ): ConciergeV2FoodSafetyEvaluation {
+  if (profile?.snapshot_expires_at && !(Date.parse(profile.snapshot_expires_at) > Date.now())) {
+    profile = { ...profile, verified_by_kitchen: false }
+  }
+  if (options.ingredientOnly && profile && (profile.item_id !== item.id || profile.source !== 'kitchen_audited' ||
+      !profile.verified_at || !Number.isFinite(Date.parse(profile.verified_at)) || Date.parse(profile.verified_at) > Date.now())) {
+    profile = { ...profile, verified_by_kitchen: false }
+  }
   if (!customerAllergies || customerAllergies.length === 0) {
     if (profile?.verified_by_kitchen) {
       return {
         safety_state: 'verified_safe',
         matched_allergens: [],
         staff_confirmation_required: false,
-        notes: 'Món ăn đã được bếp trưởng kiểm nghiệm an toàn khẩu phần.',
+        notes: 'Hồ sơ thành phần của món có xác nhận của bếp.',
         verified_at: profile.verified_at,
       }
     }
@@ -227,7 +251,8 @@ export function evaluateFoodSafety(
     if (status === 'contains') {
       matchedContains.push(normalized)
     } else if (status === 'may_contain') {
-      matchedCrossContact.push(normalized)
+      if (options.ingredientOnly) matchedUnknown.push(normalized)
+      else matchedCrossContact.push(normalized)
     } else if (status !== 'absent') {
       matchedUnknown.push(normalized)
     }
@@ -251,7 +276,7 @@ export function evaluateFoodSafety(
     }
   }
 
-  if (matchedCrossContact.length > 0 || profile?.cross_contact_risk) {
+  if (!options.ingredientOnly && (matchedCrossContact.length > 0 || profile?.cross_contact_risk)) {
     const reasons = matchedCrossContact.length > 0 ? matchedCrossContact : ['nguy cơ nhiễm chéo tại khu vực chế biến']
     return {
       safety_state: 'cross_contact_risk',
@@ -271,7 +296,10 @@ export function evaluateFoodSafety(
   }
 
   // All requested allergens are explicitly cleared in profile. Check kitchen verification!
-  if (!profile || !profile.verified_by_kitchen || profile.cross_contact_risk !== false) {
+  if (!profile || !profile.verified_by_kitchen ||
+      (options.ingredientOnly ? profile.item_id !== item.id || profile.source !== 'kitchen_audited' ||
+        !profile.verified_at || !Number.isFinite(Date.parse(profile.verified_at)) || Date.parse(profile.verified_at) > Date.now()
+        : profile.cross_contact_risk !== false)) {
     return {
       safety_state: 'allergen_unverified',
       matched_allergens: [],
@@ -284,7 +312,7 @@ export function evaluateFoodSafety(
     safety_state: 'verified_safe',
     matched_allergens: [],
     staff_confirmation_required: false,
-    notes: `Món [${item.name}] đã được bếp trưởng kiểm nghiệm an toàn không chứa các dị nguyên đã nêu.`,
+    notes: `Hồ sơ thành phần đã được bếp xác nhận không chứa các dị nguyên đã nêu; không phải cam kết an toàn tuyệt đối.`,
     verified_at: profile.verified_at,
   }
 }

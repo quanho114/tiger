@@ -1,0 +1,654 @@
+{
+  "fixtureVersion": "a06-a08-synthetic-v1",
+  "source": "Synthetic engineering labels; not independent restaurant acceptance",
+  "policy": {
+    "recall8": "nondecreasing; target >=0.9 for <=8 relevant eligible items",
+    "ndcg4": "nondecreasing; target >=10% relative unless saturated",
+    "exactCoverage": 1,
+    "criticalViolations": 0,
+    "plannerDefault": "retain greedy until independent restaurant usefulness and runtime latency evidence"
+  },
+  "retrieval": {
+    "before": {
+      "development": {
+        "count": 6,
+        "ranked": 6,
+        "noResultPassed": 0,
+        "recall8": 0.8333333333333334,
+        "ndcg4": 0.6051549589285763,
+        "exactTop1": 0.6666666666666666,
+        "meanPriceVnd": 108750,
+        "categoryDiversity": 0.8125,
+        "categoryExposure": {
+          "Gà": 6,
+          "Lẩu": 6,
+          "Cơm": 5,
+          "Rau": 6,
+          "Món phụ": 12,
+          "Canh": 5,
+          "Mì": 1,
+          "Bò": 1
+        },
+        "p50Ms": 0.4329000000000178,
+        "p95Ms": 14.234899999999925,
+        "cases": [
+          {
+            "id": "d01",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "d02",
+            "recall8": 1,
+            "ndcg4": 0,
+            "ids": [
+              "2",
+              "9",
+              "12",
+              "5",
+              "8",
+              "11",
+              "10",
+              "1"
+            ]
+          },
+          {
+            "id": "d03",
+            "recall8": 0,
+            "ndcg4": 0,
+            "ids": [
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "d04",
+            "recall8": 1,
+            "ndcg4": 0.6309297535714575,
+            "ids": [
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "d05",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "1",
+              "9",
+              "12",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "d06",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "9",
+              "12"
+            ]
+          }
+        ]
+      },
+      "holdout": {
+        "count": 7,
+        "ranked": 6,
+        "noResultPassed": 1,
+        "recall8": 0.6666666666666666,
+        "ndcg4": 0.2718216255952429,
+        "exactTop1": 0,
+        "meanPriceVnd": 104479.16666666667,
+        "categoryDiversity": 0.7916666666666666,
+        "categoryExposure": {
+          "Gà": 6,
+          "Lẩu": 6,
+          "Cơm": 5,
+          "Rau": 5,
+          "Món phụ": 15,
+          "Canh": 5
+        },
+        "p50Ms": 0.22000000000002728,
+        "p95Ms": 0.294399999999996,
+        "cases": [
+          {
+            "id": "h01",
+            "recall8": 1,
+            "ndcg4": 0.6309297535714575,
+            "ids": [
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "h02",
+            "recall8": 1,
+            "ndcg4": 0,
+            "ids": [
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "h03",
+            "recall8": 0,
+            "ndcg4": 0,
+            "ids": [
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "h04",
+            "recall8": 0,
+            "ndcg4": 0,
+            "ids": [
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "h05",
+            "recall8": 1,
+            "ndcg4": 0,
+            "ids": [
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "h06",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "9",
+              "12"
+            ]
+          }
+        ]
+      }
+    },
+    "after": {
+      "development": {
+        "count": 6,
+        "ranked": 6,
+        "noResultPassed": 0,
+        "recall8": 1,
+        "ndcg4": 1,
+        "exactTop1": 1,
+        "meanPriceVnd": 110104.16666666667,
+        "categoryDiversity": 0.7916666666666666,
+        "categoryExposure": {
+          "Gà": 6,
+          "Lẩu": 6,
+          "Món phụ": 11,
+          "Cơm": 4,
+          "Rau": 8,
+          "Canh": 5,
+          "Bò": 1,
+          "Mì": 1
+        },
+        "p50Ms": 2.3018999999999323,
+        "p95Ms": 41.35490000000027,
+        "cases": [
+          {
+            "id": "d01",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "9",
+              "12",
+              "4",
+              "1",
+              "2",
+              "3",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "d02",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "10",
+              "8",
+              "2",
+              "7",
+              "11",
+              "9",
+              "12",
+              "5"
+            ]
+          },
+          {
+            "id": "d03",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "11",
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          {
+            "id": "d04",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "12",
+              "9",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "d05",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "1",
+              "9",
+              "12",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "d06",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "9",
+              "12"
+            ]
+          }
+        ]
+      },
+      "holdout": {
+        "count": 7,
+        "ranked": 6,
+        "noResultPassed": 1,
+        "recall8": 1,
+        "ndcg4": 1,
+        "exactTop1": 1,
+        "meanPriceVnd": 108541.66666666667,
+        "categoryDiversity": 0.8333333333333334,
+        "categoryExposure": {
+          "Lẩu": 6,
+          "Rau": 7,
+          "Gà": 6,
+          "Cơm": 5,
+          "Món phụ": 11,
+          "Canh": 4,
+          "Bò": 1,
+          "Mì": 2
+        },
+        "p50Ms": 1.0592000000001462,
+        "p95Ms": 1.979899999999816,
+        "cases": [
+          {
+            "id": "h01",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "12",
+              "7",
+              "9",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          {
+            "id": "h02",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "3",
+              "9",
+              "12",
+              "6",
+              "1",
+              "2",
+              "4",
+              "5"
+            ]
+          },
+          {
+            "id": "h03",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "7",
+              "12",
+              "10",
+              "9",
+              "8",
+              "1",
+              "2",
+              "3"
+            ]
+          },
+          {
+            "id": "h04",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "8",
+              "9",
+              "12",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          {
+            "id": "h05",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "3",
+              "9",
+              "12",
+              "1",
+              "2",
+              "4",
+              "5",
+              "6"
+            ]
+          },
+          {
+            "id": "h06",
+            "recall8": 1,
+            "ndcg4": 1,
+            "ids": [
+              "9",
+              "12"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "planner": {
+    "fixture": "a06-a08-synthetic-v1:worse-quantity-pool8",
+    "greedy": {
+      "count": 2,
+      "milliseconds": 1.6826999999998407,
+      "plans": [
+        {
+          "key": "60000000-0000-4000-8000-000000000001:1|60000000-0000-4000-8000-000000000002:1|60000000-0000-4000-8000-000000000003:1",
+          "subtotal": 100000
+        },
+        {
+          "key": "60000000-0000-4000-8000-000000000006:1|60000000-0000-4000-8000-000000000007:1|60000000-0000-4000-8000-000000000008:1",
+          "subtotal": 195000
+        }
+      ]
+    },
+    "bounded": {
+      "plans": [
+        {
+          "lines": [
+            {
+              "item": {
+                "id": "60000000-0000-4000-8000-000000000006",
+                "name": "Khoai chiên",
+                "price_vnd": 60000,
+                "pricing_mode": "fixed",
+                "category_id": "61000000-0000-4000-8000-000000000003",
+                "category_name": "Món phụ",
+                "image_url": null,
+                "serving_size": null,
+                "spice_level": null,
+                "is_signature": false,
+                "is_available": true,
+                "safety_state": "allergen_unknown",
+                "safety_notes": "Chưa có hồ sơ kiểm nghiệm dinh dưỡng hoặc dị ứng cho món này.",
+                "provenance": "catalog:live_menu",
+                "tags": [
+                  "khoai"
+                ]
+              },
+              "quantity": 2
+            },
+            {
+              "item": {
+                "id": "60000000-0000-4000-8000-000000000007",
+                "name": "Nấm xào",
+                "price_vnd": 65000,
+                "pricing_mode": "fixed",
+                "category_id": "61000000-0000-4000-8000-000000000002",
+                "category_name": "Rau",
+                "image_url": null,
+                "serving_size": null,
+                "spice_level": null,
+                "is_signature": false,
+                "is_available": true,
+                "safety_state": "allergen_unknown",
+                "safety_notes": "Chưa có hồ sơ kiểm nghiệm dinh dưỡng hoặc dị ứng cho món này.",
+                "provenance": "catalog:live_menu",
+                "tags": [
+                  "nấm"
+                ]
+              },
+              "quantity": 2
+            },
+            {
+              "item": {
+                "id": "60000000-0000-4000-8000-000000000008",
+                "name": "Mì xào rau",
+                "price_vnd": 70000,
+                "pricing_mode": "fixed",
+                "category_id": "61000000-0000-4000-8000-000000000005",
+                "category_name": "Mì",
+                "image_url": null,
+                "serving_size": null,
+                "spice_level": null,
+                "is_signature": false,
+                "is_available": true,
+                "safety_state": "allergen_unknown",
+                "safety_notes": "Chưa có hồ sơ kiểm nghiệm dinh dưỡng hoặc dị ứng cho món này.",
+                "provenance": "catalog:live_menu",
+                "tags": [
+                  "mì"
+                ]
+              },
+              "quantity": 2
+            }
+          ],
+          "subtotal_vnd": 390000,
+          "validation_status": "PASS",
+          "warnings": []
+        },
+        {
+          "lines": [
+            {
+              "item": {
+                "id": "60000000-0000-4000-8000-000000000004",
+                "name": "Trứng hấp",
+                "price_vnd": 50000,
+                "pricing_mode": "fixed",
+                "category_id": "61000000-0000-4000-8000-000000000003",
+                "category_name": "Món phụ",
+                "image_url": null,
+                "serving_size": null,
+                "spice_level": null,
+                "is_signature": false,
+                "is_available": true,
+                "safety_state": "allergen_unknown",
+                "safety_notes": "Chưa có hồ sơ kiểm nghiệm dinh dưỡng hoặc dị ứng cho món này.",
+                "provenance": "catalog:live_menu",
+                "tags": [
+                  "trứng"
+                ]
+              },
+              "quantity": 2
+            },
+            {
+              "item": {
+                "id": "60000000-0000-4000-8000-000000000007",
+                "name": "Nấm xào",
+                "price_vnd": 65000,
+                "pricing_mode": "fixed",
+                "category_id": "61000000-0000-4000-8000-000000000002",
+                "category_name": "Rau",
+                "image_url": null,
+                "serving_size": null,
+                "spice_level": null,
+                "is_signature": false,
+                "is_available": true,
+                "safety_state": "allergen_unknown",
+                "safety_notes": "Chưa có hồ sơ kiểm nghiệm dinh dưỡng hoặc dị ứng cho món này.",
+                "provenance": "catalog:live_menu",
+                "tags": [
+                  "nấm"
+                ]
+              },
+              "quantity": 2
+            },
+            {
+              "item": {
+                "id": "60000000-0000-4000-8000-000000000008",
+                "name": "Mì xào rau",
+                "price_vnd": 70000,
+                "pricing_mode": "fixed",
+                "category_id": "61000000-0000-4000-8000-000000000005",
+                "category_name": "Mì",
+                "image_url": null,
+                "serving_size": null,
+                "spice_level": null,
+                "is_signature": false,
+                "is_available": true,
+                "safety_state": "allergen_unknown",
+                "safety_notes": "Chưa có hồ sơ kiểm nghiệm dinh dưỡng hoặc dị ứng cho món này.",
+                "provenance": "catalog:live_menu",
+                "tags": [
+                  "mì"
+                ]
+              },
+              "quantity": 2
+            }
+          ],
+          "subtotal_vnd": 370000,
+          "validation_status": "PASS",
+          "warnings": []
+        }
+      ],
+      "scores": [
+        {
+          "score": 123.95,
+          "reasons": {
+            "roleCoverage": 60,
+            "primary": 20,
+            "vegetable": 12,
+            "carb": 10,
+            "serving": 20,
+            "budget": 1.9500000000000002,
+            "taste": 0,
+            "pairing": 0
+          }
+        },
+        {
+          "score": 123.85,
+          "reasons": {
+            "roleCoverage": 60,
+            "primary": 20,
+            "vegetable": 12,
+            "carb": 10,
+            "serving": 20,
+            "budget": 1.85,
+            "taste": 0,
+            "pairing": 0
+          }
+        }
+      ],
+      "stats": {
+        "evaluated": 560,
+        "capped": false,
+        "elapsedMs": 40.71479999999974,
+        "maxEvaluations": 560
+      }
+    },
+    "exhaustiveWithInjectedClock": {
+      "evaluated": 560,
+      "plans": 2
+    },
+    "default": "greedy",
+    "limitation": "No independent restaurant usefulness rating or runtime p95; synthetic feasibility only; 50ms checked cooperatively between evaluations"
+  }
+}

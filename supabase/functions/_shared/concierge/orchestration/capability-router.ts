@@ -41,6 +41,10 @@ export function resolveRoute(input: RouteInput): CapabilityRoute {
   const turnIntent = understanding?.intent ?? null
   const searchForm = understanding?.normalized.searchForm ?? message
   if (isAccountRead(turnIntent) && !record.actor.authenticated_user_id) return 'account_refusal'
+  if (isAccountRead(turnIntent)) return 'main'
+
+  // Account intent still controls account scoping; read needs grant no identity or capability.
+  if (understanding?.readNeeds.some(need => need.kind === 'menu') && !isAccountRead(turnIntent)) return 'main'
 
   const factField = restaurantFactField(message)
   const reservationPolicyQuestion = turnIntent === 'reservation' &&

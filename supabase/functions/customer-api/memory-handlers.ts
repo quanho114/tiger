@@ -6,6 +6,7 @@ import { jsonResponse, parseJsonBody } from '../_shared/request.ts'
 import { createConciergeV2MemoryRepository } from '../_shared/concierge/memory-repository.ts'
 import { ConciergeV2MemorySettingsInputSchema, ConciergeV2MemoryFactSelectorSchema, ConciergeV2BehavioralMemorySelectorSchema } from '../_shared/contracts/concierge-v2.ts'
 import { cleanFoodText, slugifyFoodKey } from '../_shared/concierge/memory-extractor.ts'
+import { withMemoryBarrier } from '../_shared/concierge/memory-barrier.ts'
 
 const customerFactSelectorSchema = ConciergeV2MemoryFactSelectorSchema.extend({ expected_memory_epoch: z.number().int().nonnegative() })
 const editSchema = z.object({ selector: customerFactSelectorSchema, food: z.string().trim().min(1).max(120) }).strict()
@@ -39,10 +40,8 @@ export async function handleMemoryRoute(req: Request, path: string, actor: AuthA
     const input = parseInput(editSchema, body)
     const food = cleanFoodText(input.food)
     if (!food || food.toLocaleLowerCase() !== input.food.toLocaleLowerCase() || /[@\d]|https?:|\b(?:phone|address)\b/i.test(food)) throw new AppError('VALIDATION_ERROR', 'Chỉ nhập tên món hoặc nguyên liệu.', 400)
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      const tx = createConciergeV2MemoryRepository(client as unknown as pg.Pool, actor)
+    return withMemoryBarrier(pool, actor.userId!, async queryPool => {
+      const tx = createConciergeV2MemoryRepository(queryPool, actor)
       const deletion = await tx.deleteFact(input.selector)
       if (!deletion.ok) throw new AppError('VERSION_CONFLICT', 'Ký ức đã thay đổi.', 409)
       const settings = await tx.getSettings()
@@ -50,10 +49,8 @@ export async function handleMemoryRoute(req: Request, path: string, actor: AuthA
         fact: { memory_type: input.selector.memory_type, memory_key: slugifyFoodKey(food, input.selector.memory_type),
           value: { food }, source: 'explicit', confidence: 100, observed_at: new Date().toISOString(), expires_at: null, schema_version: 1 } })
       if (!write.ok) throw new AppError('VERSION_CONFLICT', 'Không thể sửa ký ức.', 409)
-      await client.query('COMMIT')
       return checked(write)
-    } catch (error) { await client.query('ROLLBACK'); throw error }
-    finally { client.release() }
+    })
   }
   throw new AppError('NOT_FOUND', 'Không tìm thấy thao tác ký ức.', 404)
 }

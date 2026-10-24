@@ -7,6 +7,7 @@
  */
 
 import type pg from 'pg'
+import { createHash } from 'node:crypto'
 import { mapDomainItem, type MenuItemRow, type MenuProfileRow } from './mapper.ts'
 import type { MenuSnapshot } from './types.ts'
 
@@ -91,8 +92,12 @@ export async function loadMenuSnapshot(db: pg.Pool | pg.PoolClient): Promise<Men
     }
     const versionIso = row.row_version ? new Date(row.row_version).toISOString() : ''
     if (versionIso > version) version = versionIso
-    return mapDomainItem(itemRow, profile)
+    return { ...mapDomainItem(itemRow, profile),
+      sourceUpdatedAt: row.item_updated_at ? new Date(row.item_updated_at).toISOString() : null,
+      profileUpdatedAt: row.profile_updated_at ? new Date(row.profile_updated_at).toISOString() : null }
   })
   const loadedAt = new Date().toISOString()
-  return { version: version || loadedAt, loadedAt, items }
+  // Content identity also detects deletions and changes below the maximum timestamp.
+  const digest = createHash('sha256').update(JSON.stringify(items)).digest('hex').slice(0, 20)
+  return { version: `${version || 'undated'}:${digest}`, loadedAt, items }
 }

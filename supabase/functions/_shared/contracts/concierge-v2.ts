@@ -187,7 +187,7 @@ export const ConciergeV2TurnRequestSchema = z
       z.object({ type: z.literal('refresh_session') }).strict(),
       z.object({ type: z.literal('review_draft') }).strict(),
       z.object({ type: z.literal('accept_meal_plan'), plan_id: UuidSchema,
-        suggestion_ids: z.array(UuidSchema).min(2).max(3) }).strict(),
+        suggestion_ids: z.array(UuidSchema).min(1).max(30) }).strict(),
       z.object({ type: z.literal('accept_prices'), draft_version: PositiveIntegerSchema }).strict(),
       z.object({ type: z.literal('handoff_draft'), draft_id: UuidSchema, draft_version: PositiveIntegerSchema,
         order_mode: z.enum(['dine_in', 'delivery']) }).strict(),
@@ -257,7 +257,13 @@ export const ConciergeV2CardSchema = z.lazy(() => z.discriminatedUnion('type', [
     suggestion_id: UuidSchema }).strict(),
   z.object({ type: z.literal('meal_plan'), plan_id: UuidSchema,
     lines: z.array(z.object({ item: ConciergeV2MenuCandidateSchema, quantity: z.number().int().min(1).max(99),
-      suggestion_id: UuidSchema }).strict()).min(2).max(3),
+      suggestion_id: UuidSchema }).strict()).min(1).max(30),
+    subtotal_min_vnd: NonNegativeIntegerSchema.optional(),
+    subtotal_max_vnd: NonNegativeIntegerSchema.optional(),
+    total_min_vnd: NonNegativeIntegerSchema.optional(),
+    total_max_vnd: NonNegativeIntegerSchema.optional(),
+    budget_status: z.enum(['within', 'conditional']).optional(),
+    orderable_exact: z.boolean().optional(),
     subtotal_vnd: NonNegativeIntegerSchema, validation_status: z.enum(['PASS', 'WARNING']),
     warnings: z.array(z.string().trim().max(200)).max(3) }).strict(),
   z.object({ type: z.literal('service_link'), destination: z.enum(['cart', 'reservations', 'orders']) }).strict(),
@@ -397,6 +403,8 @@ export const ConciergeV2MenuCandidateSchema = z
     meal_role: z.string().trim().max(50).optional(),
     spice_level: z.number().int().min(0).max(2).nullable().optional(),
     is_signature: z.boolean().default(false),
+    is_bestseller: z.boolean().optional(),
+    is_new: z.boolean().optional(),
     is_available: z.boolean().default(true),
     safety_state: ConciergeV2FoodSafetyStateSchema,
     safety_notes: z.string().trim().max(500).optional(),
@@ -412,6 +420,9 @@ export const ConciergeV2MenuRetrievalQuerySchema = z
     category_id: UuidSchema.optional(),
     order_mode: z.enum(['dine_in', 'delivery']).optional(),
     is_signature: z.boolean().optional(),
+    is_bestseller: z.boolean().optional(),
+    is_new: z.boolean().optional(),
+    price_policy: z.enum(['orderable', 'bounded', 'discovery']).optional(),
     max_spice_level: z.number().int().min(0).max(2).optional(),
     max_budget_vnd: NonNegativeIntegerSchema.optional(),
     diversify_categories: z.boolean().optional(),
@@ -470,6 +481,11 @@ export const ConciergeV2SessionConstraintsSchema = z
     children: z.number().int().min(0).max(30),
     appetite: z.enum(['light', 'normal', 'heavy']),
     budget_vnd: NonNegativeIntegerSchema.nullable().optional(),
+    budget_basis: z.enum(['total', 'per_person']).optional(),
+    budget_per_person_vnd: NonNegativeIntegerSchema.optional(),
+    requested_dish_count: z.number().int().min(1).max(30).optional(),
+    requested_dish_count_scope: z.enum(['final_meal', 'new_additions']).optional(),
+    merchandising: z.array(z.enum(['signature', 'bestseller', 'new'])).max(3).optional(),
     is_hard_budget: z.boolean(),
     preferences: z.array(z.string().trim().min(1).max(120)).max(12),
     dislikes: z.array(z.string().trim().min(1).max(120)).max(12),
@@ -479,6 +495,50 @@ export const ConciergeV2SessionConstraintsSchema = z
   })
   .strict();
 export type ConciergeV2SessionConstraints = z.infer<typeof ConciergeV2SessionConstraintsSchema>;
+
+export const ConciergeV2ContextGoalSchema = z.enum(['menu_browse', 'menu_detail', 'meal', 'reservation', 'restaurant', 'account']);
+export const ConciergeV2DomainClarificationSchema = z.object({
+  goal: ConciergeV2ContextGoalSchema,
+  reason: z.enum(['missing_field', 'ambiguous_referent', 'stale_referent', 'invalid_value', 'allergy_correction']),
+  missing_field: z.enum(['date', 'time', 'guests', 'budget', 'item', 'allergy']).optional(),
+  unresolved_referent: z.string().max(120).optional(),
+  source: z.literal('handler'), scope: z.literal('session'),
+  state_version: PositiveIntegerSchema,
+}).strict().refine(value => Boolean(value.missing_field || value.unresolved_referent), 'Clarification requires a field or referent');
+export type ConciergeV2DomainClarification = z.infer<typeof ConciergeV2DomainClarificationSchema>;
+
+export const ConciergeV2ConversationContextSchema = z.object({
+  schema_version: z.literal(1),
+  goal: ConciergeV2ContextGoalSchema.optional(),
+  source: z.literal('structured_state'), scope: z.literal('session'),
+  pending_question: ConciergeV2DomainClarificationSchema.optional(),
+  reservation: z.object({ date: z.string().max(20).optional(), time: z.string().max(30).optional() }).strict().optional(),
+  changed_fields: z.array(z.string().max(40)).max(8),
+  rejections: z.array(z.object({ reason: z.string().max(120), source: z.literal('user'), scope: z.literal('meal') }).strict()).max(3),
+  displayed: z.object({
+    session_id: UuidSchema, state_version: PositiveIntegerSchema,
+    page: ConciergeV2PageContextSchema.optional(),
+    items: z.array(z.object({ menu_item_id: UuidSchema, suggestion_id: UuidSchema.optional() }).strict()).max(60),
+  }).strict().optional(),
+}).strict();
+export type ConciergeV2ConversationContext = z.infer<typeof ConciergeV2ConversationContextSchema>;
+
+// Current-meal facts remain independent of imported durable facts. Optional on
+// persisted records so older sessions can be read without a database migration.
+export const ConciergeV2SessionMemoryContextSchema = z.object({
+  schema_version: z.literal(1), scope: z.literal('meal'), source: z.literal('user'),
+  current: ConciergeV2SessionConstraintsSchema,
+  owner_id: UuidSchema.optional(), epoch: NonNegativeIntegerSchema.optional(),
+  behavioral_refreshed_epoch: NonNegativeIntegerSchema.optional(),
+  imported: z.array(z.object({
+    memory_type: z.enum(['preference', 'dislike', 'allergy']), memory_key: z.string().max(80),
+    food: z.string().min(1).max(120), source: z.enum(['explicit', 'order_history']),
+    scope: z.literal('personal'), confidence: z.number().int().min(0).max(100),
+    observed_at: IsoTimestampSchema, expires_at: IsoTimestampSchema.nullable(),
+    epoch: NonNegativeIntegerSchema,
+  }).strict()).max(12),
+}).strict();
+export type ConciergeV2SessionMemoryContext = z.infer<typeof ConciergeV2SessionMemoryContextSchema>;
 
 const ConciergeV2SessionMessageSchema = z
   .object({
@@ -516,10 +576,13 @@ export const ConciergeV2SessionMutableStateSchema = z
     summary: z.string().trim().max(2400),
     constraints: ConciergeV2SessionConstraintsSchema,
     draft: ConciergeV2DraftSchema.nullable(),
-    pending_suggestion_ids: z.array(UuidSchema).max(8),
+    pending_suggestion_ids: z.array(UuidSchema).max(60),
     pending_items: z.array(z.object({ suggestion_id: UuidSchema, menu_item_id: UuidSchema,
       name: z.string().max(120), quantity: z.number().int().min(1).max(99),
-      state_version: PositiveIntegerSchema, plan_id: UuidSchema.optional() }).strict()).max(8).optional(),
+      state_version: PositiveIntegerSchema, plan_id: UuidSchema.optional(),
+      orderable_exact: z.boolean().optional() }).strict()).max(60).optional(),
+    conversation_context: ConciergeV2ConversationContextSchema.optional(),
+    memory_context: ConciergeV2SessionMemoryContextSchema.optional(),
     handoff: ConciergeV2HandoffResultSchema.optional(),
   })
   .strict();
@@ -746,6 +809,9 @@ export const ConciergeV2RetrievedMemoryFactSchema = z.object({
   food: z.string().trim().min(1).max(120),
   source: ConciergeV2MemorySourceSchema,
   confidence: z.number().int().min(0).max(100),
+  observed_at: IsoTimestampSchema.optional(),
+  expires_at: IsoTimestampSchema.nullable().optional(),
+  epoch: NonNegativeIntegerSchema.optional(),
 }).strict();
 export type ConciergeV2RetrievedMemoryFact = z.infer<typeof ConciergeV2RetrievedMemoryFactSchema>;
 

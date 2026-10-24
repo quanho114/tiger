@@ -13,11 +13,12 @@ import {
   ConciergeV2MenuRetrievalQuerySchema,
   type ConciergeV2MenuRetrievalResult,
   ConciergeV2MenuRetrievalResultSchema,
+  ConciergeV2MenuCandidateSchema,
 } from '../contracts/concierge-v2.ts'
 import { ALLERGEN_PROFILES, SERVING_PROFILES } from './knowledge.ts'
 import type { KnowledgeSnapshot } from './knowledge.ts'
 import { evaluateFoodSafety, sanitizeCatalogText } from './food-safety.ts'
-import { normalizeIntent } from './draft-intent.ts'
+import { menuTextScore, normalizeMenuSearch, PREFERENCE_WEIGHTS, type RetrievalPreference } from './menu-search.ts'
 
 export interface MenuItemCatalogExtended {
   id: string
@@ -36,6 +37,8 @@ export interface MenuItemCatalogExtended {
   serving_size?: string | null
   spice_level?: number | null
   is_signature?: boolean
+  is_bestseller?: boolean
+  is_new?: boolean
   allow_dine_in?: boolean
   allow_delivery?: boolean
   tags?: string[]
@@ -67,6 +70,8 @@ export async function fetchAuthoritativeCatalog(pool: pg.Pool): Promise<MenuItem
       m.serving_size,
       m.spice_level,
       m.is_signature,
+      m.is_bestseller,
+      m.is_new,
       m.tags
     FROM public.menu_items m
     LEFT JOIN public.categories c ON m.category_id = c.id
@@ -90,6 +95,8 @@ export async function fetchAuthoritativeCatalog(pool: pg.Pool): Promise<MenuItem
     serving_size: row.serving_size ? String(row.serving_size) : null,
     spice_level: row.spice_level !== null && row.spice_level !== undefined ? Number(row.spice_level) : null,
     is_signature: Boolean(row.is_signature),
+    is_bestseller: typeof row.is_bestseller === 'boolean' ? row.is_bestseller : undefined,
+    is_new: typeof row.is_new === 'boolean' ? row.is_new : undefined,
     allow_dine_in: row.allow_dine_in !== false,
     allow_delivery: row.allow_delivery !== false,
     tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
@@ -104,14 +111,16 @@ export async function retrieveMenuCandidates(
   poolOrCatalog: pg.Pool | MenuItemCatalogExtended[],
   input: z.input<typeof ConciergeV2MenuRetrievalQuerySchema>,
   knowledge?: Pick<KnowledgeSnapshot, 'allergenProfiles' | 'servingProfiles'>,
+  preferences: RetrievalPreference[] = [],
+  internalLimit?: number,
 ): Promise<ConciergeV2MenuRetrievalResult> {
   const rawQuery = ConciergeV2MenuRetrievalQuerySchema.parse(input)
   const catalog = Array.isArray(poolOrCatalog) ? poolOrCatalog : await fetchAuthoritativeCatalog(poolOrCatalog)
 
-  const limit = Math.max(1, Math.min(rawQuery.limit || 8, 8))
+  const limit = Math.max(1, Math.min(internalLimit ?? rawQuery.limit ?? 8, internalLimit === undefined ? 8 : 48))
   const userAllergies = rawQuery.allergies || []
-  const userDislikes = (rawQuery.dislikes || []).map(normalizeIntent).filter(Boolean)
-  const queryString = (rawQuery.query || '').toLowerCase().trim()
+  const userDislikes = (rawQuery.dislikes || []).map(normalizeMenuSearch).filter(Boolean)
+  const queryString = rawQuery.query || ''
 
   const relaxedFilters: string[] = []
   let globalStaffConfirmationRequired = false
@@ -119,8 +128,12 @@ export async function retrieveMenuCandidates(
 
   // 1. Filter by availability and ordering mode
   let candidates = catalog.filter((item) => {
-    if (!item.is_available) return false
-    if (item.pricing_mode && item.pricing_mode !== 'fixed') return false
+    if (!item.is_available || item.published === false || !Number.isSafeInteger(item.price_vnd) || item.price_vnd < 0) return false
+    const policy = rawQuery.price_policy ?? 'orderable'
+    if (policy === 'orderable' && item.pricing_mode && item.pricing_mode !== 'fixed') return false
+    if (policy === 'bounded' && item.pricing_mode && item.pricing_mode !== 'fixed' &&
+        !(item.pricing_mode === 'range' && Number.isSafeInteger(item.price_min) && Number.isSafeInteger(item.price_max) &&
+          item.price_min! >= 0 && item.price_max! >= item.price_min!)) return false
     if (rawQuery.order_mode === 'dine_in' && item.allow_dine_in === false) return false
     if (rawQuery.order_mode === 'delivery' && item.allow_delivery === false) return false
     return true
@@ -136,6 +149,9 @@ export async function retrieveMenuCandidates(
     candidates = candidates.filter((item) => item.is_signature)
   }
 
+  if (rawQuery.is_bestseller) candidates = candidates.filter(item => item.is_bestseller === true)
+  if (rawQuery.is_new) candidates = candidates.filter(item => item.is_new === true)
+
   // 4. Filter by spice level if requested
   if (rawQuery.max_spice_level !== undefined && rawQuery.max_spice_level !== null) {
     candidates = candidates.filter((item) => {
@@ -146,13 +162,17 @@ export async function retrieveMenuCandidates(
 
   // 5. Filter by budget if requested
   if (rawQuery.max_budget_vnd !== undefined && rawQuery.max_budget_vnd !== null) {
-    candidates = candidates.filter((item) => item.price_vnd <= rawQuery.max_budget_vnd!)
+    candidates = candidates.filter((item) => {
+      const maximum = item.pricing_mode === 'range' ? item.price_max :
+        !item.pricing_mode || item.pricing_mode === 'fixed' ? item.price_vnd : null
+      return maximum != null && Number.isSafeInteger(maximum) && maximum <= rawQuery.max_budget_vnd!
+    })
   }
 
   // 6. Filter by customer dislikes (text check against name and tags)
   if (userDislikes.length > 0) {
     candidates = candidates.filter((item) => {
-      const itemText = normalizeIntent(`${item.name} ${(item.tags || []).join(' ')}`)
+      const itemText = normalizeMenuSearch(`${item.name} ${(item.tags || []).join(' ')}`)
       return !userDislikes.some((dislike) => itemText.includes(dislike))
     })
   }
@@ -171,7 +191,7 @@ export async function retrieveMenuCandidates(
         tags: item.tags,
       },
       userAllergies,
-      allergenProfile
+      allergenProfile, { ingredientOnly: true },
     )
 
     if (safety.staff_confirmation_required) {
@@ -187,14 +207,15 @@ export async function retrieveMenuCandidates(
 
   // Hard filter: strictly remove items with contains_allergen or conflict
   const safeItems = evaluatedItems.filter(({ safety }) => {
-    return safety.safety_state !== 'contains_allergen' && safety.safety_state !== 'conflict'
+    return userAllergies.length ? safety.safety_state === 'verified_safe'
+      : safety.safety_state !== 'contains_allergen' && safety.safety_state !== 'conflict'
   })
 
   if (userAllergies.length > 0) {
     if (safeItems.length === 0 && evaluatedItems.length > 0) {
-      allergyWarning = `Tất cả các món phù hợp với tiêu chí ban đầu đều chứa hoặc có thể chứa dị nguyên: ${userAllergies.join(', ')}.`
+      allergyWarning = 'Chưa có món đáp ứng điều kiện dị ứng với dữ liệu thành phần được xác minh đầy đủ.'
     } else if (globalStaffConfirmationRequired) {
-      allergyWarning = `Một số món cần nhân viên nhà hàng xác nhận lại trực tiếp với bếp trưởng để đảm bảo không có nguy cơ nhiễm chéo.`
+      allergyWarning = 'Một số món đã bị loại do dữ liệu thành phần chưa đủ xác minh hoặc không phù hợp với dị ứng đã nêu.'
     }
   }
 
@@ -204,58 +225,20 @@ export async function retrieveMenuCandidates(
     safety: ReturnType<typeof evaluateFoodSafety>
     servingProfile: (typeof SERVING_PROFILES)[string] | undefined
     score: number
+    exact: boolean
   }
 
-  const queryTokens = queryString
-    .replace(/[?.,!]/g, '')
-    .split(/\s+/)
-    .filter(
-      (w) =>
-        ![
-          'quán',
-          'có',
-          'không',
-          'gì',
-          'thế',
-          'nào',
-          'các',
-          'cho',
-          'mình',
-          'bạn',
-          'ở',
-          'tại',
-          'nhà',
-          'hàng',
-          'món',
-        ].includes(w)
-    )
-
   const scored: ScoredCandidate[] = safeItems.map(({ item, safety, servingProfile }) => {
-    let score = 0
-    const nameLower = item.name.toLowerCase()
-    const descLower = (item.description || '').toLowerCase()
-    const categoryLower = (item.category_name || '').toLowerCase()
-    const tagsLower = (item.tags || []).join(' ').toLowerCase()
-
-    if (queryString) {
-      if (nameLower === queryString) score += 150
-      else if (nameLower.startsWith(queryString)) score += 100
-      else if (nameLower.includes(queryString)) score += 60
-
-      if (categoryLower.includes(queryString)) score += 30
-      if (tagsLower.includes(queryString)) score += 25
-      if (descLower.includes(queryString)) score += 15
-
-      for (const token of queryTokens) {
-        if (token.length >= 2) {
-          if (nameLower.includes(token)) score += 20
-          if (tagsLower.includes(token)) score += 10
-        }
-      }
-    } else {
-      // Default score based on popularity/signature
-      score = 50
+    const text = menuTextScore(queryString, item.name, (item.tags ?? []).join(' '), item.category_name ?? '', item.description ?? '')
+    let score = text.score
+    const preferenceText = normalizeMenuSearch(`${item.name} ${(item.tags ?? []).join(' ')} ${item.category_name ?? ''}`)
+    const uniquePreferences = new Map<string, number>()
+    for (const preference of preferences.slice(0, 12)) {
+      const key = normalizeMenuSearch(preference.text)
+      if (key && (` ${preferenceText} `.includes(` ${key} `) || preference.text === item.id))
+        uniquePreferences.set(key, Math.max(uniquePreferences.get(key) ?? 0, PREFERENCE_WEIGHTS[preference.source]))
     }
+    score += Math.min(18, [...uniquePreferences.values()].reduce((sum, weight) => sum + weight, 0))
 
     if (item.is_signature) score += 20
     if (safety.safety_state === 'verified_safe') score += 10
@@ -265,16 +248,18 @@ export async function retrieveMenuCandidates(
       safety,
       servingProfile,
       score,
+      exact: text.exact,
     }
   })
 
   // 9. Sort by score descending, then signature, then price ascending, then id for stability
   scored.sort((a, b) => {
+    if (a.exact !== b.exact) return a.exact ? -1 : 1
     if (b.score !== a.score) return b.score - a.score
     if (Boolean(b.item.is_signature) !== Boolean(a.item.is_signature)) {
       return b.item.is_signature ? 1 : -1
     }
-    if (a.item.price_vnd !== b.item.price_vnd) return a.item.price_vnd - b.item.price_vnd
+    // Price is a filter/constraint, not an automatic cheapness preference.
     return a.item.id.localeCompare(b.item.id)
   })
 
@@ -282,7 +267,12 @@ export async function retrieveMenuCandidates(
   const topCandidates = rawQuery.diversify_categories ? (() => {
     const distinct: ScoredCandidate[] = []
     const seenCategories = new Set<string>()
+    for (const entry of scored.filter(entry => entry.exact).slice(0, limit)) {
+      distinct.push(entry)
+      seenCategories.add(entry.item.category_id ?? entry.item.category_name ?? entry.item.id)
+    }
     for (const entry of scored) {
+      if (distinct.length === limit) break
       const category = entry.item.category_id ?? entry.item.category_name ?? entry.item.id
       if (seenCategories.has(category)) continue
       seenCategories.add(category)
@@ -302,6 +292,10 @@ export async function retrieveMenuCandidates(
     name: sanitizeCatalogText(item.name),
     price_vnd: Math.round(item.price_vnd),
     pricing_mode: item.pricing_mode ?? 'fixed',
+    price_min: item.price_min ?? null,
+    price_max: item.price_max ?? null,
+    is_bestseller: item.is_bestseller,
+    is_new: item.is_new,
     category_id: item.category_id,
     category_name: item.category_name ? sanitizeCatalogText(item.category_name) : undefined,
     image_url: item.image_url ? sanitizeCatalogText(item.image_url) : null,
@@ -325,5 +319,8 @@ export async function retrieveMenuCandidates(
   }
 
   // Validate with Zod before returning to guarantee contract integrity
+  if (internalLimit !== undefined) {
+    return { ...result, candidates: result.candidates.map(item => ConciergeV2MenuCandidateSchema.parse(item)) }
+  }
   return ConciergeV2MenuRetrievalResultSchema.parse(result)
 }
