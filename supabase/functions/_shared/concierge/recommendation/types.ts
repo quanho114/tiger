@@ -118,6 +118,7 @@ export interface DynamicRecommendationResult<T extends RecommendationItem = Reco
 
 export const DYNAMIC_RECOMMENDATION_LIMITS = {
   maxDishes: 30,
+  defaultMaxDishes: 6,
   maxPool: 48,
   maxEvaluations: 50_000,
   beamWidth: 32,

@@ -145,7 +145,11 @@ export function registerTurnExecutors(gateway: ToolGateway, scope: TurnScope): v
       /\b(?:gom|nguyen lieu|thanh phan|cay|gia|bao nhieu|giao duoc|co gi|lam tu|mo ta)\b/.test(text))
     const viewedItem = refersToViewedItem
       ? scope.catalog.find((item) => item.id === scope.request.page_context?.menu_item_id) : undefined
-    const query = viewedItem?.name || search?.query || message
+    const priorUserMessage = scope.record.conversation_context?.pending_question
+      ? [...scope.record.transcript].reverse().find(entry => entry.role === 'user')?.content
+      : undefined
+    const effectiveMessage = priorUserMessage ? `${priorUserMessage} ${message}` : message
+    const query = viewedItem?.name || search?.query || effectiveMessage
     const matches = scope.catalog.filter((i) => text.includes(normalizeIntent(i.name)))
     const namedItem = scope.understanding?.entities.namedMenuQuery
     const replacement = scope.next.pending_items?.length
@@ -164,9 +168,11 @@ export function registerTurnExecutors(gateway: ToolGateway, scope: TurnScope): v
       return { text, source: current || !imported ? 'current' : imported.source === 'explicit' ? 'explicit' : 'inferred' }
     })
     const remainingBudget = remainingMenuBudget(scope.next.constraints.budget_vnd, scope.next.draft?.subtotal_vnd ?? 0)
+    const validCategoryId = search?.category_id && scope.catalog.some(item => item.category_id === search.category_id)
+      ? search.category_id : undefined
     const candidates = await retrieveMenuCandidates(retrievalSelection, { query: query.slice(0, 200),
       limit: isRecommend ? 8 : Math.min(search?.limit ?? 4, 4),
-      category_id: search?.category_id,
+      category_id: validCategoryId,
       is_signature: menuNeed?.merchandising.includes('signature') || search?.is_signature,
       is_bestseller: menuNeed?.merchandising.includes('bestseller'),
       is_new: menuNeed?.merchandising.includes('new'),
@@ -176,8 +182,17 @@ export function registerTurnExecutors(gateway: ToolGateway, scope: TurnScope): v
       order_mode: scope.next.constraints.order_mode,
       max_budget_vnd: isRecommend ? remainingBudget : undefined,
       max_spice_level: scope.next.constraints.max_spice_level }, knowledge, preferences, isRecommend ? 48 : undefined)
+    const queryStop = new Set(['tu', 'van', 'goi', 'toi', 'em', 'anh', 'chi', 'may', 'vai', 'mon', 'an', 'cho', 'nguoi', 'khach', 'va', 'voi', 'hoac', 'nha', 'hang', 'quan', 'minh', 'ban', 'co', 'khong', 'gi', 'nao', 'cac', 'phan', 'mam', 'bua', 'set', 'combo'])
+    const queryPreferences = isRecommend
+      ? [...new Set(normalizeMenuSearch(query).split(' ').filter(token =>
+          token.length >= 2 && !/^\d+$/.test(token) && !queryStop.has(token) &&
+          candidates.candidates.some(item => ` ${normalizeMenuSearch(`${item.name} ${item.category_name ?? ''}`)} `.includes(` ${token} `))))]
+      : []
+    const planConstraints = queryPreferences.length
+      ? { ...scope.next.constraints, preferences: [...new Set([...scope.next.constraints.preferences, ...queryPreferences])].slice(0, 12) }
+      : scope.next.constraints
     const plans = isRecommend
-      ? buildMealPlans(candidates.candidates, scope.next.constraints, knowledge, scope.next.draft?.subtotal_vnd ?? 0,
+      ? buildMealPlans(candidates.candidates, planConstraints, knowledge, scope.next.draft?.subtotal_vnd ?? 0,
         scope.next.draft?.items.map(item => item.menu_item_id) ?? []) : []
     return { candidates: { ...candidates, candidates: candidates.candidates.slice(0, 8),
       ...(unresolved.length ? { status: 'unknown' as const, unresolved_needs: unresolved } : {}) }, plans, isRecommend }

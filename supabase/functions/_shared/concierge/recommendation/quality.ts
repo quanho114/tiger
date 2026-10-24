@@ -14,20 +14,48 @@ export function recommendationRole(item: RecommendationItem): string | null {
   return null
 }
 
+const itemTraitCache = new WeakMap<RecommendationItem, { paddedText: string; role: string | null }>()
+const preferenceCache = new WeakMap< readonly string[], string[]>()
+
+function getItemTraits(item: RecommendationItem): { paddedText: string; role: string | null } {
+  const cached = itemTraitCache.get(item)
+  if (cached) return cached
+  const traits = {
+    paddedText: ` ${normalizeRecommendationText(`${item.name} ${(item.tags ?? []).join(' ')} ${item.category_name ?? ''}`)} `,
+    role: recommendationRole(item),
+  }
+  itemTraitCache.set(item, traits)
+  return traits
+}
+
+function getNormalizedPreferences(raw?: readonly string[]): string[] {
+  if (!raw?.length) return []
+  const cached = preferenceCache.get(raw)
+  if (cached) return cached
+  const normalized = [...new Set(raw.map(normalizeRecommendationText).filter(Boolean))]
+  preferenceCache.set(raw, normalized)
+  return normalized
+}
+
 export function scoreRecommendation<T extends RecommendationItem>(
   plan: ValidatedRecommendation<T>, options: DynamicRecommendationOptions,
 ): RecommendationQuality {
   const items = plan.lines.map(line => line.item)
   const count = items.length
-  const preferences = [...new Set((options.preferences ?? []).map(normalizeRecommendationText).filter(Boolean))]
-  const itemTexts = items.map(item => normalizeRecommendationText(`${item.name} ${(item.tags ?? []).join(' ')} ${item.category_name ?? ''}`))
-  const matchedPreferences = preferences.filter(preference => itemTexts.some(text => ` ${text} `.includes(` ${preference} `))).length
-  const matchingItems = itemTexts.filter(text => preferences.some(preference => ` ${text} `.includes(` ${preference} `))).length
+  const preferences = getNormalizedPreferences(options.preferences)
+  const traits = items.map(getItemTraits)
+  const matchedPreferences = preferences.filter(preference => {
+    const token = ` ${preference} `
+    return traits.some(entry => entry.paddedText.includes(token))
+  }).length
+  const matchingItems = preferences.length
+    ? traits.filter(entry => preferences.some(preference => entry.paddedText.includes(` ${preference} `))).length
+    : 0
   // Normalize ratios rather than accumulating one reward per added line.
   const preference = preferences.length ? Math.round(25 * (matchedPreferences / preferences.length) * (0.5 + 0.5 * matchingItems / count)) : 0
   const bestseller = options.bestseller && options.bestseller !== 'none'
     ? Math.round(25 * items.filter(item => item.is_bestseller === true).length / count) : 0
-  const roles = items.map(recommendationRole).filter((role): role is string => role !== null)
+  const roles = traits.map(entry => entry.role).filter((role): role is string => role !== null)
   const uniqueRoles = new Set(roles)
   const primary = uniqueRoles.has('main_protein') || uniqueRoles.has('soup_hotpot') || uniqueRoles.has('set')
   const relevantRoles = ['main_protein', 'soup_hotpot', 'vegetable', 'carb', 'side', 'set']

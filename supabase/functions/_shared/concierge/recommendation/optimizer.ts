@@ -1,3 +1,4 @@
+import { checkedAdd, checkedMultiply, normalizeRecommendationPrice } from './price.ts'
 import { scoreRecommendation } from './quality.ts'
 import { itemEligibility, validateRecommendation, validateRecommendationOptions } from './validate.ts'
 import {
@@ -6,6 +7,8 @@ import {
   type DynamicRecommendationPlan,
   type DynamicRecommendationResult,
   type RecommendationItem,
+  type RecommendationLine,
+  type ValidatedRecommendation,
 } from './types.ts'
 
 export function dynamicRecommendationKey(lines: readonly { item: { id: string }; quantity: number }[]): string {
@@ -36,47 +39,93 @@ export function recommendDynamicMeals<T extends RecommendationItem>(
   const maxEvaluations = options.maxEvaluations ?? LIMITS.maxEvaluations
   const beamWidth = options.beamWidth ?? LIMITS.beamWidth
   const maxPlans = options.maxPlans ?? LIMITS.maxPlans
-  const provisionalOptions = { ...options, requestedDishCount: undefined }
+  const maxSearchDishes = options.requestedDishCount !== undefined
+    ? (options.requestedCountScope === 'final_meal' ? LIMITS.maxDishes : options.requestedDishCount)
+    : LIMITS.defaultMaxDishes
+  const existingIdSet = new Set(options.existingItemIds ?? [])
+  const existingSubtotal = options.existingSubtotal ?? 0
+  const feeMin = options.feePolicy?.known_min_vnd ?? 0
+  const feeMax = options.feePolicy?.known_max_vnd ?? 0
+  const feeComplete = options.feePolicy?.complete === true
+  const budgetStatus: 'within' | 'conditional' = options.budget_vnd != null && feeComplete ? 'within' : 'conditional'
+  const baseWarnings = [
+    'PORTIONS_NOT_VERIFIED',
+    ...(!feeComplete ? ['MANDATORY_FEES_UNKNOWN'] : []),
+    ...(options.budget_vnd == null ? ['BUDGET_NOT_PROVIDED'] : []),
+  ]
+  const rangeWarnings = [...baseWarnings, 'RANGE_ESTIMATE_NOT_ORDER_PRICE']
+  const preparedPool = pool.map(item => {
+    const quantity = options.quantities?.[item.id] ?? 1
+    const normalized = normalizeRecommendationPrice(item)
+    const lineMin = normalized.ok ? checkedMultiply(normalized.price.min, quantity) : null
+    const lineMax = normalized.ok ? checkedMultiply(normalized.price.max, quantity) : null
+    const line: RecommendationLine<T> | null = normalized.ok && lineMin !== null && lineMax !== null
+      ? { item, quantity, unitMin: normalized.price.min, unitMax: normalized.price.max, lineMin, lineMax }
+      : null
+    return {
+      line,
+      keyPart: `${item.id}:${quantity}`,
+      inExisting: existingIdSet.has(item.id),
+      isFixed: (item.pricing_mode ?? 'fixed') === 'fixed',
+    }
+  })
   const byCount = new Map<number, DynamicRecommendationPlan<T>[]>()
   const finalists = new Map<string, DynamicRecommendationPlan<T>>()
   const compare = (a: DynamicRecommendationPlan<T>, b: DynamicRecommendationPlan<T>) =>
     b.score - a.score || a.totalMax - b.totalMax || a.key.localeCompare(b.key)
-  const consider = (lines: readonly { item: T; quantity: number }[]) => {
-    const validated = validateRecommendation(lines, catalog, options)
-    if (!validated.ok) return
-    const quality = scoreRecommendation(validated.plan, options)
-    const key = dynamicRecommendationKey(validated.plan.lines)
-    finalists.set(key, { ...validated.plan, ...quality, key })
+  const consider = (plan: DynamicRecommendationPlan<T>) => {
+    const count = options.requestedCountScope === 'final_meal' ? plan.finalDistinctCount : plan.distinctCount
+    if (options.requestedDishCount !== undefined && count !== options.requestedDishCount) return
+    finalists.set(plan.key, plan)
     // Keep only the compact best alternatives; every generated state is still checked.
     if (finalists.size > maxPlans * 4) {
       const best = [...finalists.values()].sort(compare).slice(0, maxPlans * 2)
       finalists.clear()
-      for (const plan of best) finalists.set(plan.key, plan)
+      for (const entry of best) finalists.set(entry.key, entry)
     }
   }
-  for (const item of pool) {
+  for (const prepared of preparedPool) {
     if (stats.capped) break
     // Snapshot prevents choosing this same parent twice during one item decision.
     const previous = [...byCount.entries()].flatMap(([, states]) => states)
     const sources: (DynamicRecommendationPlan<T> | null)[] = [null, ...previous]
     for (const state of sources) {
       if (stats.evaluated >= maxEvaluations) { stats.capped = true; break }
-      if ((state?.lines.length ?? 0) >= LIMITS.maxDishes) continue
-      const quantity = options.quantities?.[item.id] ?? 1
-      const proposed = [...(state?.lines ?? []), { item, quantity }]
+      if ((state?.lines.length ?? 0) >= maxSearchDishes) continue
       stats.evaluated++
-      const validated = validateRecommendation(proposed, catalog, provisionalOptions)
-      if (!validated.ok) continue
-      const quality = scoreRecommendation(validated.plan, options)
-      const key = dynamicRecommendationKey(validated.plan.lines)
-      const next = { ...validated.plan, ...quality, key }
-      const count = next.lines.length
+      if (!prepared.line) continue
+      const finalDistinctCount = (state?.finalDistinctCount ?? existingIdSet.size) + (prepared.inExisting ? 0 : 1)
+      if (finalDistinctCount > LIMITS.maxDishes) continue
+      if (options.requestedDishCount !== undefined && options.requestedCountScope === 'final_meal' &&
+          finalDistinctCount > options.requestedDishCount) continue
+      const subtotalMin = checkedAdd(state?.subtotalMin ?? 0, prepared.line.lineMin)
+      const subtotalMax = checkedAdd(state?.subtotalMax ?? 0, prepared.line.lineMax)
+      if (subtotalMin === null || subtotalMax === null) continue
+      const combinedMin = checkedAdd(subtotalMin, existingSubtotal)
+      const combinedMax = checkedAdd(subtotalMax, existingSubtotal)
+      const totalMin = combinedMin === null ? null : checkedAdd(combinedMin, feeMin)
+      const totalMax = combinedMax === null ? null : checkedAdd(combinedMax, feeMax)
+      if (totalMin === null || totalMax === null) continue
+      if (options.budget_vnd != null && totalMax > options.budget_vnd) continue
+      const lines = state ? [...state.lines, prepared.line] : [prepared.line]
+      const orderableExact = (state?.orderableExact ?? true) && prepared.isFixed
+      const validatedPlan: ValidatedRecommendation<T> = {
+        lines, subtotalMin, subtotalMax, existingSubtotal, totalMin, totalMax,
+        knownFeesMin: feeMin, knownFeesMax: feeMax, feeComplete, budgetStatus,
+        portionStatus: 'unknown', orderableExact,
+        distinctCount: lines.length, finalDistinctCount,
+        warnings: orderableExact ? baseWarnings : rangeWarnings,
+      }
+      const quality = scoreRecommendation(validatedPlan, options)
+      const key = state ? `${state.key}|${prepared.keyPart}` : prepared.keyPart
+      const next: DynamicRecommendationPlan<T> = { ...validatedPlan, ...quality, key }
+      const count = lines.length
       const bucket = byCount.get(count) ?? []
       if (!bucket.some(entry => entry.key === key)) bucket.push(next)
       bucket.sort(compare)
       if (bucket.length > beamWidth) { bucket.length = beamWidth; stats.truncated = true }
       byCount.set(count, bucket)
-      consider(next.lines)
+      consider(next)
     }
   }
   // Revalidate the final selection independently, not just intermediate arithmetic.

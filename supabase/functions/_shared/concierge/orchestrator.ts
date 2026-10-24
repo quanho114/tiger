@@ -69,9 +69,19 @@ export async function orchestrateGroundedTurn(request: ConciergeV2TurnRequest, r
       applyEffectiveMemory(scope.next, memory.imported, memory.epoch)
       if (memory.imported.length !== before) { scope.next.transcript = []; scope.next.summary = '' }
     }
-    const context = buildConciergeContext({ state: scope.next, message: prompt, tools, exchanges, pageContext: request.page_context,
-      readNeeds: scope.understanding?.readNeeds, deferredReadNeeds: scope.understanding?.deferredReadNeeds,
-      maxInputTokens: 12000 - budget.inputTokens })
+    const remainingBudget = 12000 - budget.inputTokens
+    const targetBudget = budget.calls < 2 ? Math.min(4200, remainingBudget) : remainingBudget
+    let context
+    try {
+      context = buildConciergeContext({ state: scope.next, message: prompt, tools, exchanges, pageContext: request.page_context,
+        readNeeds: scope.understanding?.readNeeds, deferredReadNeeds: scope.understanding?.deferredReadNeeds,
+        maxInputTokens: targetBudget })
+    } catch (error) {
+      if (!(error instanceof ContextBudgetError) || targetBudget === remainingBudget) throw error
+      context = buildConciergeContext({ state: scope.next, message: prompt, tools, exchanges, pageContext: request.page_context,
+        readNeeds: scope.understanding?.readNeeds, deferredReadNeeds: scope.understanding?.deferredReadNeeds,
+        maxInputTokens: remainingBudget })
+    }
     contextTrimmed ||= context.trimmed
     budget.consume(context.inputTokens)
     const remainingMs = 25000 - (Date.now() - budget.started)
@@ -92,16 +102,36 @@ export async function orchestrateGroundedTurn(request: ConciergeV2TurnRequest, r
   }
   const modelGroundedReply = async (prompt: string, exchanges: ToolExchange[], evidenceStatus: EvidenceStatus = 'known') => {
     const compositionExchanges = compactToolExchanges(exchanges)
-    // Guard exactly the evidence the composer receives; hidden prices or IDs
-    // in the full tool result cannot accidentally validate a hallucination.
-    const evidence = JSON.stringify(compositionExchanges.map(exchange => ({ name: exchange.name, status: evidenceStatusFor(exchange), result: exchange.result })))
+    const maxItems = Math.max(0, ...compositionExchanges.map(exchange => {
+      const res = exchange.result && typeof exchange.result === 'object' ? exchange.result as { candidates?: unknown[]; plans?: { lines?: unknown[] }[] } : {}
+      const planMax = Array.isArray(res.plans) ? Math.max(0, ...res.plans.map(p => Array.isArray(p.lines) ? p.lines.length : 0)) : 0
+      const candMax = Array.isArray(res.candidates) ? res.candidates.length : 0
+      return Math.max(planMax, candMax)
+    }))
+    // Guard the evidence and non-price counts the composer receives; hidden prices
+    // or IDs in the full tool result cannot accidentally validate a hallucination.
+    const evidence = JSON.stringify([
+      ...compositionExchanges.map(exchange => ({ name: exchange.name, status: evidenceStatusFor(exchange), result: exchange.result })),
+      {
+        name: 'turn_counts',
+        status: 'known',
+        result: {
+          adults: scope.next.constraints.adults,
+          children: scope.next.constraints.children,
+          guests: scope.next.constraints.adults + scope.next.constraints.children,
+          requested_dish_count: scope.next.constraints.requested_dish_count ?? null,
+          item_counts: Array.from({ length: maxItems }, (_, index) => index + 1),
+        },
+      },
+    ])
     let response = await askModel(prompt, [], compositionExchanges)
     let reply = checked(safeGroundedReply(includeUnprocessedReads(response.reply_text), evidence, evidenceStatus))
     if (!reply) {
       guardMetrics.repair_attempts++
       const repairStarted = Date.now()
       try {
-        response = await askModel(`${prompt}\nThe previous draft failed grounding checks. Correct using verified evidence; abstain if needed. Max 700 characters; operational values stay on cards.`, [], compositionExchanges)
+        const repairExchanges = 12000 - budget.inputTokens < 4500 ? compactToolExchanges(exchanges, true) : compositionExchanges
+        response = await askModel(`${prompt}\nThe previous draft failed grounding checks. Correct using verified evidence; abstain if needed. Max 700 characters; operational values stay on cards.`, [], repairExchanges)
         reply = checked(safeGroundedReply(includeUnprocessedReads(response.reply_text), evidence, evidenceStatus))
         if (reply) guardMetrics.repair_successes++
       } finally {
@@ -277,11 +307,14 @@ export async function orchestrateGroundedTurn(request: ConciergeV2TurnRequest, r
   return finish()
 }
 
-function compactToolExchanges(exchanges: ToolExchange[]): ToolExchange[] {
+function compactToolExchanges(exchanges: ToolExchange[], minimal = false): ToolExchange[] {
+  const keys = minimal
+    ? ['name', 'is_available', 'safety_state']
+    : ['name', 'category_name', 'is_available', 'is_signature', 'is_bestseller', 'spice_level', 'safety_state', 'serving_size', 'meal_role']
   const compactMenuItem = (value: unknown) => {
     const item = value && typeof value === 'object' ? value as Record<string, unknown> : {}
-    return Object.fromEntries(['name', 'category_name', 'is_available', 'is_signature', 'is_bestseller', 'spice_level', 'safety_state', 'serving_size', 'meal_role']
-      .filter(key => item[key] !== undefined).map(key => [key, item[key]]))
+    return Object.fromEntries(keys
+      .filter(key => item[key] !== undefined && item[key] !== null && item[key] !== false).map(key => [key, item[key]]))
   }
   return exchanges.map(exchange => {
     const value = exchange.result && typeof exchange.result === 'object' ? exchange.result as Record<string, unknown> : {}

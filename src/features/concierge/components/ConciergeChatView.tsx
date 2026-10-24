@@ -107,7 +107,6 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose, onMore,
           <p className="text-xs text-stone-600">Gợi ý · Chưa chọn</p>
           <strong>{card.item.name}</strong><p>{menuPrice(card.item)}</p>
            {card.item.is_bestseller === true && <p className="text-xs text-stone-600">Món bán chạy theo thực đơn</p>}
-          {card.item.safety_state !== 'verified_safe' && <p className="text-amber-900">Chưa xác minh an toàn dị ứng. Cần hỏi nhân viên.</p>}
           <button type="button" disabled={isLoading || stale || (card.item.pricing_mode ?? 'fixed') !== 'fixed'} className="mt-2 rounded-lg bg-[#173866] px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
             onClick={() => mutateDraft({ type: 'add_item', pending_suggestion_id: card.suggestion_id, menu_item_id: card.item.id, quantity: 1, note: '' })}>Chọn vào giỏ nháp</button>
           </div>
@@ -291,11 +290,25 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose, onMore,
             </div>
 
             {/* Render Cards underneath message */}
-            {msg.delivery !== 'pending' && msg.delivery !== 'interrupted' && msg.cards && msg.cards.length > 0 && (
-              <div className={`w-full mt-2.5 ${msg.cards.some(card => card.type === 'draft_suggestion') ? 'flex gap-3 overflow-x-auto pb-2' : 'space-y-2.5'}`}>
-                {msg.cards.map((card, idx) => renderCard(card, idx, msg.id !== latestReply?.id))}
-              </div>
-            )}
+            {msg.delivery !== 'pending' && msg.delivery !== 'interrupted' && msg.cards && msg.cards.length > 0 && (() => {
+              const stale = msg.id !== latestReply?.id
+              const suggestionCards = msg.cards.filter(card => card.type === 'draft_suggestion')
+              const otherCards = msg.cards.filter(card => card.type !== 'draft_suggestion')
+              return (
+                <div className="mt-2.5 w-full space-y-3">
+                  {suggestionCards.length > 0 && (
+                    <div className="flex gap-3 overflow-x-auto pb-2">
+                      {suggestionCards.map((card, idx) => renderCard(card, idx, stale))}
+                    </div>
+                  )}
+                  {otherCards.length > 0 && (
+                    <div className="space-y-2.5">
+                      {otherCards.map((card, idx) => renderCard(card, idx, stale))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         ))}
 
