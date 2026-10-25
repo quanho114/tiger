@@ -171,8 +171,10 @@ export async function orchestrateGroundedTurn(request: ConciergeV2TurnRequest, r
     for (const need of understanding?.readNeeds ?? []) if (need.kind === 'menu') need.merchandising = need.merchandising.filter(value => value !== 'bestseller')
   }
   const allergyCorrection = collectSessionFacts(next, message)
-  const replacement = next.pending_items?.length ? /^(?:doi|thay)\s+mon\s+(.+?)(?:\s+(?:di|nhe|nha))?$/.exec(text) : null
-  if (replacement) next.constraints.dislikes = mergeConstraints(next.constraints.dislikes, [replacement[1]])
+  const replacement = next.pending_items?.length ? /^(?:doi|thay)\s+mon\s+(.+?)(?:\s+(?:sang|bang|qua|thanh)\s+.+?)?(?:\s+(?:di|nhe|nha))?$/.exec(text) : null
+  if (replacement && !next.constraints.dislikes.some(value => normalizeIntent(value) === replacement[1])) {
+    next.constraints.dislikes = mergeConstraints(next.constraints.dislikes, [replacement[1]])
+  }
   if (request.page_context?.order_mode) next.constraints.order_mode = request.page_context.order_mode
   next.memory_context!.current = structuredClone(next.constraints)
 

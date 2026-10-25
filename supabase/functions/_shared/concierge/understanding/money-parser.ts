@@ -68,7 +68,7 @@ export function parseRequestedDishCount(text: string): ParsedDishCount | undefin
   if (!match) return undefined
   const before = text.slice(0, match.index)
   const clauseBefore = before.split(/[;!?\n]|,(?!\d)/).at(-1) ?? ''
-  const requested = /\b(?:goi y|tu van|chon|muon|lay|them|doi|mam|combo|set|dung|chinh xac)\b/.test(clauseBefore) || !clauseBefore.trim()
+  const requested = /\b(?:goi y|tu van|chon|muon|lay|them|doi|mam|combo|set|dung|chinh xac|\d{1,2}\s*(?:nguoi|khach))\b/.test(clauseBefore) || !clauseBefore.trim()
   if (!requested) return undefined
   // Price questions, item ordinals and approximate/ranged counts are not exact requests.
   if (/\b(?:mon thu|mon so|gia|bao nhieu)\s*$/.test(before) || /\b(?:khoang|tam|tu|it nhat|toi da|hon)\s*$/.test(before) || /\d+\s*(?:den|toi|[-–])\s*$/.test(before) || /^\s*(?:den|toi|[-–])\s*\d+\s+mon\b/.test(text.slice(match.index + match[0].length))) return undefined

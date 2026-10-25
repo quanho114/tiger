@@ -63,4 +63,31 @@ describe('A07 retrieval behavior and runtime wiring', () => {
     const output = await runTurn(session(), 'chi tiết món tofu', { pool })
     expect(output.result.cards.some(card => (card.type === 'draft_suggestion' || card.type === 'menu_item_detail') && card.item.id === evaluationCatalog[2].id)).toBe(true)
   })
+  it('persists consultation dish preferences across clarification turns and handles dish replacements', async () => {
+    const frogAndEelCatalog = [
+      ...evaluationCatalog,
+      { id: '60000000-0000-4000-8000-000000000091', name: 'Ếch xào mướp hương', category_name: 'Các món ếch', category_id: '61000000-0000-4000-8000-000000000091', price_vnd: 165000, tags: ['ếch'], is_signature: false, is_available: true, published: true, pricing_mode: 'fixed' as const },
+      { id: '60000000-0000-4000-8000-000000000092', name: 'Lươn um chuối chát', category_name: 'Các món lươn', category_id: '61000000-0000-4000-8000-000000000092', price_vnd: 185000, tags: ['lươn'], is_signature: false, is_available: true, published: true, pricing_mode: 'fixed' as const },
+    ]
+    const { pool } = fixturePool(sql => sql.includes('FROM public.menu_items') ? { rows: frogAndEelCatalog } : undefined)
+    const turn1 = await runTurn(session(), 'tư vấn cho tôi mấy món ếch và lươn', { pool })
+    expect(turn1.next.constraints.preferences).toEqual(['Ếch', 'Lươn'])
+    expect(turn1.next.conversation_context?.pending_question?.missing_field).toBe('guests')
+
+    const turn2 = await runTurn(turn1.record, '4 người 4 món', { pool })
+    expect(turn2.next.constraints.preferences).toEqual(['Ếch', 'Lươn'])
+    const planCard = turn2.result.cards.find(card => card.type === 'meal_plan')
+    expect(planCard?.type).toBe('meal_plan')
+    if (planCard?.type === 'meal_plan') {
+      expect(planCard.lines).toHaveLength(4)
+      const names = planCard.lines.map(line => line.item.name)
+      expect(names).toContain('Ếch xào mướp hương')
+      expect(names).toContain('Lươn um chuối chát')
+    }
+
+    const turn3 = await runTurn(turn2.record, 'đổi món ếch sang món gà', { pool })
+    expect(turn3.next.constraints.dislikes).toContain('Ếch')
+    expect(turn3.next.constraints.preferences).not.toContain('Ếch')
+    expect(turn3.next.constraints.preferences).toContain('Gà')
+  })
 })

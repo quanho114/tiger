@@ -12,7 +12,7 @@ export function normalizeMenuSearch(text: string): string {
   }
   return value
 }
-export const PREFERENCE_WEIGHTS = { current: 8, explicit: 6, inferred: 3 } as const
+export const PREFERENCE_WEIGHTS = { current: 24, explicit: 12, inferred: 6 } as const
 export interface RetrievalPreference { text: string; source: keyof typeof PREFERENCE_WEIGHTS }
 export function menuTextScore(query: string, name: string, tags: string, category: string, description: string) {
   const q = normalizeMenuSearch(query), n = normalizeMenuSearch(name)

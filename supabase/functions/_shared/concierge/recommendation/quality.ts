@@ -65,7 +65,7 @@ export function scoreRecommendation<T extends RecommendationItem>(
     (primary ? 8 : 0) + (uniqueRoles.has('vegetable') ? 4 : 0) +
     (uniqueRoles.has('carb') ? 4 : 0) + (uniqueRoles.has('soup_hotpot') ? 4 : 0)
   const diversity = snack ? 0 : Math.round(15 * Math.min(covered, 5) / 5)
-  const repeatedRoles = roles.length - uniqueRoles.size
+  const repeatedRoles = Math.max(0, roles.length - uniqueRoles.size - Math.max(0, matchedPreferences - 1))
   const redundancyPenalty = Math.min(25, repeatedRoles * 8 + (snack ? Math.max(0, count - 1) * 6 : 0))
   const remaining = options.budget_vnd == null ? null : options.budget_vnd - plan.existingSubtotal - plan.knownFeesMax
   // With no grounded quality signal, spending more is not a reason to add dishes.

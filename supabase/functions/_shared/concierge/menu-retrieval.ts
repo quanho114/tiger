@@ -238,7 +238,7 @@ export async function retrieveMenuCandidates(
       if (key && (` ${preferenceText} `.includes(` ${key} `) || preference.text === item.id))
         uniquePreferences.set(key, Math.max(uniquePreferences.get(key) ?? 0, PREFERENCE_WEIGHTS[preference.source]))
     }
-    score += Math.min(18, [...uniquePreferences.values()].reduce((sum, weight) => sum + weight, 0))
+    score += Math.min(48, [...uniquePreferences.values()].reduce((sum, weight) => sum + weight, 0))
 
     if (item.is_signature) score += 20
     if (safety.safety_state === 'verified_safe') score += 10
