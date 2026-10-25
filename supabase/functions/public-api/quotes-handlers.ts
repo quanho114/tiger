@@ -221,7 +221,7 @@ export async function handleQuotesRoutes({
     // 6. Query menu items from DB
     const itemIds = normalizedItems.map((i) => i.menu_item_id)
     const menuRes = await pool.query(
-      `SELECT id, name, price_vnd::numeric as price_vnd, pricing_mode, published, available, allow_dine_in, allow_delivery
+      `SELECT id, name, price_vnd::numeric as price_vnd, pricing_mode, price_min, price_max, published, available, allow_dine_in, allow_delivery
        FROM public.menu_items
        WHERE id = ANY($1)`,
       [itemIds]
@@ -233,6 +233,8 @@ export async function handleQuotesRoutes({
         id: string
         name: string
         price_vnd: number
+        price_min: number | null
+        price_max: number | null
         pricing_mode: string
         published: boolean
         available: boolean
@@ -245,6 +247,8 @@ export async function handleQuotesRoutes({
         id: row.id,
         name: row.name,
         price_vnd: Number(row.price_vnd),
+        price_min: row.price_min == null ? null : Number(row.price_min),
+        price_max: row.price_max == null ? null : Number(row.price_max),
         pricing_mode: (row.pricing_mode as string) || 'fixed',
         published: Boolean(row.published),
         available: Boolean(row.available),
@@ -264,7 +268,7 @@ export async function handleQuotesRoutes({
       if (!item.published || !item.available) {
         throw new AppError('ITEM_UNAVAILABLE', `Món "${item.name}" hiện không khả dụng`, 409)
       }
-      if (item.pricing_mode && item.pricing_mode !== 'fixed') {
+      if (item.pricing_mode && !['fixed', 'range'].includes(item.pricing_mode)) {
         throw new AppError(
           'ITEM_UNAVAILABLE',
           `Món "${item.name}" có hình thức giá không cố định, vui lòng liên hệ nhân viên hoặc hotline quán để được báo giá trực tiếp`,
@@ -281,14 +285,28 @@ export async function handleQuotesRoutes({
         throw new AppError('ITEM_UNAVAILABLE', `Món "${item.name}" không áp dụng mang đi`, 409)
       }
 
-      const lineTotal = item.price_vnd * line.quantity
+      let unitPrice = item.price_vnd
+      if (item.pricing_mode === 'range') {
+        const min = item.price_min
+        const max = item.price_max
+        const price = line.selected_price_vnd
+        const step = min != null && max != null && min % 10000 === 0 && max % 10000 === 0 ? 10000 : 5000
+        if (min == null || max == null || price === undefined || price < min || price > max || ((price - min) % step !== 0 && price !== max)) {
+          throw AppError.validation('Giá phần đã chọn không nằm trong các mức giá hiện tại')
+        }
+        unitPrice = price
+      } else if (line.selected_price_vnd !== undefined) {
+        throw AppError.validation('Món giá cố định không nhận giá phần tùy chọn')
+      }
+      const lineTotal = unitPrice * line.quantity
       subtotalVnd += lineTotal
       quotedItems.push({
         menu_item_id: line.menu_item_id,
         item_name: item.name,
         quantity: line.quantity,
         note: line.note,
-        unit_price_vnd: item.price_vnd,
+        ...(line.selected_price_vnd !== undefined ? { selected_price_vnd: line.selected_price_vnd } : {}),
+        unit_price_vnd: unitPrice,
         line_total_vnd: lineTotal,
       })
     }

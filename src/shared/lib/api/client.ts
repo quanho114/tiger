@@ -33,15 +33,17 @@ export async function apiClient<T>(
     ...(options.headers || {}),
   }
 
-  // Auto attach Supabase JWT if user is signed in
-  try {
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.access_token
-    if (token && !headers['Authorization']) {
-      headers['Authorization'] = `Bearer ${token}`
+  // Public catalog reads must not depend on a valid stored session.
+  if (options.auth !== 'none') {
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (token && !headers['Authorization']) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+    } catch {
+      // Guest or no session
     }
-  } catch {
-    // Guest or no session
   }
 
   if (options.idempotencyKey) {

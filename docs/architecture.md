@@ -103,7 +103,7 @@ whether every cross-feature business dependency is appropriate.
    solely for cosmetic symmetry.
 5. Run architecture checks, relevant tests, both TypeScript checks, lint, and
    the production build. Database integration tests require the disposable test
-   environment; real-provider evaluations remain an explicit opt-in.
+   environment; live provider evaluations remain an explicit opt-in.
 
 ## Compatibility and remaining consolidation
 

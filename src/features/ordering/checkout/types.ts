@@ -6,5 +6,6 @@ export interface CartDrawerProps {
   cartItems: CartItem[]
   onUpdateQuantity: (dishId: string, delta: number, note?: string) => void
   onRemoveItem: (dishId: string, note?: string) => void
+  onRestoreItem?: (item: CartItem) => void
   onClearCart: () => void
 }

@@ -1,0 +1,122 @@
+.home-content {
+  --home-content-ink: #0b3477;
+  --home-content-orange: #c64f12;
+  --home-content-gutter: 24px;
+  color: var(--home-content-ink);
+  background: #fcfaf6;
+  font-family: 'Tiger Home Body', sans-serif;
+}
+
+.home-content-container {
+  width: 100%;
+  max-width: 1160px;
+  margin-inline: auto;
+  padding-inline: var(--home-content-gutter);
+}
+
+.home-kicker {
+  display: block;
+  color: var(--home-content-orange);
+  font: 600 21px/1.35 'Tiger Home Script', cursive;
+}
+
+.home-content h2 {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -.045em;
+}
+
+.home-highlights { padding-block: 30px 26px; }
+.home-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.home-section-heading .home-kicker { margin-bottom: 3px; }
+.home-text-link { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; min-height: 44px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.home-text-link svg { width: 15px; }
+
+.home-dish-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(205px, 64vw, 270px);
+  gap: 14px;
+  margin: 0 auto;
+  padding: 0 var(--home-content-gutter) 10px;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--home-content-gutter);
+  scrollbar-width: thin;
+  scrollbar-color: #0b347730 transparent;
+}
+
+.home-dish { min-width: 0; scroll-snap-align: start; }
+.home-dish-link { display: block; border-radius: 16px; text-decoration: none; }
+.home-dish-image { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 16px; background: #f1e9dd; }
+.home-dish-image > div { height: 100%; }
+.home-dish h3 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 12px 0 5px; min-height: 44px; font-size: 15px; font-weight: 600; line-height: 1.45; letter-spacing: -.025em; }
+.home-dish-price { display: block; color: var(--home-content-orange); font-size: 13px; font-weight: 600; line-height: 1.5; }
+.home-dish-unavailable { position: absolute; top: 10px; left: 10px; padding: 4px 10px; border-radius: 20px; background: #fffdf9ed; font-size: 11px; }
+.home-dish-skeleton { scroll-snap-align: start; }
+.home-dish-skeleton > div { aspect-ratio: 4 / 3; border-radius: 16px; background: #e9e5dd; }
+.home-dish-skeleton > span { display: block; width: 75%; height: 13px; margin-top: 13px; border-radius: 4px; background: #e9e5dd; }
+.home-dish-skeleton > span:last-child { width: 40%; }
+.home-catalog-notice { padding-block: 15px 20px; color: #626674; font-size: 13px; line-height: 1.7; }
+
+.home-atmosphere { padding-block: 12px 36px; }
+.home-atmosphere-photo { position: relative; margin: 0; aspect-ratio: 1.8; overflow: hidden; border-radius: 18px; background: #ede8df; }
+.home-atmosphere-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.home-atmosphere-photo figcaption { position: absolute; right: 10px; bottom: 10px; padding: 4px 8px; border-radius: 4px; color: #fff; background: #14231fc9; font-size: 9px; line-height: 1.5; }
+.home-atmosphere-copy { padding-top: 19px; }
+.home-atmosphere-copy .home-kicker { margin-bottom: 4px; }
+.home-atmosphere-copy h2 { font: 700 28px/1.3 'Tiger Home Heading', serif; letter-spacing: -.04em; }
+.home-atmosphere-copy p { max-width: 370px; margin-top: 11px; color: #5b6070; font-size: 12px; line-height: 1.8; }
+
+.home-visit { padding-block: 30px 32px; color: #fffdf9; background: #0b3477; }
+.home-visit .home-kicker { color: #ffc18c; }
+.home-visit h2 { margin-top: 4px; font-size: 30px; }
+.home-visit-details { margin-top: 20px; }
+.home-visit-details dl { display: grid; gap: 12px; margin: 0; }
+.home-visit-details dl > div { display: flex; align-items: flex-start; gap: 12px; }
+.home-visit-details dt { padding-top: 2px; flex-shrink: 0; color: #ffc18c; }
+.home-visit-details dd { margin: 0; max-width: 440px; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.home-visit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 23px; }
+.home-visit-actions > a { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 46px; padding: 10px 14px; border-radius: 25px; font-size: 13px; font-weight: 600; text-decoration: none; }
+.home-visit-book { color: #0b3477; background: #ffbf83; }
+.home-visit-directions { border: 1px solid #fffdf966; }
+
+.home-content a:focus-visible { outline: 2px solid var(--home-content-ink); outline-offset: 5px; }
+.home-visit a:focus-visible { outline-color: #ffbf83; }
+
+@media (hover: hover) {
+  .home-text-link:hover, .home-dish-link:hover h3 { color: var(--home-content-orange); }
+  .home-visit-book:hover { background: #ffd3ab; }
+  .home-visit-directions:hover { background: #fffdf915; }
+}
+
+@media (max-width: 359px) {
+  .home-content { --home-content-gutter: 20px; }
+  .home-section-heading { flex-wrap: wrap; row-gap: 0; margin-bottom: 12px; }
+  .home-section-heading .home-text-link { margin-top: 3px; }
+}
+
+@media (min-width: 768px) {
+  .home-content { --home-content-gutter: 40px; }
+  .home-highlights { padding-block: 54px 38px; }
+  .home-content h2 { font-size: 32px; }
+  .home-section-heading { margin-bottom: 26px; }
+  .home-text-link { gap: 10px; font-size: 13px; }
+  .home-dish-rail { max-width: 1160px; grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; gap: 22px; overflow: visible; }
+  .home-dish h3 { font-size: 16px; min-height: 47px; }
+  .home-dish-price { font-size: 14px; }
+  .home-atmosphere { display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; gap: 46px; padding-block: 30px 62px; }
+  .home-atmosphere-photo { aspect-ratio: 1.5; border-radius: 20px; }
+  .home-atmosphere-copy { padding-top: 0; }
+  .home-atmosphere-copy h2 { margin-top: 10px; font-size: clamp(28px, 3vw, 40px); }
+  .home-atmosphere-copy p { margin-top: 18px; font-size: 14px; }
+  .home-visit { padding-block: 46px; }
+  .home-visit-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 46px; align-items: center; }
+  .home-visit h2 { font-size: 42px; }
+  .home-visit-details { margin-top: 0; }
+  .home-visit-details dd { font-size: 13px; }
+  .home-visit-actions { max-width: 370px; }
+}

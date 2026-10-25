@@ -17,11 +17,11 @@ export async function fetchMenu(params?: GetMenuParams): Promise<MenuResponse> {
 
   const queryString = searchParams.toString()
   const path = `/menu${queryString ? `?${queryString}` : ''}`
-  const response = await publicApi.get<MenuResponse>(path)
+  const response = await publicApi.get<MenuResponse>(path, { auth: 'none' })
   return response.data
 }
 
 export async function fetchSettings(): Promise<RestaurantSettings> {
-  const response = await publicApi.get<RestaurantSettings>('/settings')
+  const response = await publicApi.get<RestaurantSettings>('/settings', { auth: 'none' })
   return response.data
 }

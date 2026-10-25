@@ -59,43 +59,24 @@ export const CatalogProvider: FC<CatalogProviderProps> = ({ children }) => {
   useEffect(() => {
     let isMounted = true
 
-    const initialize = async () => {
-      try {
-        const [menuData, settingsData] = await Promise.all([
-          fetchMenu().catch((err: unknown) => {
-            if (isMounted) {
-              const msg = err instanceof Error ? err.message : 'Không thể tải danh mục thực đơn'
-              setMenuError(msg)
-            }
-            return null
-          }),
-          fetchSettings().catch((err: unknown) => {
-            if (isMounted) {
-              const msg = err instanceof Error ? err.message : 'Không thể tải thông tin nhà hàng'
-              setSettingsError(msg)
-            }
-            return null
-          }),
-        ])
+    // Publish each response as soon as it arrives; settings must not block menu browsing.
+    void fetchMenu().then(data => {
+      if (!isMounted) return
+      setCategories(data.categories)
+      setItems(data.items)
+    }).catch((err: unknown) => {
+      if (isMounted) setMenuError(err instanceof Error ? err.message : 'Không thể tải danh mục thực đơn')
+    }).finally(() => {
+      if (isMounted) setIsLoadingMenu(false)
+    })
 
-        if (!isMounted) return
-
-        if (menuData) {
-          setCategories(menuData.categories)
-          setItems(menuData.items)
-        }
-        if (settingsData) {
-          setSettings(settingsData)
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingMenu(false)
-          setIsLoadingSettings(false)
-        }
-      }
-    }
-
-    void initialize()
+    void fetchSettings().then(data => {
+      if (isMounted) setSettings(data)
+    }).catch((err: unknown) => {
+      if (isMounted) setSettingsError(err instanceof Error ? err.message : 'Không thể tải thông tin nhà hàng')
+    }).finally(() => {
+      if (isMounted) setIsLoadingSettings(false)
+    })
 
     return () => {
       isMounted = false

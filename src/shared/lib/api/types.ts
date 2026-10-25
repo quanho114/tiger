@@ -1,4 +1,6 @@
 export interface ClientRequestOptions {
+  /** Public reads can skip attaching the browser's stored session. */
+  auth?: 'session' | 'none'
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
   headers?: Record<string, string>

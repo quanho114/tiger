@@ -17,12 +17,14 @@ export function getQuoteSecret(): string {
 
 export interface RawLineItem {
   menu_item_id: string
+  selected_price_vnd?: number
   quantity: number
   note?: string
 }
 
 export interface NormalizedLineItem {
   menu_item_id: string
+  selected_price_vnd?: number
   quantity: number
   note: string
 }
@@ -107,7 +109,11 @@ export function normalizeLineItems(rawItems: RawLineItem[]): NormalizedLineItem[
     }
 
     const note = typeof raw.note === 'string' ? raw.note.trim().slice(0, 500) : ''
-    const key = `${menuItemId}:::${note}`
+    const selectedPrice = raw.selected_price_vnd
+    if (selectedPrice !== undefined && (!Number.isSafeInteger(selectedPrice) || selectedPrice < 0 || selectedPrice > 1000000000)) {
+      throw AppError.validation('Giá phần đã chọn không hợp lệ')
+    }
+    const key = JSON.stringify([menuItemId, note, selectedPrice ?? null])
 
     if (map.has(key)) {
       const existing = map.get(key)!
@@ -122,6 +128,7 @@ export function normalizeLineItems(rawItems: RawLineItem[]): NormalizedLineItem[
         menu_item_id: menuItemId,
         quantity: qty,
         note,
+        ...(selectedPrice !== undefined ? { selected_price_vnd: selectedPrice } : {}),
       })
     }
   }
@@ -136,7 +143,7 @@ export function normalizeLineItems(rawItems: RawLineItem[]): NormalizedLineItem[
     if (a.menu_item_id !== b.menu_item_id) {
       return a.menu_item_id.localeCompare(b.menu_item_id)
     }
-    return a.note.localeCompare(b.note)
+    return a.note.localeCompare(b.note) || ((a.selected_price_vnd ?? -1) - (b.selected_price_vnd ?? -1))
   })
 
   return normalized
@@ -167,12 +174,13 @@ export function computeCanonicalRequestHash(params: {
       menu_item_id: i.menu_item_id,
       quantity: i.quantity,
       note: i.note,
+      ...(i.selected_price_vnd !== undefined ? { selected_price_vnd: i.selected_price_vnd } : {}),
     }))
     .sort((a, b) => {
       if (a.menu_item_id !== b.menu_item_id) {
         return a.menu_item_id.localeCompare(b.menu_item_id)
       }
-      return a.note.localeCompare(b.note)
+      return a.note.localeCompare(b.note) || ((a.selected_price_vnd ?? -1) - (b.selected_price_vnd ?? -1))
     })
 
   const canonicalObj = {

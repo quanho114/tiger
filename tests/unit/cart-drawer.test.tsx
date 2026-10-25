@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -25,13 +26,13 @@ const mockGuestAuthState: AuthState = {
   refreshSession: vi.fn(),
 };
 
-function renderCartDrawer(props: any) {
+function renderCartDrawer(props: any, Component = CartDrawer) {
   return render(
     <MemoryRouter>
       <AuthContext.Provider value={mockGuestAuthState}>
         <TableSessionProvider>
           <CartProvider>
-            <CartDrawer {...props} />
+            <Component {...props} />
           </CartProvider>
         </TableSessionProvider>
       </AuthContext.Provider>
@@ -58,6 +59,28 @@ const mockCartItems: CartItem[] = [
 ];
 
 describe('CartDrawer Component', () => {
+  it.each([false, true])('animates only when the final item is removed, respecting reduced motion: %s', reduced => {
+    const animate = vi.fn(() => ({ cancel: vi.fn() }));
+    Object.defineProperty(HTMLElement.prototype, 'animate', { configurable: true, value: animate });
+    const originalMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+    Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn(() => ({ matches: reduced })) });
+    function StatefulCart(props: Parameters<typeof CartDrawer>[0]) {
+      const [items, setItems] = useState(mockCartItems);
+      return <CartDrawer {...props} cartItems={items} onRemoveItem={() => setItems([])} />;
+    }
+    try {
+      renderCartDrawer({ isOpen: true, onClose: vi.fn(), cartItems: mockCartItems, onUpdateQuantity: vi.fn(), onRemoveItem: vi.fn(), onClearCart: vi.fn() }, StatefulCart);
+      expect(animate).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByLabelText(/^Xóa món khỏi giỏ:/));
+      expect(screen.getByText('Giỏ hàng của bạn đang trống')).toBeInTheDocument();
+      expect(animate).toHaveBeenCalledTimes(reduced ? 0 : 1);
+    } finally {
+      if (originalMedia) Object.defineProperty(window, 'matchMedia', originalMedia);
+      else delete (window as unknown as { matchMedia?: unknown }).matchMedia;
+      delete (HTMLElement.prototype as unknown as { animate?: unknown }).animate;
+    }
+  });
+
   it('is completely unmounted from DOM and accessibility tree when isOpen is false (fixes tabbable bug)', () => {
     renderCartDrawer({
       isOpen: false,
@@ -91,6 +114,21 @@ describe('CartDrawer Component', () => {
     expect(screen.getByText('Gà Hấp Nước Mắm Nhĩ')).toBeInTheDocument();
   });
 
+  it('groups removals from minus-at-one and trash into a single undo action', () => {
+    const restore = vi.fn();
+    const remove = vi.fn();
+    const first = { ...mockCartItems[0], quantity: 1, note: 'Giá phần: 290.000 đ' };
+    const second = { ...mockCartItems[0], dish: { ...mockCartItems[0].dish, id: 'dish-2', name: 'Món thứ hai' }, quantity: 3 };
+    renderCartDrawer({ isOpen: true, onClose: vi.fn(), cartItems: [first, second], onUpdateQuantity: vi.fn(), onRemoveItem: remove, onRestoreItem: restore, onClearCart: vi.fn() });
+    fireEvent.click(screen.getAllByLabelText('Giảm số lượng')[0]);
+    expect(remove).toHaveBeenCalledWith(first.dish.id, first.note);
+    fireEvent.click(screen.getAllByLabelText(/^Xóa món khỏi giỏ:/)[1]);
+    expect(screen.getByRole('status')).toHaveTextContent('Đã bỏ 2 món');
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tác tất cả' }));
+    expect(restore.mock.calls).toEqual([[first], [second]]);
+    expect(screen.queryByText('Hoàn tác tất cả')).not.toBeInTheDocument();
+  });
+
   it('fires onUpdateQuantity and onRemoveItem appropriately', () => {
     const onUpdateQuantity = vi.fn();
     const onRemoveItem = vi.fn();
@@ -112,7 +150,7 @@ describe('CartDrawer Component', () => {
     fireEvent.click(minusBtn);
     expect(onUpdateQuantity).toHaveBeenCalledWith('dish-1', -1);
 
-    const removeBtn = screen.getByLabelText('Xóa món khỏi giỏ');
+    const removeBtn = screen.getByLabelText(/^Xóa món khỏi giỏ:/);
     fireEvent.click(removeBtn);
     expect(onRemoveItem).toHaveBeenCalledWith('dish-1');
   });

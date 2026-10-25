@@ -1,0 +1,215 @@
+{
+  "source_sha256": "b12f959e9760b4bb5aa4a5d34d71a1bfb842507135fc4d9c9e917ae64036efc9",
+  "source_exact": {
+    "favicon.svg": {
+      "width": 144,
+      "height": 144,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    },
+    "reference-sheet.svg": {
+      "width": 2048,
+      "height": 682,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    },
+    "tiger-icon-dark.svg": {
+      "width": 172,
+      "height": 164,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    },
+    "tiger-icon-light.svg": {
+      "width": 169,
+      "height": 164,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    },
+    "tiger-logo-horizontal.svg": {
+      "width": 454,
+      "height": 135,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    },
+    "tiger-logo-stacked.svg": {
+      "width": 678,
+      "height": 544,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    },
+    "tiger-mark-simple.svg": {
+      "width": 144,
+      "height": 134,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    },
+    "tiger-mark.svg": {
+      "width": 362,
+      "height": 332,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    },
+    "tiger-tagline.svg": {
+      "width": 678,
+      "height": 60,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    },
+    "tiger-wordmark.svg": {
+      "width": 678,
+      "height": 144,
+      "different_source_pixels": 0,
+      "embedded_raster": true
+    }
+  },
+  "vector": {
+    "favicon.svg": {
+      "paths": 1300,
+      "embedded_raster": false,
+      "font_dependency": false,
+      "bytes": 617891
+    },
+    "tiger-icon-dark.svg": {
+      "paths": 1388,
+      "embedded_raster": false,
+      "font_dependency": false,
+      "bytes": 813555
+    },
+    "tiger-icon-light.svg": {
+      "paths": 1621,
+      "embedded_raster": false,
+      "font_dependency": false,
+      "bytes": 779383
+    },
+    "tiger-logo-horizontal.svg": {
+      "paths": 4052,
+      "embedded_raster": false,
+      "font_dependency": false,
+      "bytes": 2283267
+    },
+    "tiger-logo-stacked.svg": {
+      "paths": 4052,
+      "embedded_raster": false,
+      "font_dependency": false,
+      "bytes": 2283238
+    },
+    "tiger-mark-simple.svg": {
+      "paths": 1300,
+      "embedded_raster": false,
+      "font_dependency": false,
+      "bytes": 618032
+    },
+    "tiger-mark.svg": {
+      "paths": 4022,
+      "embedded_raster": false,
+      "font_dependency": false,
+      "bytes": 2212129
+    },
+    "tiger-tagline.svg": {
+      "paths": 20,
+      "embedded_raster": false,
+      "font_dependency": false,
+      "bytes": 28937
+    },
+    "tiger-wordmark.svg": {
+      "paths": 10,
+      "embedded_raster": false,
+      "font_dependency": false,
+      "bytes": 43071
+    }
+  },
+  "integration": "Shared mark and favicon replaced with source-exact SVGs. Admin sidebar and login branding updated. See integration-verification.json for real-site visual checks. Chatbot provider runtime not accepted by this branding test.",
+  "browser": {
+    "source_exact": [
+      {
+        "file": "favicon.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      },
+      {
+        "file": "reference-sheet.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      },
+      {
+        "file": "tiger-icon-dark.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      },
+      {
+        "file": "tiger-icon-light.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      },
+      {
+        "file": "tiger-logo-horizontal.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      },
+      {
+        "file": "tiger-logo-stacked.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      },
+      {
+        "file": "tiger-mark-simple.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      },
+      {
+        "file": "tiger-mark.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      },
+      {
+        "file": "tiger-tagline.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      },
+      {
+        "file": "tiger-wordmark.svg",
+        "differentPixels": 0,
+        "maxChannelDelta": 0
+      }
+    ],
+    "previews": [
+      {
+        "width": 1440,
+        "mode": "source-exact",
+        "overflow": false,
+        "brokenImages": 0,
+        "downloadLinks": 9
+      },
+      {
+        "width": 1440,
+        "mode": "vector",
+        "overflow": false,
+        "brokenImages": 0,
+        "downloadLinks": 9
+      },
+      {
+        "width": 390,
+        "mode": "source-exact",
+        "overflow": false,
+        "brokenImages": 0,
+        "downloadLinks": 9
+      },
+      {
+        "width": 390,
+        "mode": "vector",
+        "overflow": false,
+        "brokenImages": 0,
+        "downloadLinks": 9
+      }
+    ],
+    "errors": [],
+    "httpErrors": [],
+    "engine": "152.0.7977.75",
+    "testedAt": "2026-10-21T14:38:31.465Z"
+  },
+  "build": {
+    "command": "npm run build",
+    "result": "PASS",
+    "note": "TypeScript project build and Vite production build succeeded. Asset-only delivery; no app imports or runtime behavior were changed."
+  }
+}

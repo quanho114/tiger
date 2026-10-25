@@ -10,13 +10,32 @@ import { BotanicalBranch } from '@/shared/ui/BotanicalDecorations';
 import { useCatalog } from '@/features/catalog';
 import { getSiteInfo } from '@/features/restaurant/site';
 
-export const Footer: FC = () => {
+export const Footer: FC<{ compact?: boolean }> = ({ compact = false }) => {
   const { settings } = useCatalog();
   const site = getSiteInfo(settings);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (compact) {
+    return (
+      <footer className="bg-[#fcfaf6] px-6 py-6 font-['Tiger_Home_Body',sans-serif] text-[#0b3477] md:px-10 md:py-7">
+        <div className="mx-auto flex max-w-[1080px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Link to="/" aria-label="Tiger 345 — Trang chủ" className="flex items-center gap-2 self-start">
+            <img src="/tiger.svg" alt="" width="34" height="34" />
+            <span className="font-['Tiger_Home_Brand',serif] text-[23px] font-bold tracking-tight">Tiger 345<span className="text-[#ed7328]">.</span></span>
+          </Link>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-xs">
+            {site.phoneHref && <a href={site.phoneHref} className="inline-flex min-h-8 items-center gap-2 hover:underline"><Phone size={14} aria-hidden="true" />{site.phoneDisplay}</a>}
+            {site.facebook && <a href={site.facebook} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-2 hover:underline"><FacebookMark size={14} />Facebook</a>}
+            <button type="button" onClick={scrollToTop} className="inline-flex min-h-8 basis-full items-center gap-2 hover:underline sm:basis-auto">Lên đầu trang <ArrowUp size={14} aria-hidden="true" /></button>
+          </div>
+        </div>
+        <p className="mx-auto mt-4 max-w-[1080px] text-[10px] text-[#626674]">© 2026 Tiger 345. Hẹn bạn một bữa ngon.</p>
+      </footer>
+    );
+  }
 
   return (
     <footer className="bg-[#fbf9f6] text-[#000000] pt-12 pb-8 sm:pt-16 sm:pb-10 relative overflow-hidden border-t border-[#d2b68c]/40">

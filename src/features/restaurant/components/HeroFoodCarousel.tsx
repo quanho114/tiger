@@ -3,8 +3,8 @@ import { preload } from 'react-dom';
 import { heroSlides } from '../heroSlides';
 import './HeroFoodCarousel.css';
 
-export function HeroFoodCarousel() {
-  const [activeIndex, setActiveIndex] = useState(0);
+export function HeroFoodCarousel({ initialIndex = 0 }: { initialIndex?: number }) {
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -15,7 +15,7 @@ export function HeroFoodCarousel() {
   const nextSlide = () => setActiveIndex(index => (index + 1) % heroSlides.length);
   const prevSlide = () => setActiveIndex(index => (index + heroSlides.length - 1) % heroSlides.length);
 
-  preload(heroSlides[0].image, { as: 'image', fetchPriority: 'high' });
+  preload(heroSlides[initialIndex].image, { as: 'image', fetchPriority: 'high' });
 
   useEffect(() => {
     const update = () => setHidden(document.hidden);
@@ -66,7 +66,7 @@ export function HeroFoodCarousel() {
           <div key={slide.image} className="hero-food-slide" data-layer={(index - activeIndex + heroSlides.length) % heroSlides.length}
             role="group" aria-roledescription="slide" aria-label={`${index + 1} of ${heroSlides.length}: ${slide.label}`} aria-hidden={index !== activeIndex}>
             <img src={slide.image} alt={slide.alt} width="900" height="900" draggable={false}
-              fetchPriority={index === 0 ? 'high' : 'low'} decoding={index === 0 ? 'auto' : 'async'} />
+              fetchPriority={index === initialIndex ? 'high' : 'low'} decoding={index === initialIndex ? 'auto' : 'async'} />
           </div>
         ))}
       </div>

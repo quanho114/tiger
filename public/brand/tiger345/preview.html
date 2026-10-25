@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tiger 345 — Bộ nhận diện SVG</title>
+  <link rel="icon" href="source-exact/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{color-scheme:light;--navy:#1e3a8a;--orange:#f97316;--green:#4a7c59;--cream:#fff4e6;--ink:#192e53;--muted:#777d89;--line:#e9e9e5}
+    *{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:14px/1.6 system-ui,sans-serif}
+    .wrap{max-width:1500px;margin:auto;padding:30px 48px 48px}header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding-bottom:24px;border-bottom:1px solid var(--line)}
+    .eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}h1{font:700 26px/1.2 Georgia,serif;margin:6px 0 0}h1 span{color:var(--orange)}
+    .switch{display:flex;gap:4px;background:#f5f5f3;border-radius:12px;padding:4px}button{border:0;padding:10px 17px;border-radius:9px;font:inherit;background:transparent;color:#636a77;cursor:pointer}button[aria-pressed=true]{background:#fff;color:var(--ink);box-shadow:0 1px 5px #162d4c12}button:focus-visible,a:focus-visible{outline:3px solid var(--orange);outline-offset:4px}
+    .note{margin:15px 0 0;color:#626b7b;font-size:12px;min-height:20px}.board{display:grid;grid-template-columns:1.05fr 1.5fr;gap:54px;align-items:center;padding:42px 0 24px}
+    .primary{margin:0;text-align:center}.primary img{width:100%;max-height:470px;object-fit:contain}.caption{font-size:11px;color:var(--muted);margin:10px 0 0;letter-spacing:.03em}
+    .horizontal{padding:20px 36px;border-radius:20px;border:1px solid #f2eee9;background:#fff;display:flex;align-items:center;justify-content:center;height:174px}.horizontal img{width:100%;height:100%;object-fit:contain}
+    .icons{display:grid;grid-template-columns:repeat(3,1fr);gap:25px;margin-top:28px}.icons figure{margin:0;text-align:center}.icons img{width:100%;height:142px;object-fit:contain}.icons figcaption{color:var(--muted);font-size:12px;margin-top:8px}
+    .palette{border-top:1px solid var(--line);margin-top:28px;padding-top:22px;display:flex;align-items:center;justify-content:space-between;gap:16px}.palette h2{font-size:12px;font-weight:500;margin:0;color:var(--muted)}.swatches{display:flex;gap:27px}.swatch{text-align:center;font-size:10px;color:var(--muted)}.dot{width:35px;height:35px;border-radius:50%;display:block;margin:0 auto 5px;background:var(--color)}
+    .files{border-top:1px solid var(--line);padding-top:24px;margin-top:18px}.files-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px}.files h2{font-size:14px;font-weight:600;margin:0 0 15px}.download-all{font-size:12px;color:var(--navy);text-decoration:none}.file-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.file{display:flex;align-items:center;gap:13px;padding:13px 16px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--ink);min-width:0}.file:hover{background:#faf8f4;border-color:#e0d4c5}.file img{width:42px;height:38px;object-fit:contain}.file span{font-size:12px}.file small{display:block;font-size:10px;color:var(--muted)}.file b{font-size:17px;font-weight:400;margin-left:auto;color:var(--orange)}
+    .sizes{display:flex;gap:18px;align-items:center;border-top:1px solid var(--line);padding-top:20px;margin-top:24px;color:var(--muted);font-size:11px}.size{display:flex;align-items:center;gap:7px}.size img{object-fit:contain}.sizes .label{margin-right:auto}footer{font-size:11px;color:var(--muted);margin-top:22px}
+    @media(min-width:1400px){.primary img{max-height:510px}.icons img{height:155px}.horizontal{height:188px}}
+    @media(max-width:950px){.wrap{padding:24px}.board{gap:24px;grid-template-columns:1fr 1.2fr}.icons{gap:12px}.icons img{height:110px}.horizontal{padding:15px;height:140px}.swatches{gap:16px}.file-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:650px){.wrap{padding:22px 18px}header{align-items:flex-start;flex-direction:column;gap:18px}.switch{width:100%}.switch button{flex:1;padding:10px}.board{grid-template-columns:1fr;gap:28px;padding-top:26px}.primary img{max-height:360px}.horizontal{height:145px}.icons img{height:110px}.palette{align-items:flex-start;flex-direction:column}.swatches{justify-content:space-between;width:100%}.file-grid{grid-template-columns:1fr}.sizes{gap:12px;flex-wrap:wrap}.sizes .label{width:100%}.files-head{align-items:flex-start;flex-direction:column;gap:0}.files-head h2{margin-bottom:8px}.download-all{margin-bottom:14px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div><div class="eyebrow">Bộ nhận diện thương hiệu · SVG</div><h1>Tiger 345<span>.</span></h1></div>
+      <div class="switch" role="group" aria-label="Chọn định dạng bộ nhận diện">
+        <button type="button" data-mode="source-exact" aria-pressed="true">Giữ nguyên ảnh</button>
+        <button type="button" data-mode="vector" aria-pressed="false">Vector chỉnh sửa</button>
+      </div>
+    </header>
+    <p class="note" id="format-note" role="status">SVG nhúng PNG: giữ nguyên pixel trong vùng cắt từ ảnh bạn gửi, gồm cả nền ảnh. Đây không phải đường vector.</p>
+    <section class="board" aria-label="Các phiên bản logo Tiger 345">
+      <figure class="primary"><img src="source-exact/tiger-logo-stacked.svg" data-asset="tiger-logo-stacked" alt="Logo dọc Tiger 345, đầu hổ và dòng Ẩm thực đương đại" width="678" height="544"><figcaption class="caption">LOGO DỌC</figcaption></figure>
+      <div>
+        <div class="horizontal"><img src="source-exact/tiger-logo-horizontal.svg" data-asset="tiger-logo-horizontal" alt="Logo ngang Tiger 345" width="454" height="135"></div>
+        <div class="icons">
+          <figure><img src="source-exact/tiger-icon-light.svg" data-asset="tiger-icon-light" alt="Icon Tiger nền kem" width="169" height="164"><figcaption>Icon nền kem</figcaption></figure>
+          <figure><img src="source-exact/tiger-icon-dark.svg" data-asset="tiger-icon-dark" alt="Icon Tiger nền xanh" width="172" height="164"><figcaption>Icon nền xanh</figcaption></figure>
+          <figure><img src="source-exact/tiger-mark-simple.svg" data-asset="tiger-mark-simple" alt="Biểu tượng đầu hổ rút gọn" width="144" height="134"><figcaption>Mark đơn giản</figcaption></figure>
+        </div>
+        <div class="palette"><h2>Màu sắc theo mẫu</h2><div class="swatches">
+          <div class="swatch"><i class="dot" style="--color:#1e3a8a"></i>#1E3A8A</div>
+          <div class="swatch"><i class="dot" style="--color:#f97316"></i>#F97316</div>
+          <div class="swatch"><i class="dot" style="--color:#4a7c59"></i>#4A7C59</div>
+          <div class="swatch"><i class="dot" style="--color:#fff4e6"></i>#FFF4E6</div>
+        </div></div>
+      </div>
+    </section>
+    <section class="files" aria-labelledby="files-title">
+      <div class="files-head"><h2 id="files-title">File SVG riêng lẻ</h2><a class="download-all" href="tiger345-brand-kit.zip" download>Tải toàn bộ bộ nhận diện ↓</a></div>
+      <div class="file-grid">
+        <a class="file" href="source-exact/tiger-mark.svg" data-download="tiger-mark" download><img src="source-exact/tiger-mark.svg" data-asset="tiger-mark" alt=""><span>Biểu tượng chính<small>tiger-mark.svg</small></span><b aria-hidden="true">↓</b></a>
+        <a class="file" href="source-exact/tiger-mark-simple.svg" data-download="tiger-mark-simple" download><img src="source-exact/tiger-mark-simple.svg" data-asset="tiger-mark-simple" alt=""><span>Biểu tượng rút gọn<small>tiger-mark-simple.svg</small></span><b aria-hidden="true">↓</b></a>
+        <a class="file" href="source-exact/tiger-icon-light.svg" data-download="tiger-icon-light" download><img src="source-exact/tiger-icon-light.svg" data-asset="tiger-icon-light" alt=""><span>Icon nền kem<small>tiger-icon-light.svg</small></span><b aria-hidden="true">↓</b></a>
+        <a class="file" href="source-exact/tiger-icon-dark.svg" data-download="tiger-icon-dark" download><img src="source-exact/tiger-icon-dark.svg" data-asset="tiger-icon-dark" alt=""><span>Icon nền xanh<small>tiger-icon-dark.svg</small></span><b aria-hidden="true">↓</b></a>
+        <a class="file" href="source-exact/tiger-logo-horizontal.svg" data-download="tiger-logo-horizontal" download><img src="source-exact/tiger-logo-horizontal.svg" data-asset="tiger-logo-horizontal" alt=""><span>Logo ngang<small>tiger-logo-horizontal.svg</small></span><b aria-hidden="true">↓</b></a>
+        <a class="file" href="source-exact/tiger-logo-stacked.svg" data-download="tiger-logo-stacked" download><img src="source-exact/tiger-logo-stacked.svg" data-asset="tiger-logo-stacked" alt=""><span>Logo dọc<small>tiger-logo-stacked.svg</small></span><b aria-hidden="true">↓</b></a>
+        <a class="file" href="source-exact/tiger-wordmark.svg" data-download="tiger-wordmark" download><img src="source-exact/tiger-wordmark.svg" data-asset="tiger-wordmark" alt=""><span>Chữ thương hiệu<small>tiger-wordmark.svg</small></span><b aria-hidden="true">↓</b></a>
+        <a class="file" href="source-exact/tiger-tagline.svg" data-download="tiger-tagline" download><img src="source-exact/tiger-tagline.svg" data-asset="tiger-tagline" alt=""><span>Ẩm thực đương đại<small>tiger-tagline.svg</small></span><b aria-hidden="true">↓</b></a>
+        <a class="file" href="source-exact/favicon.svg" data-download="favicon" download><img src="source-exact/favicon.svg" data-asset="favicon" alt=""><span>Favicon<small>favicon.svg</small></span><b aria-hidden="true">↓</b></a>
+      </div>
+    </section>
+    <div class="sizes" aria-label="Kiểm tra favicon ở kích thước nhỏ"><span class="label">Favicon ở kích thước thực</span>
+      <span class="size"><img src="source-exact/favicon.svg" data-asset="favicon" alt="Favicon 16 pixel" width="16" height="16">16</span>
+      <span class="size"><img src="source-exact/favicon.svg" data-asset="favicon" alt="Favicon 24 pixel" width="24" height="24">24</span>
+      <span class="size"><img src="source-exact/favicon.svg" data-asset="favicon" alt="Favicon 32 pixel" width="32" height="32">32</span>
+      <span class="size"><img src="source-exact/favicon.svg" data-asset="favicon" alt="Favicon 48 pixel" width="48" height="48">48</span>
+    </div>
+    <footer>Bản xem trước bộ nhận diện · 21/10/2026 · Các file mới nằm trong /brand/tiger345/.</footer>
+  </main>
+  <script>
+    const notes={
+      'source-exact':'SVG nhúng PNG: giữ nguyên pixel trong vùng cắt từ ảnh bạn gửi, gồm cả nền ảnh. Đây không phải đường vector.',
+      vector:'SVG bằng đường Bézier: sửa được nét và màu, nền ngoài trong suốt, không phụ thuộc font. Có sai khác khi chuyển từ PNG; logo ngang được ghép lại từ các thành phần lớn.'
+    };
+    for(const button of document.querySelectorAll('[data-mode]')){
+      button.addEventListener('click',()=>{
+        const mode=button.dataset.mode;
+        for(const item of document.querySelectorAll('[data-mode]'))item.setAttribute('aria-pressed',String(item===button));
+        for(const img of document.querySelectorAll('[data-asset]'))img.src=`${mode}/${img.dataset.asset}.svg`;
+        for(const link of document.querySelectorAll('[data-download]'))link.href=`${mode}/${link.dataset.download}.svg`;
+        document.getElementById('format-note').textContent=notes[mode];
+      });
+    }
+  </script>
+</body>
+</html>

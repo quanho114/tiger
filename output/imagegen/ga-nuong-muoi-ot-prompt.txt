@@ -1,0 +1,13 @@
+Mode: built-in image_gen, image edit.
+Source: user-supplied Tiger 345 poster, lower-left chicken photograph.
+Output: public/images/menu/dishes/ga-nuong-muoi-ot.webp
+Disclosure: AI-assisted restyling, labeled illustration in the menu.
+
+Use case: precise-object-edit.
+Asset type: square restaurant menu photograph, crop-safe for both square and 4:3 menu cards.
+Input image: the supplied Tiger 345 advertising collage. ONLY the lower LEFT chicken photo is the edit target and food identity reference. Ignore and exclude all lettering, phone numbers, white poster margins, and the rice photo on the right.
+Primary request: make a restrained, believable improved presentation of THIS EXACT RESTAURANT'S REAL grilled chicken on its round woven bamboo tray. Preserve the actual chopped bone-in chicken identity: modest Vietnamese free-range chicken portions, naturally uneven golden brown skin, darker grill patches, real small bones, exposed pale meat at cut edges, slightly dry crinkled skin with light natural fat sheen. Retain the photographed rustic woven tray with warm tan rim and subtle red bindings and the yellow-green banana-leaf lining.
+Change only arrangement, framing, and gentle lighting correction: neatly gather the existing chopped chicken pieces into a relaxed low pile on the same tray; move the two clumsy white divided condiment dishes OFF the chicken and replace with ONE small plain white saucer at the upper edge containing the same existing pepper-salt, chopped green seasoning, and lime wedge. Keep this saucer visually secondary. Keep a visible whole drumstick and wing from the source, with correct anatomy; no head or prominently upright chicken feet.
+Scene: ordinary dark wooden restaurant tabletop, just the food tray and its condiment saucer, quiet minimal background. Show nearly the full circular tray with breathing room, chicken centered and occupying roughly 65% of frame. Camera 45 degree slightly overhead, square composition.
+Photographic realism: looks like a careful smartphone photo in a real Vietnamese neighborhood restaurant beside a window, neutral daylight, gentle shadows, realistic restrained colors and medium depth of field. Preserve imperfections and the recognizable source food texture. No stylized advertising effects.
+Avoid: reimagining as a whole roast bird, turkey, giant plump chicken, artificially red chili glaze, thick lacquer, sugary sauce, glossy plastic skin, exaggerated saturation, dramatic cinematic lighting, fake steam, bokeh lights, perfectly symmetrical pieces, excessive side dishes, extra herbs or rice, props, text, watermark, illustration, CGI. The result must remain plausibly the actual meal in the reference, with only modest styling improvements.

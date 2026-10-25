@@ -177,7 +177,9 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose, onMore,
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stone-200 bg-[#fffdf9] px-3 py-2.5 text-[#173866] sm:px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <img src="/tiger.svg" alt="" className="h-8 w-8 shrink-0 rounded-full border border-stone-200 bg-white object-contain" />
+          <span className="block h-8 w-8 shrink-0">
+            <img src="/brand/tiger345/concierge/tiger-bot-avatar.png" alt="" className="h-full w-full rounded-full object-cover" style={{ clipPath: 'circle(45.5% at 50% 50%)', transform: 'scale(1.1)' }} />
+          </span>
           <div className="min-w-0">
             <h3 className="truncate text-sm font-bold leading-tight">Tiger Concierge</h3>
             <p className="truncate text-[11px] leading-tight text-stone-500">
@@ -258,7 +260,9 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose, onMore,
           if (followingRef.current) setHasNewContent(false)
         }}>
         {messages.length === 0 && <div className="mx-auto flex min-h-full max-w-sm flex-col justify-center py-10 text-center">
-          <img src="/tiger.svg" alt="" className="mx-auto mb-5 h-12 w-12 rounded-full bg-white object-contain" />
+          <span className="mx-auto mb-5 block h-12 w-12">
+            <img src="/brand/tiger345/concierge/tiger-bot-avatar.png" alt="" className="h-full w-full rounded-full object-cover" style={{ clipPath: 'circle(45.5% at 50% 50%)', transform: 'scale(1.1)' }} />
+          </span>
           <h4 className="text-xl font-semibold text-[#173866]">Tiger Concierge</h4>
           <p className="mt-3 text-sm leading-relaxed text-stone-600">Nói mình biết bạn muốn ăn gì, đi mấy người hoặc khoảng ngân sách. Mình sẽ giúp bạn chọn.</p>
         </div>}

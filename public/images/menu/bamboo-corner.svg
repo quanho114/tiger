@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150" fill="none">
+  <defs>
+    <path id="leaf" d="M0 0C-13-3-30-17-48-37C-24-24-6-16 0 0Z"/>
+  </defs>
+  <g stroke="#59735b" stroke-linecap="round">
+    <path d="M206 4C176 21 148 47 121 78C109 93 99 105 90 119" stroke-width="1.5"/>
+    <path d="M172 28C155 24 138 22 118 25M147 51C145 67 144 82 136 99M127 72C109 66 91 67 72 74" stroke-width=".8"/>
+    <path d="m169 26 5 4m-29 19 5 4m-26 17 5 4" stroke-width="1.4"/>
+  </g>
+  <g fill="#59735b" fill-opacity=".68">
+    <use href="#leaf" transform="translate(168 27) rotate(12) scale(.95)"/>
+    <use href="#leaf" transform="translate(155 25) rotate(-22) scale(.9)"/>
+    <use href="#leaf" transform="translate(139 24) rotate(-48) scale(.8)"/>
+    <use href="#leaf" transform="translate(125 25) rotate(-63) scale(.75)"/>
+    <use href="#leaf" transform="translate(158 41) rotate(116) scale(.95)"/>
+    <use href="#leaf" transform="translate(146 57) rotate(157) scale(.9)"/>
+    <use href="#leaf" transform="translate(144 74) rotate(191) scale(.9)"/>
+    <use href="#leaf" transform="translate(139 91) rotate(205) scale(.8)"/>
+    <use href="#leaf" transform="translate(121 71) rotate(3) scale(.85)"/>
+    <use href="#leaf" transform="translate(103 69) rotate(-30) scale(.85)"/>
+    <use href="#leaf" transform="translate(85 71) rotate(-65) scale(.8)"/>
+    <use href="#leaf" transform="translate(112 89) rotate(-93) scale(.9)"/>
+    <use href="#leaf" transform="translate(99 108) rotate(-100) scale(.65)"/>
+  </g>
+</svg>

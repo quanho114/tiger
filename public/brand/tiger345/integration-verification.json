@@ -1,0 +1,51 @@
+{
+  "frontend": "http://127.0.0.1:5173",
+  "backend": "http://127.0.0.1:54321",
+  "testedAt": "2026-10-21T14:53:58.166Z",
+  "variant": "source-exact",
+  "syntheticProvider": false,
+  "requestInterception": false,
+  "browserErrors": [],
+  "checks": [
+    {
+      "asset": "/tiger.svg",
+      "servedNewArtwork": true
+    },
+    {
+      "asset": "/favicon.svg?v=tiger345-20261021",
+      "servedNewArtwork": true
+    },
+    {
+      "scenario": "Home desktop, footer, favicon, assistant contact card",
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "scenario": "Home mobile, menu drawer, no horizontal overflow",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "scenario": "Customer login uses shared mark",
+      "passed": true
+    },
+    {
+      "scenario": "Admin login light icon",
+      "passed": true
+    },
+    {
+      "scenario": "Admin desktop, collapsed sidebar, mobile sidebar; isolated dev login",
+      "passed": true
+    }
+  ],
+  "chatbotRuntime": "CHƯA KIỂM ĐỊNH — branding verified only; no paid-provider smoke approval.",
+  "automated_checks": {
+    "typecheck": "PASS",
+    "typecheck:server": "PASS",
+    "check:architecture": "PASS — 262 source files",
+    "lint": "PASS — existing warnings remain",
+    "test:unit": "PASS — 35 files, 211 tests",
+    "test:server": "PASS — 37 files, 492 tests",
+    "build": "PASS"
+  }
+}

@@ -1,0 +1,141 @@
+@import './HomeFonts.css';
+
+.home-hero-fresh,
+.home-hero-explore-copy,
+.home-hero-bowl,
+.home-hero-botanical,
+.home-hero-accent { display: none; }
+
+@media (max-width: 767px) {
+  :root:has(header[data-home]) { scrollbar-width: none; }
+  :root:has(header[data-home])::-webkit-scrollbar { display: none; }
+  .home-hero {
+    --home-ink: #0b3477;
+    --home-orange: #ff7900;
+    min-height: calc(100svh - 4rem - env(safe-area-inset-bottom));
+    padding: 80px 0 16px;
+    overflow: clip;
+    background: radial-gradient(ellipse at 80% 85%, #f6ead840, transparent 55%), #fcfaf6;
+  }
+  .home-hero-botanical { display: block; position: absolute; pointer-events: none; background-image: url('/images/hero/botanical-details-smooth.svg'); background-size: 200% 200%; background-repeat: no-repeat; }
+  .home-hero-corner-leaves { width: clamp(105px, 35.9vw, 140px); height: 220px; right: -37px; top: 50px; opacity: .5; background-position: right top; }
+  .home-hero-single-leaf { width: 70px; height: 70px; left: 5px; top: 0; z-index: 35; background-position: left top; }
+  .home-hero-plate-sprig { width: 73px; height: 92px; left: -8px; top: 140px; z-index: 35; background-position: left bottom; }
+  .home-hero-card-leaf { width: 60px; height: 70px; right: 51px; top: 35px; background-position: left top; transform: rotate(85deg); opacity: .8; z-index: -1; }
+  .home-hero-accent { display: block; position: absolute; pointer-events: none; color: #ff8a23; }
+  .home-hero-fresh-accent { right: 5px; top: 43px; width: 24px; height: 35px; z-index: 35; transform: rotate(24deg); }
+  .home-hero-explore-accent { left: 28px; top: 9px; width: 25px; height: 26px; transform: rotate(-8deg); }
+  .home-hero-container { padding-inline: 23px; }
+  .home-hero-grid { position: relative; isolation: isolate; gap: 0; }
+  /* Color beneath the clear material gives the blur something to refract. */
+  .home-hero::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    inset: auto 0 0;
+    height: 190px;
+    background: radial-gradient(ellipse at 8% 72%, #a8c5df95, transparent 53%), radial-gradient(ellipse at 96% 60%, #f7cd9155, transparent 57%);
+  }
+  .home-hero-eyebrow { margin-bottom: 3px; }
+  .home-hero-eyebrow > span:first-child { color: #555b6d; font-size: 11px; letter-spacing: .18em; }
+  .home-hero-eyebrow > span:last-child { background: #ffa269; width: 38px; height: 1px; }
+  .home-hero-title {
+    color: var(--home-ink);
+    font-size: clamp(29px, 8.7vw, 60px);
+    line-height: 1.16;
+    letter-spacing: -.035em;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .home-hero-title-final { letter-spacing: -.06em; }
+  .home-hero-tagline { color: var(--home-orange); font-size: clamp(17px, 5.4vw, 32px); line-height: 1.25; margin-bottom: 12px; max-width: 100%; }
+  .home-hero-description { color: #555b6d; font-size: 12.5px; line-height: 1.55; margin-bottom: 0; }
+  .home-hero-art { margin: 18px -23px 0; padding: 0 8px; }
+  .home-hero-art > div[aria-hidden='true']:first-child { width: 74%; height: 87%; left: 6px; top: 14px; background: #b7cde25c; }
+  .home-hero-art > div[aria-hidden='true']:nth-child(2) { width: 65%; height: 88%; right: 5px; top: 2px; background: #ffe5a780; }
+  .home-hero-art .hero-food-carousel { width: 100%; max-width: 490px; padding: 0 0 0 7%; }
+  .home-hero-art .hero-food-stage { width: 74%; }
+  .home-hero-art .hero-food-slide { border-width: 4px; box-shadow: 0 12px 22px -12px #6a503c55; }
+  .home-hero-art .hero-food-slide[data-layer='1'] { transform: translate(36%, 1%) scale(.81); }
+  .home-hero-art .hero-food-slide[data-layer='2'] { transform: translate(55%, 2%) scale(.65); }
+  .home-hero-art .hero-food-pagination { width: 100%; margin: 0 0 0 -3.5%; height: 28px; }
+  .home-hero-art .hero-food-dot { width: 21px; height: 28px; }
+  .home-hero-art .hero-food-dot span { width: 10px; height: 10px; }
+  .home-hero-art .hero-food-dot[aria-current='true'] span { background: var(--home-ink); }
+  .home-hero-fresh { display: block; position: absolute; right: 18px; top: 1px; z-index: 35; color: #9b4c12; font: 600 17px/1.1 var(--font-script); transform: rotate(-12deg); text-align: center; }
+  .home-hero-explore {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    width: calc(100% + 26px);
+    margin: 0 -13px 0;
+    padding: 10px 29px 14px;
+    min-height: 148px;
+    border: 0;
+    border-radius: 23px;
+    background: linear-gradient(125deg, #ffffff28, #ffffff04 48%, #ffffff18);
+    -webkit-backdrop-filter: blur(12px) saturate(175%);
+    backdrop-filter: blur(12px) saturate(175%);
+    box-shadow: 0 14px 30px -12px #30465e50, 0 2px 6px #30465e0d, inset 3px 3px 7px #ffffffcc, inset -2px -3px 8px #49607918;
+  }
+  .home-hero-explore::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 4% 0%, #ffffffa0, transparent 42%), linear-gradient(115deg, transparent 26%, #ffffff08 37%, #ffffff80 44%, #ffffff0a 51%, transparent 64%);
+    opacity: .8;
+  }
+  .home-hero-explore-copy { display: block; padding-left: 21px; }
+  .home-hero-explore-kicker { display: block; margin-left: 8px; color: var(--home-orange); font: 600 18px/1.2 var(--font-script); }
+  .home-hero-explore h2 { color: var(--home-ink); margin: 5px 0 3px; font: 800 18px/1.25 var(--font-body); letter-spacing: -.03em; }
+  .home-hero-explore p { color: #555b6d; font: 400 10.2px/1.6 var(--font-body); }
+  .home-hero-explore > button { margin-top: 10px; min-height: 44px; min-width: 173px; padding: 10px 22px; gap: 18px; font-size: 14px; background: linear-gradient(120deg, #124caa, #09295e); box-shadow: inset 0 1px 2px #ffffff80, 0 6px 12px #09295e25; }
+  .home-hero-explore > button svg { width: 21px; height: 21px; stroke-width: 1.5; }
+  .home-hero-explore > img { display: none; }
+  .home-hero-bowl { display: block; position: absolute; right: 76px; bottom: 16px; width: 44px; height: 37px; color: #173866; transform: rotate(-10deg); pointer-events: none; }
+
+  header[data-home] { padding-block: 11px; }
+  header[data-home] > div { padding-inline: 23px; }
+  header[data-home] button[aria-label='Tiger 345 — Trang chủ'] { gap: 7px; }
+  header[data-home] button[aria-label='Tiger 345 — Trang chủ'] img { width: 35px; height: 35px; }
+  header[data-home] button[aria-label='Tiger 345 — Trang chủ'] > div > span:first-child { font-size: 20px; text-align: center; color: #0b3477; }
+  header[data-home] button[aria-label='Tiger 345 — Trang chủ'] > div > span:last-child { font-size: 8px; letter-spacing: .18em; color: #ff7900; }
+  header[data-home] button[aria-label='Đặt bàn'] { display: inline-flex; padding: 0; width: 40px; height: 40px; background: #0b3477; border: 1px solid #174c98; box-shadow: 0 3px 8px #0b347725; }
+  header[data-home] button[aria-label='Đặt bàn'] svg { width: 18px; height: 18px; }
+  header[data-home] button[aria-label='Đặt bàn'] span { display: none; }
+  header[data-home] button[aria-label='Mở menu'] { margin-left: 6px; width: 32px; height: 40px; color: #0b3477; }
+  header[data-home] button[aria-label='Mở menu'] svg { width: 25px; height: 25px; }
+
+}
+
+@media (max-width: 359px) {
+  .home-hero-corner-leaves { width: 105px; height: 170px; right: -40px; top: 60px; opacity: .35; }
+  .home-hero-explore h2 { font-size: 16px; }
+  .home-hero-explore p { max-width: 180px; }
+  .home-hero-tagline { white-space: normal; }
+  .home-hero-explore { padding-inline: 20px; }
+  .home-hero-bowl { right: 65px; width: 35px; }
+}
+
+.home-hero {
+  --font-body: 'Tiger Home Body', sans-serif;
+  --font-script: 'Tiger Home Script', cursive;
+}
+.home-hero-copy,
+.home-hero-eyebrow > span:first-child,
+.home-hero-description,
+.home-hero-explore > button { font-family: var(--font-body); }
+.home-hero-title { font-family: 'Tiger Home Heading', serif; }
+.home-hero-tagline { font-family: var(--font-script); white-space: normal; }
+header[data-home] { font-family: 'Tiger Home Body', sans-serif; }
+header[data-home] button[aria-label='Tiger 345 — Trang chủ'] > div > span:first-child { font-family: 'Tiger Home Brand', serif; }
+
+
+:root:has(header[data-home]) .tiger-bottom-nav { font-family: "Tiger Home Body", sans-serif; }

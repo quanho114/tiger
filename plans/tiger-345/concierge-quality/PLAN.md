@@ -80,7 +80,7 @@ The model may classify ambiguous phrasing and write conversational text. It may 
 
 Rough sizing for one engineer, subject to Q0 baseline: Q0 1–2 days; Q1 1–2; Q2 1–2; Q3 2–3; Q4 1–2 if needed; Q5 1–2 if needed; Q6 1 day plus approval and review time. This is a review estimate, not a release date or a claim that provider connectivity already works.
 
-Every code package should fit one reviewable change and carry before/after fixture IDs, test commands/results, new risks and rollback notes. Run focused `npm run test:server -- <file>` first; then `npm run typecheck:server`, `npm run lint`, and relevant `npm run test:integration` only with the isolation guard. Cross-boundary work also runs `npm run typecheck`, `npm run check:architecture`, affected unit/browser tests and `npm run build`. Run `npm run test:architecture` only if architecture rules change. Do not run production cleanup or a DB reset as part of routine quality validation.
+Every code package should fit one reviewable change and carry before/after fixture IDs, test commands/results, new risks and rollback notes. Run focused `npm run test:server -- <file>` first; then `npm run typecheck:server`, `npm run lint`, and relevant `npm run test:integration` only with the isolation guard. Cross-boundary work also runs `npm run typecheck`, `npm run check:architecture`, affected unit/browser tests and `npm run build`. Run `npm run test:architecture` only if architecture rules change. Do not run paid provider evaluations, production cleanup or a DB reset as part of routine quality validation.
 
 ## Open decisions before Q1/Q2
 

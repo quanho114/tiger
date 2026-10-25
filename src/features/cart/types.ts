@@ -53,6 +53,7 @@ export interface CartDraftItem {
   dishSnapshot?: {
     id: string
     name: string
+    selected_price_vnd?: number
     price: number
     image?: string
   }

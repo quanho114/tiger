@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FC } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Phone,
   X,
@@ -204,6 +205,8 @@ const ConciergeCardContent: FC<ConciergeCardContentProps> = ({ site, onClose, on
 };
 
 export const ContactHub: FC = () => {
+  const location = useLocation();
+  const [hiddenLauncherLocation, setHiddenLauncherLocation] = useState<typeof location | null>(null);
   const { totalCount, isCartOpen } = useCart();
   const { settings } = useCatalog();
   const site = getSiteInfo(settings);
@@ -212,6 +215,32 @@ export const ContactHub: FC = () => {
   const [isChatExpanded, setIsChatExpanded] = useState(false);
   const wasChatOpen = useRef(false);
   const hubRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let previousScrollY = window.scrollY;
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const scroller = document.scrollingElement ?? document.documentElement;
+      const atBottom = scroller.scrollHeight - window.innerHeight - scrollY <= 8;
+      if (scrollY < previousScrollY || !atBottom) {
+        setHiddenLauncherLocation(null);
+      } else if (scrollY > previousScrollY && scroller.scrollHeight > window.innerHeight + 8) {
+        setHiddenLauncherLocation(location);
+      }
+      previousScrollY = scrollY;
+    };
+    const handleResize = () => {
+      const scroller = document.scrollingElement ?? document.documentElement;
+      if (scroller.scrollHeight - window.innerHeight - window.scrollY > 8
+        || scroller.scrollHeight <= window.innerHeight + 8) setHiddenLauncherLocation(null);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [location]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -323,7 +352,7 @@ export const ContactHub: FC = () => {
         <div
           role="dialog"
           aria-label="Trò chuyện với Tiger Concierge"
-          className={`fixed inset-0 md:inset-auto md:right-6 md:bottom-6 md:h-[min(740px,88dvh)] md:max-h-[88dvh] ${isChatExpanded ? 'md:w-[min(700px,calc(100vw-3rem))]' : 'md:w-[min(470px,calc(100vw-3rem))]'} bg-[#FFFDF9] md:rounded-2xl border border-[#786246]/20 shadow-2xl flex flex-col overflow-hidden z-50 concierge-card-enter`}
+          className={`fixed inset-x-3 bottom-[max(12px,env(safe-area-inset-bottom))] h-[75dvh] max-h-[calc(100dvh-24px-env(safe-area-inset-bottom))] md:inset-auto md:right-6 md:bottom-6 md:h-[min(740px,88dvh)] md:max-h-[88dvh] ${isChatExpanded ? 'md:w-[min(700px,calc(100vw-3rem))]' : 'md:w-[min(470px,calc(100vw-3rem))]'} bg-[#FFFDF9] rounded-2xl border border-[#786246]/20 shadow-2xl flex flex-col overflow-hidden z-50 concierge-card-enter`}
           style={{
             boxShadow:
               '0 20px 48px rgba(24, 42, 74, 0.14), 0 4px 14px rgba(24, 42, 74, 0.06)',
@@ -344,12 +373,12 @@ export const ContactHub: FC = () => {
       {/* ------------------------------------------------------------- */}
       {/* 4. AI-NATIVE FLOATING ACTION BUTTON TRIGGER (Shown when closed) */}
       {/* ------------------------------------------------------------- */}
-      {!isOpen && !isChatOpen && (
-        <FloatingAssistantButton
+      <FloatingAssistantButton
+          key={location.pathname}
+          hidden={isOpen || isChatOpen || hiddenLauncherLocation === location}
           open={false}
           onClick={handleOpenChat}
         />
-      )}
     </aside>
   );
 };

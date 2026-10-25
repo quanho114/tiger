@@ -1,0 +1,88 @@
+{
+  "source": "Ảnh ChatGPT 21_08_04 21 thg 10, 2026.png",
+  "source_size": [
+    2048,
+    682
+  ],
+  "source_crop_boxes": {
+    "tiger-mark": [
+      244,
+      64,
+      606,
+      396
+    ],
+    "tiger-mark-simple": [
+      1327,
+      304,
+      1471,
+      438
+    ],
+    "tiger-icon-light": [
+      883,
+      287,
+      1052,
+      451
+    ],
+    "tiger-icon-dark": [
+      1104,
+      287,
+      1276,
+      451
+    ],
+    "tiger-wordmark": [
+      92,
+      400,
+      770,
+      544
+    ],
+    "tiger-tagline": [
+      92,
+      548,
+      770,
+      608
+    ],
+    "tiger-logo-stacked": [
+      92,
+      64,
+      770,
+      608
+    ],
+    "tiger-logo-horizontal": [
+      1553,
+      303,
+      2007,
+      438
+    ]
+  },
+  "palette": [
+    "#1E3A8A",
+    "#F97316",
+    "#4A7C59",
+    "#FFF4E6"
+  ],
+  "source_exact": "Lossless PNG embedded inside SVG. Pixels within source crop are unchanged. Background from source is retained.",
+  "vector": "Auto-traced Bezier paths, transparent exterior, no raster, no fonts. Not pixel-identical to source. Horizontal composition is rebuilt from larger source components.",
+  "tracing": {
+    "engine": "VTracer Python package 0.6.15",
+    "preparation": "Exterior near-white removal; 3x Lanczos; source-derived 48-color palette with OpenCV seed 345. Lettering uses binary silhouette layers and palette navy/orange.",
+    "hierarchical": "stacked",
+    "mode": "spline",
+    "filter_speckle": 4,
+    "color_precision": 8,
+    "layer_difference": 1,
+    "corner_threshold": 100,
+    "length_threshold": 4,
+    "max_iterations": 10,
+    "splice_threshold": 45,
+    "path_precision": 3,
+    "export_coordinate_precision": 1
+  },
+  "integration": {
+    "variant": "source-exact (lossless embedded PNG)",
+    "mark": "public/tiger.svg",
+    "favicon": "public/favicon.svg?v=tiger345-20261021",
+    "admin_navigation": "/brand/tiger345/source-exact/tiger-icon-dark.svg",
+    "admin_login": "/brand/tiger345/source-exact/tiger-icon-light.svg",
+    "scope": "Visual branding only; no chatbot, authentication, cart, order, or payment behavior changes."
+  }
+}

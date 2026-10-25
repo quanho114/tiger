@@ -29,6 +29,6 @@ Database and browser suites have additional prerequisites; see `AGENTS.md` and
 `docs/contributing.md`. Real-provider browser testing requires explicit approval.
 
 ## Agent Guidelines & Boundaries
-- See `AGENTS.md` for complete agent contracts.
-- **Never** read, print, hardcode, or commit credentials (`.env`, API keys, etc.).
-- Never run paid provider evaluations in CI or default test runs.
+- See `AGENTS.md` for complete agent contracts and chatbot runtime acceptance requirements.
+- Never read, print, hardcode, or commit credentials or credential files.
+- Live provider evaluations require explicit approval and must not run in CI or default tests.

@@ -14,6 +14,19 @@ describe('Quote Engine & Canonical Request Utilities (Task T07)', () => {
   const ITEM_B = '10000000-0000-0000-0000-000000000002'
 
   describe('normalizeLineItems', () => {
+    it('keeps selected portion prices separate, hashes them, and rejects malformed prices', () => {
+      const items = normalizeLineItems([
+        { menu_item_id: ITEM_A, quantity: 1, selected_price_vnd: 290000 },
+        { menu_item_id: ITEM_A, quantity: 2, selected_price_vnd: 280000 },
+        { menu_item_id: ITEM_A, quantity: 1, selected_price_vnd: 290000 },
+      ])
+      expect(items.map(i => [i.selected_price_vnd, i.quantity])).toEqual([[280000, 2], [290000, 2]])
+      const base = { order_type: 'takeaway', context: {}, items: [items[0]] }
+      expect(computeCanonicalRequestHash(base)).not.toBe(computeCanonicalRequestHash({ ...base, items: [{ ...items[0], selected_price_vnd: 290000 }] }))
+      for (const price of [-1, 1.5, NaN, Infinity, 1000000001]) {
+        expect(() => normalizeLineItems([{ menu_item_id: ITEM_A, quantity: 1, selected_price_vnd: price }])).toThrow()
+      }
+    })
     it('groups duplicate (menu_item_id, trimmed note) and sums quantities', () => {
       const input = [
         { menu_item_id: ITEM_A, quantity: 2, note: 'ít cay ' },

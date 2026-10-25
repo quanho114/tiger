@@ -153,19 +153,38 @@ test.describe('Tiger 345 Public Catalog E2E (T05 / V06, V17)', () => {
     await expect(page).toHaveTitle(/Tiger 345/i)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 
-    // Verify "Tất cả món" and specific category tabs
-    const allTab = page.getByRole('button', { name: /tất cả món/i })
-    await expect(allTab).toBeVisible()
-    await expect(page.getByRole('button', { name: /bò nướng/i })).toBeVisible()
-    await expect(page.getByRole('button', { name: /lẩu đặc sản/i })).toBeVisible()
+    const categoryNav = page.getByRole('navigation', { name: 'Danh mục món ăn' })
+    await expect(categoryNav.getByRole('button', { name: 'Bò nướng', exact: true })).toBeVisible()
+    await expect(categoryNav.getByRole('button', { name: 'Lẩu đặc sản', exact: true })).toBeVisible()
+    await expect(categoryNav.getByRole('button', { name: /tất cả món/i })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Bò nướng', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Lẩu đặc sản', exact: true })).toHaveCount(0)
 
     // Dishes should render
     const dishCards = page.locator('article[data-dish-id]')
     await expect(dishCards.first()).toBeVisible({ timeout: 5000 })
-    expect(await dishCards.count()).toBe(2)
+    expect(await dishCards.count()).toBe(1)
+
+    await categoryNav.getByRole('button', { name: 'Lẩu đặc sản', exact: true }).click()
 
     // Unavailable dish shows "Tạm hết"
     await expect(page.locator('article[data-dish-id="item-2"]').getByRole('button', { name: 'Tạm hết' })).toBeVisible()
+  })
+
+  test('Category navigation shows only the chosen group', async ({ page }) => {
+    await mockCatalog(page)
+    await page.goto('/menu')
+
+    const categoryNav = page.getByRole('navigation', { name: 'Danh mục món ăn' })
+    const lastCategory = categoryNav.getByRole('button', { name: 'Lẩu đặc sản', exact: true })
+    await lastCategory.click()
+    await expect(lastCategory).toHaveAttribute('aria-current', 'location')
+    await expect(page.locator('article[data-dish-id]')).toHaveCount(1)
+    await expect(page.getByRole('heading', { name: 'Lẩu đặc sản', exact: true })).toBeVisible()
+    await expect(page.locator('article[data-dish-id="item-1"]')).toHaveCount(0)
+
+    await categoryNav.getByRole('button', { name: 'Bò nướng', exact: true }).click()
+    await expect(categoryNav.getByRole('button', { name: 'Bò nướng', exact: true })).toHaveAttribute('aria-current', 'location')
   })
 
   test('Mode radio group updates checked state and URL for all service modes', async ({ page }) => {
@@ -283,8 +302,15 @@ test.describe('Tiger 345 Public Catalog E2E (T05 / V06, V17)', () => {
 
     await page.goto('/menu')
 
-    const searchInput = page.getByPlaceholder(/tìm món ngon theo tên/i)
+    const searchInput = page.getByRole('searchbox', { name: 'Tìm món' })
     await expect(searchInput).toBeVisible()
+    const categoryNav = page.getByRole('navigation', { name: 'Danh mục món ăn' })
+    await categoryNav.getByRole('button', { name: 'Bò nướng', exact: true }).click()
+    await searchInput.fill('lau rieu')
+    await expect(page.locator('article[data-dish-id="item-2"]')).toBeVisible()
+    await expect(page.locator('article[data-dish-id="item-1"]')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Xóa tìm kiếm' }).click()
+    await expect(page.locator('article[data-dish-id]')).toHaveCount(1)
 
     // Search for non-existent item
     await searchInput.fill('xyznonexistentdish123')
@@ -298,7 +324,7 @@ test.describe('Tiger 345 Public Catalog E2E (T05 / V06, V17)', () => {
     await searchInput.fill('')
     const dishCards = page.locator('article[data-dish-id]')
     await expect(dishCards.first()).toBeVisible()
-    expect(await dishCards.count()).toBe(2)
+    expect(await dishCards.count()).toBe(1)
   })
 
   test('Truthful error state when public API fails (no synthetic mock fallback)', async ({ page }) => {

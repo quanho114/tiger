@@ -7,6 +7,7 @@ export interface MenuItem {
   category_id?: string;
   description: string;
   price: number;
+  selected_price_vnd?: number;
   price_vnd?: number;
   pricing_mode?: PricingMode;
   price_min?: number | null;

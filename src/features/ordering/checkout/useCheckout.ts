@@ -160,7 +160,7 @@ export function useCheckout({
 
   // Invalidate active quotes whenever cart items, quantities, or delivery zone change
   const cartItemsFingerprint = useMemo(
-    () => cartItems.map((item) => `${item.dish.id}:${item.quantity}`).join(','),
+    () => cartItems.map((item) => `${item.dish.id}:${item.quantity}:${item.dish.selected_price_vnd ?? ""}:${item.note ?? ""}`).join(','),
     [cartItems]
   )
   const prevFingerprintRef = useRef(cartItemsFingerprint)
@@ -222,7 +222,9 @@ export function useCheckout({
     if (!tableSession?.visitCapability) return
     const items = cartItems.map((item) => ({
       menu_item_id: item.dish.id,
+      selected_price_vnd: item.dish.selected_price_vnd,
       quantity: item.quantity,
+      note: item.note || undefined,
     }))
     await getDineInQuote(items, tableSession.visitCapability)
   }
@@ -246,6 +248,7 @@ export function useCheckout({
 
     const items = cartItems.map((item) => ({
       menu_item_id: item.dish.id,
+      selected_price_vnd: item.dish.selected_price_vnd,
       quantity: item.quantity,
       note: deliveryForm.orderNote ? deliveryForm.orderNote : undefined,
     }))
@@ -272,6 +275,7 @@ export function useCheckout({
     if (e) e.preventDefault()
     const items = cartItems.map((item) => ({
       menu_item_id: item.dish.id,
+      selected_price_vnd: item.dish.selected_price_vnd,
       quantity: item.quantity,
       note: item.note || undefined,
     }))
