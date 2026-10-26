@@ -23,6 +23,7 @@ import {
   type ConciergeV2MemoryWriteOperation,
 } from '../contracts/concierge-v2.ts'
 import type { AuthActor } from '../types.ts'
+import { withMemoryBarrier, invalidateMemorySessions } from './memory-barrier.ts'
 
 const DEFAULT_MEMORY_SETTINGS: ConciergeV2MemorySettings = {
   enabled: false,
@@ -60,10 +61,10 @@ function requireVerifiedCustomer(actor: AuthActor): string {
   return actor.userId
 }
 
-export function createConciergeV2MemoryRepository(pool: pg.Pool, actor: AuthActor): ConciergeV2MemoryRepository {
+function createRawMemoryRepository(pool: pg.Pool, actor: AuthActor): ConciergeV2MemoryRepository {
   const userId = requireVerifiedCustomer(actor)
 
-  return {
+  const repository: ConciergeV2MemoryRepository = {
     async getSettings(): Promise<ConciergeV2MemorySettings> {
       try {
         const response = await pool.query<DatabaseRow>('SELECT public.concierge_v2_memory_settings_dto($1) AS result', [userId])
@@ -224,5 +225,37 @@ export function createConciergeV2MemoryRepository(pool: pg.Pool, actor: AuthActo
         return storageFailure()
       }
     },
+  }
+  return repository
+}
+
+export function createConciergeV2MemoryRepository(pool: pg.Pool, actor: AuthActor): ConciergeV2MemoryRepository {
+  const userId = requireVerifiedCustomer(actor)
+  const repository = createRawMemoryRepository(pool, actor)
+  const privacyChange = async <T extends { ok: boolean }>(work: (repo: ConciergeV2MemoryRepository) => Promise<T>): Promise<T | ReturnType<typeof storageFailure>> => {
+    try {
+      return await withMemoryBarrier(pool, userId, async queryPool => {
+        await queryPool.query('SAVEPOINT concierge_memory_privacy_change')
+        try {
+          const result = await work(createRawMemoryRepository(queryPool, actor))
+          if (result.ok) await invalidateMemorySessions(queryPool, userId)
+          await queryPool.query('RELEASE SAVEPOINT concierge_memory_privacy_change')
+          return result
+        } catch (error) {
+          await queryPool.query('ROLLBACK TO SAVEPOINT concierge_memory_privacy_change')
+          await queryPool.query('RELEASE SAVEPOINT concierge_memory_privacy_change')
+          throw error
+        }
+      })
+    } catch { return storageFailure() }
+  }
+  return { ...repository,
+    setEnabled: input => ConciergeV2MemorySettingsInputSchema.safeParse(input).success
+      ? privacyChange(repo => repo.setEnabled(input)) : Promise.resolve({ ok: false, reason: 'INVALID_MEMORY_SETTINGS' }),
+    deleteFact: input => ConciergeV2MemoryFactSelectorSchema.safeParse(input).success
+      ? privacyChange(repo => repo.deleteFact(input)) : Promise.resolve({ ok: false, reason: 'INVALID_MEMORY_FACT' }),
+    forgetAll: () => privacyChange(repo => repo.forgetAll()),
+    restoreBehavioralFact: input => ConciergeV2BehavioralMemorySelectorSchema.safeParse(input).success
+      ? privacyChange(repo => repo.restoreBehavioralFact(input)) : Promise.resolve({ ok: false, reason: 'INVALID_MEMORY_FACT' }),
   }
 }

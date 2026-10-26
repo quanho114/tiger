@@ -12,6 +12,11 @@ export const ConciergeMetricsSchema = z.object({
   summary_used: z.boolean().default(false),
   context_trimmed: z.boolean().default(false),
   safety_blocks: z.number().int().nonnegative().default(0),
+  guard_checks: z.number().int().min(0).max(2).default(0),
+  guard_rejections: z.number().int().min(0).max(2).default(0),
+  repair_attempts: z.number().int().min(0).max(1).default(0),
+  repair_successes: z.number().int().min(0).max(1).default(0),
+  repair_latency_ms: z.number().int().nonnegative().default(0),
   draft: z.boolean().default(false), handoff: z.boolean().default(false),
 }).strict()
 

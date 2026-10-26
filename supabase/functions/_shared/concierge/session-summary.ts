@@ -9,10 +9,15 @@ export function summarizeSession(state: ConciergeV2SessionMutableState): Concier
   // Canonical constraints/draft remain separate and never depend on lossy prose.
   const summary = JSON.stringify({
     source: 'session_state',
+    scope: 'session',
     draft_id: state.draft?.draft_id ?? null,
     accepted: state.draft?.items.slice(0, 3).map(i => i.menu_item_id) ?? [],
     pending: state.pending_suggestion_ids.slice(0, 3),
     unresolved: state.draft?.review_state ?? (state.pending_suggestion_ids.length ? 'SUGGESTIONS' : 'DISCOVERY'),
+    goal: state.conversation_context?.goal,
+    pending_field: state.conversation_context?.pending_question?.missing_field,
+    changed: state.conversation_context?.changed_fields,
   })
-  return { ...state, summary: tokenUpperBound(summary) <= 400 ? summary : JSON.stringify({ draft_id: state.draft?.draft_id ?? null, accepted_count: state.draft?.items.length ?? 0, pending_count: state.pending_suggestion_ids.length }), transcript: state.transcript.slice(-4) }
+  return { ...state, summary: tokenUpperBound(summary) <= 400 ? summary : JSON.stringify({ source: 'session_state', scope: 'session', draft_id: state.draft?.draft_id ?? null, accepted_count: state.draft?.items.length ?? 0, pending_count: state.pending_suggestion_ids.length,
+    goal: state.conversation_context?.goal, pending_field: state.conversation_context?.pending_question?.missing_field }), transcript: state.transcript.slice(-4) }
 }

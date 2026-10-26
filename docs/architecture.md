@@ -49,7 +49,7 @@ supabase/
       ...                   Shared server authorization and domain services
   migrations/               Ordered, immutable database changes
 
-tests/                      Unit, server, integration, policy, E2E, and tooling suites
+tests/                      Unit, server, integration, policy, and E2E suites
 scripts/architecture/       Dependency boundary and cycle checks
 docs/                       Current developer and operational documentation
 plans/                      Implementation plans and historical reports

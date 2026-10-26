@@ -15,6 +15,10 @@ export type ConciergeTurnIntent =
 
 export type UnderstandingConfidence = 'high' | 'medium' | 'low'
 
+export type ReadNeed =
+  | { kind: 'menu'; mode: 'browse' | 'detail' | 'recommendation'; merchandising: ('signature' | 'bestseller' | 'new')[]; query?: string }
+  | { kind: 'restaurant'; query: string }
+
 export type MemoryIntent = 'faq' | 'food_or_draft'
 
 /** Canonical text forms. `searchForm` is the diacritic-insensitive match form. */
@@ -34,6 +38,12 @@ export interface ConstraintDelta {
   childVerb?: string
   spice?: 'zero' | 'clear'
   budgetVnd?: number
+  budgetBasis?: 'total' | 'per_person'
+  clearBudget?: boolean
+  requestedDishCount?: number
+  requestedDishCountScope?: 'final_meal' | 'new_additions'
+  /** Invalid explicit count must be clarified, never silently clamped. */
+  requestedDishCountInvalid?: boolean
   /** Raw budget marker word (`ngan sach`, `toi da`, `con`, …) for hard-budget merge. */
   budgetMarker?: string
 }
@@ -45,6 +55,9 @@ export type DraftCommand =
 export interface TurnUnderstanding {
   normalized: NormalizedTurnText
   intent: ConciergeTurnIntent
+  readNeeds: ReadNeed[]
+  /** Goals recognized but not executed by this bounded turn implementation. */
+  deferredReadNeeds: ReadNeed[]
   confidence: UnderstandingConfidence
   constraintsDelta: ConstraintDelta
   /** Catalog/state-free signal; full resolution via understandDraft(). */

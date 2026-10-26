@@ -28,6 +28,7 @@ export interface RetrieveSelectiveMemoryInput {
   repository: ConciergeV2MemoryRepository
   currentSessionConstraints?: string[]
   nowIso?: string
+  intent?: 'faq' | 'food_or_draft'
 }
 
 const FAQ_INTENT_PATTERNS: RegExp[] = [
@@ -176,7 +177,7 @@ export async function retrieveSelectiveMemory(
 ): Promise<ConciergeV2MemoryRetrievalResult> {
   const { message, actor, repository, currentSessionConstraints = [], nowIso } = input
 
-  const intent = classifyMemoryIntent(message)
+  const intent = input.intent ?? classifyMemoryIntent(message)
   if (intent === 'faq') {
     return ConciergeV2MemoryRetrievalResultSchema.parse({
       intent_type: 'faq',
@@ -237,6 +238,12 @@ export async function retrieveSelectiveMemory(
   }
 
   const nowMs = nowIso ? Date.parse(nowIso) : Date.now()
+  // A privacy operation may have completed while a repository read was in flight.
+  const latest = await repository.getSettings().catch(() => undefined)
+  if (!latest?.enabled || latest.memory_epoch !== settings.memory_epoch) {
+    return ConciergeV2MemoryRetrievalResultSchema.parse({ intent_type: intent, fetched_from_storage: true,
+      facts: [], formatted_prompt: '', estimated_tokens: 0 })
+  }
 
   // Filter out any expired facts
   const unexpiredFacts = rawFacts.filter((f) => {
@@ -267,6 +274,9 @@ export async function retrieveSelectiveMemory(
       food,
       source: fact.source,
       confidence: fact.confidence,
+      observed_at: fact.observed_at,
+      expires_at: fact.expires_at,
+      epoch: settings.memory_epoch,
     }
 
     if (fact.memory_type === 'allergy') {

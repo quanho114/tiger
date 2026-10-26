@@ -20,6 +20,15 @@ import { SuggestedActions } from './SuggestedActions'
 import { StreamingMessage } from './StreamingMessage'
 import type { ConciergeCard } from '../types'
 
+function menuPrice(item: { pricing_mode?: string; price_vnd: number; price_min?: number | null; price_max?: number | null }): string {
+  const money = (value: number) => `${value.toLocaleString('vi-VN')} đ`
+  if (item.pricing_mode === 'market') return 'Giá thị trường · cần xác nhận'
+  if (item.pricing_mode === 'unknown') return 'Giá chưa xác minh'
+  if (item.pricing_mode === 'range') return item.price_min != null && item.price_max != null
+    ? `${money(item.price_min)} – ${money(item.price_max)}` : 'Khoảng giá chưa xác minh'
+  return money(item.price_vnd)
+}
+
 interface ConciergeChatViewProps {
   onClose?: () => void
   onMore?: () => void
@@ -96,9 +105,9 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose, onMore,
           {card.item.image_url && <img src={card.item.image_url} alt="" className="h-28 w-full object-cover" loading="lazy" />}
           <div className="p-3">
           <p className="text-xs text-stone-600">Gợi ý · Chưa chọn</p>
-          <strong>{card.item.name}</strong><p>{card.item.price_vnd.toLocaleString('vi-VN')} đ</p>
-          {card.item.safety_state !== 'verified_safe' && <p className="text-amber-900">Chưa xác minh an toàn dị ứng. Cần hỏi nhân viên.</p>}
-          <button type="button" disabled={isLoading || stale} className="mt-2 rounded-lg bg-[#173866] px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+          <strong>{card.item.name}</strong><p>{menuPrice(card.item)}</p>
+           {card.item.is_bestseller === true && <p className="text-xs text-stone-600">Món bán chạy theo thực đơn</p>}
+          <button type="button" disabled={isLoading || stale || (card.item.pricing_mode ?? 'fixed') !== 'fixed'} className="mt-2 rounded-lg bg-[#173866] px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
             onClick={() => mutateDraft({ type: 'add_item', pending_suggestion_id: card.suggestion_id, menu_item_id: card.item.id, quantity: 1, note: '' })}>Chọn vào giỏ nháp</button>
           </div>
         </div>
@@ -107,12 +116,16 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose, onMore,
         return <div key={card.plan_id} className="rounded-xl border border-stone-300 bg-white p-4 text-sm">
           <p className="font-semibold text-[#173866]">Mâm tham khảo</p>
           <ul className="mt-2 space-y-1">
-            {card.lines.map(line => <li key={line.suggestion_id}>{line.quantity} × {line.item.name} · {line.item.price_vnd.toLocaleString('vi-VN')} đ/phần</li>)}
+            {card.lines.map(line => <li key={line.suggestion_id}>{line.quantity} × {line.item.name} · {menuPrice(line.item)}/phần{line.item.is_bestseller === true ? ' · Bán chạy' : ''}</li>)}
           </ul>
-          <p className="mt-2 font-semibold">Tạm tính món: {card.subtotal_vnd.toLocaleString('vi-VN')} đ</p>
+          <p className="mt-2 font-semibold">Tạm tính món: {menuPrice({ price_vnd: card.subtotal_vnd,
+            pricing_mode: card.subtotal_min_vnd != null && card.subtotal_max_vnd != null && card.subtotal_min_vnd !== card.subtotal_max_vnd ? 'range' : 'fixed',
+            price_min: card.subtotal_min_vnd, price_max: card.subtotal_max_vnd })}</p>
+          {card.budget_status === 'conditional' && <p className="mt-1 text-amber-900">Chưa xác định đầy đủ phí bắt buộc; chưa bảo đảm tổng hóa đơn cuối cùng.</p>}
+          {card.orderable_exact === false && <p className="mt-1 text-stone-600">Đây là dự toán khoảng giá, chưa phải giá đặt món đã chốt.</p>}
           {card.warnings.map(warning => <p key={warning} className="mt-1 text-amber-900">{warning}</p>)}
           <p className="mt-1 text-stone-600">Chưa bao gồm phí giao hàng. Vui lòng kiểm tra giá và dị ứng trước khi đặt.</p>
-          <button type="button" disabled={isLoading || stale} className="mt-3 rounded-lg bg-[#173866] px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+          <button type="button" disabled={isLoading || stale || card.orderable_exact === false} className="mt-3 rounded-lg bg-[#173866] px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
             onClick={() => sendAction({ type: 'accept_meal_plan', plan_id: card.plan_id,
               suggestion_ids: card.lines.map(line => line.suggestion_id) })}>Chọn cả mâm vào giỏ nháp</button>
         </div>
@@ -281,11 +294,25 @@ export const ConciergeChatView: FC<ConciergeChatViewProps> = ({ onClose, onMore,
             </div>
 
             {/* Render Cards underneath message */}
-            {msg.delivery !== 'pending' && msg.delivery !== 'interrupted' && msg.cards && msg.cards.length > 0 && (
-              <div className={`w-full mt-2.5 ${msg.cards.some(card => card.type === 'draft_suggestion') ? 'flex gap-3 overflow-x-auto pb-2' : 'space-y-2.5'}`}>
-                {msg.cards.map((card, idx) => renderCard(card, idx, msg.id !== latestReply?.id))}
-              </div>
-            )}
+            {msg.delivery !== 'pending' && msg.delivery !== 'interrupted' && msg.cards && msg.cards.length > 0 && (() => {
+              const stale = msg.id !== latestReply?.id
+              const suggestionCards = msg.cards.filter(card => card.type === 'draft_suggestion')
+              const otherCards = msg.cards.filter(card => card.type !== 'draft_suggestion')
+              return (
+                <div className="mt-2.5 w-full space-y-3">
+                  {suggestionCards.length > 0 && (
+                    <div className="flex gap-3 overflow-x-auto pb-2">
+                      {suggestionCards.map((card, idx) => renderCard(card, idx, stale))}
+                    </div>
+                  )}
+                  {otherCards.length > 0 && (
+                    <div className="space-y-2.5">
+                      {otherCards.map((card, idx) => renderCard(card, idx, stale))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         ))}
 

@@ -50,6 +50,8 @@ export type ProfileSource =
   | 'admin'
 
 export interface MenuDomainItem {
+  sourceUpdatedAt?: string | null
+  profileUpdatedAt?: string | null
   id: string
   name: string
   description: string | null
@@ -92,4 +94,6 @@ export interface MenuSnapshot {
   version: string
   loadedAt: string
   items: MenuDomainItem[]
+  expiresAt?: string
+  freshness?: 'fresh' | 'stale'
 }

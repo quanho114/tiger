@@ -172,8 +172,8 @@ export async function upsertServingProfile(
       updated.meal_role, updated.meal_context, updated.contributions.protein, updated.contributions.carb,
       updated.contributions.vegetable, updated.contributions.soup, updated.confidence, updated.provenance, source],
   )
-  await audit(pool, actorId, 'update_serving_profile', 'serving_profile', itemId, updates as Record<string, unknown>)
   invalidateMenuSnapshot()
+  await audit(pool, actorId, 'update_serving_profile', 'serving_profile', itemId, updates as Record<string, unknown>)
   return updated
 }
 
@@ -205,7 +205,7 @@ export async function upsertAllergenProfile(
       updated.verified_at ?? null, updated.verified_by_kitchen ? (updated.updated_by ?? null) : null,
       updated.kitchen_notes ?? '', `admin_audit:${actorId ?? 'kitchen_staff'}`],
   )
-  await audit(pool, actorId, 'update_allergen_profile', 'allergen_profile', itemId, updates as Record<string, unknown>)
   invalidateMenuSnapshot()
+  await audit(pool, actorId, 'update_allergen_profile', 'allergen_profile', itemId, updates as Record<string, unknown>)
   return updated
 }

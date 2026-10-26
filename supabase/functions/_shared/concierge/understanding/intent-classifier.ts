@@ -25,8 +25,11 @@ export type { ConciergeTurnIntent }
 export function namedMenuQuery(message: string): string | null {
   const text = normalizeIntent(message)
   const entity = /^(?:(?:ben minh|quan minh) )?co (?:mon )?(.+?) (?:khong|k)$/.exec(text)?.[1] ??
-    /^(.+?) (?:gia bao nhieu|bao nhieu|con (?:khong|k))$/.exec(text)?.[1]
+    /^(.+?) (?:gia bao nhieu|bao nhieu|con (?:khong|k))$/.exec(text)?.[1] ??
+    /^(?:mon )?(.+?) (?:gom (?:nhung )?(?:gi|nguyen lieu gi)|co (?:nhung )?thanh phan gi|lam tu gi)$/.exec(text)?.[1] ??
+    /^(?:cho (?:toi|minh) (?:xem|biet) |xem |hoi )?(?:chi tiet|gia|thong tin) (?:mon )?(.+)$/.exec(text)?.[1]
   if (!entity || /\b(?:nao|gi|ngon|khau vi|phu hop)\b/.test(entity) ||
+      /\b(?:dac san|dac trung|signature|ban chay|mon moi|menu|thuc don)\b/.test(entity) ||
       /\b(?:phong|wifi|xe|ban|nhac|ship|giao hang|dia chi|gio mo|gio dong)\b/.test(entity)) return null
   return entity
 }

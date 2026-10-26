@@ -6,16 +6,25 @@ import { TOOL_POLICIES, isForbiddenCustomerTool } from './policy/confirmation-po
 import { isToolAllowedForPrincipal } from './policy/authorization.ts'
 import type { AgentPrincipal } from './policy/capabilities.ts'
 
-const query = z.object({ query: z.string().max(200).optional(), limit: z.number().int().min(1).max(8).optional(), category_id: z.string().uuid().optional() }).strict()
+// Menu IDs follow the catalog contract, including PostgreSQL-valid seeded UUIDs
+// that do not use an RFC version/variant accepted by z.string().uuid().
+const query = z.object({ query: z.string().max(200).optional(), limit: z.number().int().min(1).max(8).optional(), category_id: ConciergeV2MenuCandidateSchema.shape.category_id, is_signature: z.boolean().optional() }).strict()
+const menuEvidence = ConciergeV2MenuRetrievalResultSchema.extend({
+  status: z.enum(['known', 'empty', 'unknown']).optional(),
+  unresolved_needs: z.array(z.enum(['bestseller', 'new'])).optional(),
+})
 const recommend = z.object({ adults: z.number().int().min(1).max(30).optional(), children: z.number().int().min(0).max(30).optional(),
   appetite: z.enum(['light', 'normal', 'heavy']).optional(), budget_vnd: z.number().int().nonnegative().nullable().optional(),
   is_hard_budget: z.boolean().optional(), allergies: z.array(z.string().max(120)).max(12).optional(),
   preferences: z.array(z.string().max(120)).max(12).optional(), dislikes: z.array(z.string().max(120)).max(12).optional() }).strict()
 export const V2_TOOL_REGISTRY = {
-  search_menu_items: { kind: 'read', input: query, output: ConciergeV2MenuRetrievalResultSchema },
-  get_menu_item: { kind: 'read', input: z.object({ item_id: z.string().uuid() }).strict(),
-    output: z.object({ item: ConciergeV2MenuCandidateSchema.nullable(), description: z.string().max(700).nullable() }).strict() },
-  recommend_meal: { kind: 'read', input: recommend, output: ConciergeV2MenuRetrievalResultSchema.extend({ plans: MealPlansSchema }) },
+  search_menu_items: { kind: 'read', input: query, output: menuEvidence },
+  get_menu_item: { kind: 'read', input: z.object({ item_id: ConciergeV2MenuCandidateSchema.shape.id }).strict(),
+    output: z.object({ item: ConciergeV2MenuCandidateSchema.nullable(), description: z.string().max(700).nullable(),
+      status: z.enum(['known', 'empty', 'unknown']).optional(),
+      missing_fields: z.array(z.enum(['description', 'spice_level', 'serving_size'])).optional(),
+    }).strict() },
+  recommend_meal: { kind: 'read', input: recommend, output: menuEvidence.extend({ plans: MealPlansSchema }) },
   lookup_restaurant_info: { kind: 'read', input: z.object({ query: z.string().max(200) }).strict(), output: z.object({
     status: z.enum(['known', 'unknown', 'unavailable']),
     source: z.enum(['operational_settings', 'approved_knowledge']).nullable(),
@@ -67,6 +76,7 @@ export function assertToolAllowedForPrincipal(toolName: string, principal: Agent
 export const V2_READ_TOOLS: ModelTool[] = [
   { name: 'search_menu_items', description: 'Search the current published menu for dishes matching the customer request. Use this before recommending dishes or answering menu availability questions. Do not invent menu names, prices, ingredients, or availability.', parameters: { type: 'object', additionalProperties: false, properties: {
     query: { type: 'string', maxLength: 200 }, limit: { type: 'integer', minimum: 1, maximum: 8 }, category_id: { type: 'string', format: 'uuid' },
+    is_signature: { type: 'boolean', description: 'Only signature specialties; never use for bestsellers or new dishes.' },
   } } },
   { name: 'get_menu_item', description: 'Read verified details for a menu item ID from the current page or a search result. Description is menu text, not a complete ingredient or allergy guarantee.',
     parameters: { type: 'object', additionalProperties: false, properties: { item_id: { type: 'string', format: 'uuid' } }, required: ['item_id'] } },

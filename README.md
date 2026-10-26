@@ -198,7 +198,6 @@ npm run test:e2e
 npm run build
 ```
 
-
 ---
 
 ## Sổ tay vận hành hệ thống (Operational Runbooks)

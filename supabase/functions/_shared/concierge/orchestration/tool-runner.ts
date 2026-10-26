@@ -12,7 +12,7 @@ import crypto from 'node:crypto'
 import { V2_TOOL_REGISTRY, validateV2Tool } from '../tool-registry.ts'
 import type { ModelTool } from '../context.ts'
 import { TOOL_POLICIES } from '../policy/confirmation-policy.ts'
-import { ToolGateway, type ToolObservation } from '../tools/gateway.ts'
+import { ToolGateway, ToolError, type ToolObservation } from '../tools/gateway.ts'
 import { retrieveMenuCandidates } from '../menu-retrieval.ts'
 import { evaluateFoodSafety, sanitizeCatalogText } from '../food-safety.ts'
 import { buildMealPlans } from '../meal-planner.ts'
@@ -21,9 +21,10 @@ import { loadKnowledgeSnapshot } from '../knowledge-repository.ts'
 import { searchRestaurantKnowledge } from '../rag.ts'
 import { checkReservationAvailability } from '../reservation-availability.ts'
 import { normalizeIntent } from '../draft-intent.ts'
-import { namedMenuQuery } from '../understanding/intent-classifier.ts'
 import type { TurnScope } from './turn-context.ts'
-import type { ToolExchange } from '../context.ts'
+import type { ToolExchange, EvidenceStatus } from '../context.ts'
+import { remainingMenuBudget } from '../budget.ts'
+import { normalizeMenuSearch, type RetrievalPreference } from '../menu-search.ts'
 
 async function lookupRestaurantEvidence(pool: TurnScope['pool'], query: string) {
   const field = restaurantFactField(query)
@@ -68,9 +69,17 @@ export function registerTurnExecutors(gateway: ToolGateway, scope: TurnScope): v
     ...read('get_menu_item'),
     name: 'get_menu_item',
     execute: async (args) => {
+      if (scope.catalogUnavailable) throw new Error('CATALOG_UNAVAILABLE')
       const knowledge = requireKnowledge(scope)
       const item = scope.catalog.find((entry) => entry.id === (args as { item_id: string }).item_id)
-      const safety = item ? evaluateFoodSafety(item, scope.next.constraints.allergies, knowledge.allergenProfiles[item.id]) : null
+      const safety = item ? evaluateFoodSafety(item, scope.next.constraints.allergies, knowledge.allergenProfiles[item.id], { ingredientOnly: true }) : null
+      const text = scope.understanding?.normalized.searchForm ?? ''
+      const missing: ('description' | 'spice_level' | 'serving_size')[] = []
+      if (item) {
+        if (/\b(?:chi tiet|mo ta|gom|nguyen lieu|thanh phan|lam tu)\b/.test(text) && !item.description?.trim()) missing.push('description')
+        if (/\bcay\b/.test(text) && item.spice_level == null) missing.push('spice_level')
+        if (/\b(?:khau phan|may nguoi|bao nhieu nguoi)\b/.test(text) && !item.serving_size) missing.push('serving_size')
+      }
       return V2_TOOL_REGISTRY.get_menu_item.output.parse({ item: item && safety ? {
         id: item.id, name: sanitizeCatalogText(item.name), price_vnd: item.price_vnd,
         pricing_mode: item.pricing_mode ?? 'fixed', price_min: item.price_min ?? null, price_max: item.price_max ?? null,
@@ -82,7 +91,8 @@ export function registerTurnExecutors(gateway: ToolGateway, scope: TurnScope): v
             scope.next.constraints.order_mode === 'dine_in' ? item.allow_dine_in !== false : true),
         safety_state: safety.safety_state, safety_notes: safety.notes,
         provenance: 'catalog:live_menu', tags: (item.tags ?? []).map(sanitizeCatalogText).slice(0, 10),
-      } : null, description: item?.description ? sanitizeCatalogText(item.description) : null })
+      } : null, description: item?.description ? sanitizeCatalogText(item.description) : null,
+      ...(missing.length ? { status: 'unknown', missing_fields: missing } : {}) })
     },
   })
 
@@ -124,10 +134,12 @@ export function registerTurnExecutors(gateway: ToolGateway, scope: TurnScope): v
   })
 
   const runCandidateRetrieval = async (args: unknown, isRecommend: boolean) => {
+    if (scope.catalogUnavailable) throw new Error('CATALOG_UNAVAILABLE')
     const knowledge = requireKnowledge(scope)
     const message = scope.request.message ?? ''
     const text = scope.understanding ? scope.understanding.normalized.searchForm : normalizeIntent(message)
-    const search = !isRecommend ? (args as { query?: string; limit?: number; category_id?: string }) : undefined
+    const search = !isRecommend ? (args as { query?: string; limit?: number; category_id?: string; is_signature?: boolean }) : undefined
+    const menuNeed = scope.understanding?.readNeeds.find(need => need.kind === 'menu')
     const refersToViewedItem = Boolean(scope.request.page_context?.menu_item_id &&
       /\b(?:mon nay|cai nay|mon dang xem)\b/.test(text) &&
       /\b(?:gom|nguyen lieu|thanh phan|cay|gia|bao nhieu|giao duoc|co gi|lam tu|mo ta)\b/.test(text))
@@ -135,23 +147,42 @@ export function registerTurnExecutors(gateway: ToolGateway, scope: TurnScope): v
       ? scope.catalog.find((item) => item.id === scope.request.page_context?.menu_item_id) : undefined
     const query = viewedItem?.name || search?.query || message
     const matches = scope.catalog.filter((i) => text.includes(normalizeIntent(i.name)))
-    const namedItem = namedMenuQuery(message)
+    const namedItem = scope.understanding?.entities.namedMenuQuery
     const replacement = scope.next.pending_items?.length
       ? /^(?:doi|thay)\s+mon\s+(.+?)(?:\s+(?:di|nhe|nha))?$/.exec(text) : null
     const selection = viewedItem ? [viewedItem] : replacement ? scope.catalog : namedItem
-      ? scope.catalog.filter((item) => normalizeIntent(`${item.name} ${item.category_name ?? ''} ${(item.tags ?? []).join(' ')}`).includes(namedItem))
+      ? scope.catalog.filter((item) => normalizeMenuSearch(`${item.name} ${item.category_name ?? ''} ${(item.tags ?? []).join(' ')}`).includes(normalizeMenuSearch(namedItem)))
       : matches.length ? matches : scope.catalog
-    const candidates = await retrieveMenuCandidates(selection, { query: query.slice(0, 200),
+    const unresolved = (menuNeed?.merchandising ?? []).filter((target): target is 'bestseller' | 'new' =>
+      target === 'bestseller' ? selection.some(item => item.is_bestseller === undefined) :
+        target === 'new' ? selection.some(item => item.is_new === undefined) : false)
+    const retrievalSelection = selection
+    const context = scope.next.memory_context
+    const preferences: RetrievalPreference[] = scope.next.constraints.preferences.map(text => {
+      const imported = context?.imported.find(fact => fact.memory_type === 'preference' && fact.food === text)
+      const current = context?.current.preferences.includes(text)
+      return { text, source: current || !imported ? 'current' : imported.source === 'explicit' ? 'explicit' : 'inferred' }
+    })
+    const remainingBudget = remainingMenuBudget(scope.next.constraints.budget_vnd, scope.next.draft?.subtotal_vnd ?? 0)
+    const validCategoryId = search?.category_id && scope.catalog.some(item => item.category_id === search.category_id)
+      ? search.category_id : undefined
+    const candidates = await retrieveMenuCandidates(retrievalSelection, { query: query.slice(0, 200),
       limit: isRecommend ? 8 : Math.min(search?.limit ?? 4, 4),
-      category_id: search?.category_id,
+      category_id: validCategoryId,
+      is_signature: menuNeed?.merchandising.includes('signature') || search?.is_signature,
+      is_bestseller: menuNeed?.merchandising.includes('bestseller'),
+      is_new: menuNeed?.merchandising.includes('new'),
+      price_policy: isRecommend ? 'bounded' : 'discovery',
       diversify_categories: isRecommend,
       allergies: scope.next.constraints.allergies, dislikes: scope.next.constraints.dislikes,
       order_mode: scope.next.constraints.order_mode,
-      max_budget_vnd: scope.next.constraints.is_hard_budget ? scope.next.constraints.budget_vnd ?? undefined : undefined,
-      max_spice_level: scope.next.constraints.max_spice_level }, knowledge)
+      max_budget_vnd: isRecommend ? remainingBudget : undefined,
+      max_spice_level: scope.next.constraints.max_spice_level }, knowledge, preferences, isRecommend ? 48 : undefined)
     const plans = isRecommend
-      ? buildMealPlans(candidates.candidates, scope.next.constraints, knowledge, scope.next.draft?.subtotal_vnd ?? 0) : []
-    return { candidates, plans, isRecommend }
+      ? buildMealPlans(candidates.candidates, scope.next.constraints, knowledge, scope.next.draft?.subtotal_vnd ?? 0,
+        scope.next.draft?.items.map(item => item.menu_item_id) ?? []) : []
+    return { candidates: { ...candidates, candidates: candidates.candidates.slice(0, 8),
+      ...(unresolved.length ? { status: 'unknown' as const, unresolved_needs: unresolved } : {}) }, plans, isRecommend }
   }
 
   gateway.register({
@@ -179,15 +210,8 @@ export function registerTurnExecutors(gateway: ToolGateway, scope: TurnScope): v
       const query = scope.reservationQuery
       if (!query) throw new Error('MISSING_RESERVATION_QUERY')
       const startsAt = new Date(query.startsAt)
-      try {
-        const availability = await checkReservationAvailability(scope.pool, startsAt, query.guests)
-        return V2_TOOL_REGISTRY.check_reservation_availability.output.parse(availability)
-      } catch {
-        return V2_TOOL_REGISTRY.check_reservation_availability.output.parse({
-          status: 'unverified', starts_at: startsAt.toISOString(), guest_count: query.guests,
-          reason: 'Reservation availability could not be verified.',
-        })
-      }
+      const availability = await checkReservationAvailability(scope.pool, startsAt, query.guests)
+      return V2_TOOL_REGISTRY.check_reservation_availability.output.parse(availability)
     },
   })
 }
@@ -205,30 +229,45 @@ export function selectToolCalls(
   fallbackCalls: ModelToolCall[],
 ): ModelToolCall[] {
   const allowedToolNames = new Set(activeTools.map((tool) => tool.name))
-  const modelCalls = planCalls.filter((call) => {
+  const valid = (call: ModelToolCall) => {
     if (!allowedToolNames.has(call.name) || !Object.hasOwn(V2_TOOL_REGISTRY, call.name)) return false
     try { return validateV2Tool(call.name, call.arguments).tool.kind === 'read' }
     catch { return false }
-  })
-  return modelCalls.length ? modelCalls : fallbackCalls
+  }
+  const modelCalls = planCalls.filter(valid)
+  const fallback = fallbackCalls.filter(valid)
+  // A valid menu call must not silently discard a separate restaurant read (or vice versa).
+  const domain = (name: string) => ['search_menu_items', 'get_menu_item'].includes(name) ? 'menu' : name
+  return [...modelCalls, ...fallback.filter(call => !modelCalls.some(model => domain(model.name) === domain(call.name)))]
 }
 
 export async function runModelTools(
   scope: TurnScope,
   gateway: ToolGateway,
   calls: ModelToolCall[],
+  activeTools: ModelTool[],
 ): Promise<ToolExchange[]> {
   const exchanges: ToolExchange[] = []
   for (const call of calls) {
+    if (!activeTools.some(tool => tool.name === call.name)) throw new Error('INACTIVE_TOOL')
     const checked = validateV2Tool(call.name, call.arguments)
     if (checked.tool.kind !== 'read') throw new Error('UNAUTHORIZED_TOOL_MUTATION')
     scope.budget.consumeTool()
     const exchangeId = 'id' in call && typeof call.id === 'string' ? call.id : `server_${crypto.randomUUID()}`
-    const observation: ToolObservation = await gateway.execute(call.name, checked.args, {
-      principal: scope.capability.principal,
-      ownerUserId: scope.capability.principal.userId,
-      signal: scope.helpers.signal,
-    })
+    let observation: ToolObservation
+    try {
+      observation = await gateway.execute(call.name, checked.args, {
+        principal: scope.capability.principal,
+        ownerUserId: scope.capability.principal.userId,
+        signal: scope.helpers.signal,
+      })
+    } catch (error) {
+      // Authorization failures remain failures, never successful evidence or automatic retries.
+      if (!(error instanceof ToolError) || !['TOOL_TIMEOUT', 'TOOL_EXECUTION_FAILED', 'TOOL_OUTPUT_INVALID'].includes(error.code)) throw error
+      exchanges.push({ id: exchangeId, name: call.name, arguments: checked.args,
+        result: { status: 'unavailable', reason: error.code }, evidenceStatus: 'unavailable' })
+      continue
+    }
     exchanges.push({ id: exchangeId, name: call.name, arguments: checked.args, result: observation.data })
   }
   return exchanges
@@ -240,12 +279,25 @@ export function createTurnGateway(scope: TurnScope): ToolGateway {
   return gateway
 }
 
-export function computeEvidenceStatus(exchanges: ToolExchange[]): 'known' | 'unknown' | 'unavailable' {  return exchanges.some((exchange) => {
-    const value = exchange.result as { status?: string; candidates?: unknown[]; item?: unknown; orders?: unknown[]; addresses?: unknown[] } | null
-    return value?.status === 'unknown' || value?.status === 'unavailable' ||
-      (Array.isArray(value?.candidates) && value.candidates.length === 0) ||
-      ('item' in (value ?? {}) && value?.item === null) ||
-      (Array.isArray(value?.orders) && value.orders.length === 0) ||
-      (Array.isArray(value?.addresses) && value.addresses.length === 0)
-  }) ? 'unknown' : 'known'
+export function evidenceStatusFor(exchange: ToolExchange): EvidenceStatus {
+  if (exchange.evidenceStatus) return exchange.evidenceStatus
+  const value = exchange.result as { status?: string; candidates?: unknown[]; item?: unknown; orders?: unknown[]; addresses?: unknown[] } | null
+  // Reservation "unavailable" is a verified lack of capacity, not a dependency failure.
+  if (exchange.name === 'check_reservation_availability' && value?.status === 'unavailable') return 'known'
+  if (value?.status === 'unavailable') return 'unavailable'
+  if (value?.status === 'unknown' || value?.status === 'unverified' || value === null) return 'unknown'
+  return (
+    (Array.isArray(value?.candidates) && value.candidates.length === 0) ||
+    ('item' in (value ?? {}) && value?.item === null) ||
+    (Array.isArray(value?.orders) && value.orders.length === 0) ||
+    (Array.isArray(value?.addresses) && value.addresses.length === 0)
+  ) ? 'empty' : 'known'
+}
+
+/** Conservative aggregate for the guard; composition retains each tool's own outcome. */
+export function computeEvidenceStatus(exchanges: ToolExchange[]): EvidenceStatus {
+  if (!exchanges.length) return 'not_attempted'
+  const statuses = exchanges.map(evidenceStatusFor)
+  return statuses.includes('unavailable') ? 'unavailable' : statuses.includes('unknown') ? 'unknown'
+    : statuses.includes('empty') ? 'empty' : 'known'
 }

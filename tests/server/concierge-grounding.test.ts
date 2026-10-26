@@ -312,8 +312,9 @@ it('gives a guest a priced meal set for a group budget without verified serving 
     idle_expires_at: new Date().toISOString(), absolute_expires_at: new Date().toISOString(), idempotency: [] } as ConciergeV2SessionRecord
   const turn = await orchestrateGroundedTurn({ protocol_version: 'concierge-v2', request_id: crypto.randomUUID(),
     message: '4 người ăn gì khoảng 800k?' }, record, pool, model)
-  expect(turn.result.cards).toMatchObject([{ type: 'meal_plan', subtotal_vnd: 450000,
-    validation_status: 'WARNING' }])
+  expect(turn.result.cards[0]).toMatchObject({ type: 'meal_plan', subtotal_vnd: 450000,
+    subtotal_max_vnd: 450000, budget_status: 'conditional', validation_status: 'WARNING' })
+  expect(turn.result.cards.filter(card => card.type === 'meal_plan').every(card => card.subtotal_vnd <= 800000)).toBe(true)
   expect(turn.next.constraints).toMatchObject({ adults: 4, budget_vnd: 800000, party_size_confirmed: true })
   expect(turn.result.suggested_actions).toContain('Gợi ý mâm dưới 380k')
 })
@@ -337,7 +338,7 @@ it('keeps group and spice context while replacing a rejected protein', async () 
     message: 'đổi món bò đi' }, record, pool, model)
   expect(replacement.next.constraints).toMatchObject({ adults: 4, budget_vnd: 800000, max_spice_level: 0 })
   expect(replacement.next.constraints.dislikes).toContain('bo')
-  expect(replacement.result.cards).toMatchObject([{ type: 'meal_plan' }])
+  expect(replacement.result.cards[0]).toMatchObject({ type: 'meal_plan', budget_status: 'conditional' })
   expect(JSON.stringify(replacement.result.cards)).toContain('Gà hấp')
   expect(JSON.stringify(replacement.result.cards)).not.toContain('Bò nướng')
 })

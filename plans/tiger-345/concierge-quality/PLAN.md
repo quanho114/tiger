@@ -68,7 +68,7 @@ The model may classify ambiguous phrasing and write conversational text. It may 
 
 ### Q6 — Provider and staged acceptance (after Q1–Q5, explicit opt-in)
 
-- Reuse `../concierge-v2/live-evaluation.md`: synthetic staging catalog, capped budget approved separately, configured provider/model/version, per-case usage and latency, no production raw-chat telemetry. Test positive cart/order transitions with owned real-service fixtures.
+- Reuse `../concierge-v2/live-evaluation.md`: synthetic staging catalog, capped budget approved separately, configured provider/model/version, per-case usage and latency, no production raw-chat telemetry. Live evaluation must test positive cart/order transitions with owned real-service fixtures where appropriate.
 - Compare baseline and candidate by slice, including fact errors, clarification burden, task success, model latency and cost; get human review for a small Vietnamese sample and all disputed critical cases. Use server-controlled rollout/kill switches and preserve manual menu/cart paths.
 - Exit: zero critical safety/privacy/unauthorized-write failures in staged acceptance, reviewed task-quality targets, documented operational owner and rollback. No automatic production enablement from passing offline tests alone.
 

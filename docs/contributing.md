@@ -184,7 +184,7 @@ Một số integration/browser tests còn cần HTTP backend và Chromium. Với
 API 54331 và anon key của stack test. Các fixture có thể mặc định API 54321;
 đối chiếu từng suite trước khi chạy. Quy trình CI là tham chiếu cho toàn bộ
 browser-to-database flow; setup local riêng này không mặc định bảo đảm mọi suite.
-Không chạy đánh giá provider có tính phí như một phần kiểm tra mặc định.
+Không gọi provider thật như một phần kiểm tra mặc định.
 
 ## 8. Gửi PR
 

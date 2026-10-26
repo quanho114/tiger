@@ -5,7 +5,8 @@ export function suggestConciergeActions(result: ConciergeV2StoredTurnResult, sta
   const plan = result.cards.find(card => card.type === 'meal_plan')
   if (plan?.type === 'meal_plan') {
     const actions: string[] = []
-    const currentCeiling = Math.min(state.constraints.budget_vnd ?? plan.subtotal_vnd, plan.subtotal_vnd)
+    const proposedTotal = (state.draft?.subtotal_vnd ?? 0) + plan.subtotal_vnd
+    const currentCeiling = Math.min(state.constraints.budget_vnd ?? proposedTotal, proposedTotal)
     if (currentCeiling > 100_000) {
       const lowerBudget = Math.floor(currentCeiling * 0.85 / 10_000) * 10
       actions.push(`Gợi ý mâm dưới ${lowerBudget}k`)

@@ -97,10 +97,10 @@ describe('Phase 4 — tool selection and evidence', () => {
     expect(selectToolCalls(active, [], fallback)).toEqual(fallback)
   })
 
-  it('computes unknown evidence status like production', () => {
-    expect(computeEvidenceStatus([{ id: '1', name: 'search_menu_items', arguments: {}, result: { candidates: [] } }])).toBe('unknown')
+  it('distinguishes successful empty reads from missing information', () => {
+    expect(computeEvidenceStatus([{ id: '1', name: 'search_menu_items', arguments: {}, result: { candidates: [] } }])).toBe('empty')
     expect(computeEvidenceStatus([{ id: '1', name: 'search_menu_items', arguments: {}, result: { candidates: [{ id: 'x' }] } }])).toBe('known')
-    expect(computeEvidenceStatus([{ id: '1', name: 'get_menu_item', arguments: {}, result: { item: null } }])).toBe('unknown')
+    expect(computeEvidenceStatus([{ id: '1', name: 'get_menu_item', arguments: {}, result: { item: null } }])).toBe('empty')
   })
 
   it('gateway executes through capability boundary with shared budget', async () => {

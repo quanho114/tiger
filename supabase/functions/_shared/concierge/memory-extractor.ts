@@ -407,6 +407,10 @@ export async function processAndPersistExplicitMemory(
   // Gate 4: Process corrections and write facts
   for (const candidate of extraction.facts) {
     if (candidate.is_correction) {
+      if (candidate.memory_type === 'allergy') {
+        finalRejectionReason = 'ALLERGY_CORRECTION_REQUIRES_REVIEW'
+        continue
+      }
       try {
         const delResult = await repository.deleteFact({
           memory_type: candidate.memory_type,

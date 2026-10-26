@@ -42,7 +42,7 @@ Use real seeded menu IDs/prices rather than assuming the examples are production
 
 Offline tests validate contracts and deterministic behavior. They do not establish natural-language quality with a production model. Prepare live scenarios for Vietnamese accents/no accents, short references, corrections, allergy wording, prompt injection and multi-turn draft edits across supported configured providers. Record provider/model/version, cost ceiling, measured tokens/latency and scenario outcomes.
 
-Do not run paid model evaluations without explicit user opt-in. Use owned browser fixtures/real local services for draft/cart business writes, respecting isolation rules. No live eval is added to CI/default tests.
+Any live provider evaluation requires explicit user opt-in and stays outside CI/default tests. Use owned browser fixtures and real local services for business-write scenarios, respecting isolation rules.
 
 ## Release evidence
 

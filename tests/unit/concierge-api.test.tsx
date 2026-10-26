@@ -78,6 +78,27 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
+it('sends a suggested follow-up and a third input with the latest canonical version', async () => {
+  let version = 1
+  transport.mockImplementation(async (_url: string, options: RequestInit) => {
+    const payload = ConciergeV2TurnRequestSchema.parse(JSON.parse(options.body as string))
+    if (version > 1) expect(payload.expected_state_version).toBe(version)
+    version++
+    return new Response(JSON.stringify(reply({ request_id: payload.request_id, session: { ...session, state_version: version },
+      message: 'Bạn xem lựa chọn trong thẻ nhé.', suggested_actions: ['Gợi ý món không cay'] })))
+  })
+  const { result } = renderHook(() => useConcierge())
+  await act(async () => { await result.current.sendMessage('Cho xem menu') })
+  expect(result.current.suggestedActions).toEqual(['Gợi ý món không cay'])
+  await act(async () => { await result.current.sendMessage(result.current.suggestedActions[0]) })
+  expect(result.current.isLoading).toBe(false)
+  await act(async () => { await result.current.sendMessage('Cho xem món khác') })
+  expect(result.current.isLoading).toBe(false)
+  expect(result.current.stateVersion).toBe(4)
+  expect(transport).toHaveBeenCalledTimes(3)
+  expect(cart.applyHandoff).not.toHaveBeenCalled()
+})
+
 it('sends the draft handoff through the real client and preserves authoritative cart lines', async () => {
   const result = await sendConciergeAction({
     ...reference,
@@ -265,4 +286,26 @@ it('does not block deterministic menu turns after an opening greeting provider f
   await act(async () => { await result.current.sendMessage('Xem món ăn') })
   expect(transport).toHaveBeenCalledTimes(2)
   expect(result.current.messages.at(-1)?.delivery).toBe('complete')
+})
+
+it.each(['logout', 'account_switch'])('discards an old account response after %s while a request is in flight', async transition => {
+  const { result } = renderHook(() => useConcierge())
+  act(() => { authState.listener?.('SIGNED_IN', { user: { id: 'account-a' } }) })
+  await act(async () => { await result.current.sendMessage('Xin chào') })
+  let release!: (response: Response) => void
+  transport.mockImplementationOnce(() => new Promise<Response>(resolve => { release = resolve }))
+  let pending!: Promise<void>
+  act(() => { pending = result.current.sendMessage('Tư vấn bữa hiện tại') })
+  await waitFor(() => expect(transport).toHaveBeenCalledTimes(2))
+  act(() => { authState.listener?.(transition === 'logout' ? 'SIGNED_OUT' : 'SIGNED_IN',
+    transition === 'logout' ? null : { user: { id: 'account-b' } }) })
+  await act(async () => {
+    const request = JSON.parse(transport.mock.calls[1][1].body)
+    release(new Response(JSON.stringify(reply({ request_id: request.request_id, message: 'Thông tin riêng tài khoản cũ' }))))
+    await pending
+  })
+  expect(result.current.messages).toEqual([])
+  expect(result.current.sessionToken).toBeNull()
+  expect(result.current.draft).toBeNull()
+  expect(result.current.isLoading).toBe(false)
 })

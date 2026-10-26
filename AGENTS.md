@@ -6,7 +6,7 @@ This file provides instructions for AI coding agents (Claude Code, OpenAI Codex,
 Tiger345 is a Vietnamese restaurant web application built with:
 - **Frontend**: React 19, TypeScript, Vite 8, Tailwind CSS v4, React Router 7.
 - **Backend / Services**: Supabase (PostgreSQL, Auth, Edge Functions).
-- **Testing**: Vitest (unit/component), Playwright (E2E), Node test runner (offline tooling tests).
+- **Testing**: Vitest (unit/component/server), Playwright (E2E), Node test runner (architecture checks).
 
 ---
 
@@ -30,16 +30,39 @@ Tiger345 is a Vietnamese restaurant web application built with:
 ```sh
 npm run typecheck          # TypeScript check without emitting files
 npm run lint               # Fast linting via Oxlint
-npm run test:unit          # Unit & component tests via Vitest (107 tests)
+npm run test:unit          # Unit & component tests via Vitest
 npm run build              # Production build (tsc + vite build)
 ```
 
+### Browser & Database Testing
+
+```sh
+# Browser tests with mocked application APIs (requires Chromium):
+npm run test:e2e:mock
+
+# Database suites require a verified disposable test database:
+npm run test:policies
+npm run test:integration
+```
+
+See `docs/contributing.md` for prerequisites and test database isolation. Mock
+browser tests do not replace real-provider chatbot runtime acceptance below.
+
+---
+
 ## 3. Safety Boundaries for Coding Agents
 
-- Never print, log, hardcode, or commit API keys or Supabase credentials.
-- Do not write secrets into `.env` files or commit `.env*`.
-- Live provider evaluations incur API costs and require explicit user opt-in.
-- Never add paid live evaluations to default tests, CI, or pre-commit hooks.
+1. **Zero Secret Leakage**:
+   - Never print, log, hardcode, or commit API keys or privileged Supabase keys.
+   - Do not write secrets into `.env` files or commit `.env*`.
+
+2. **Test Isolation**:
+   - Database mutations and fixtures require a verified disposable test database.
+   - Do not use personal browser sessions, real customer data, or shared/production databases for automated tests.
+   - Mock browser tests are not evidence of real backend or provider behavior.
+
+3. **No Automatic Live Evals in CI**:
+   - Never put paid provider evaluations in default `test`, CI, or pre-commit hooks. Live evaluations incur API costs and require explicit user opt-in.
 
 ---
 

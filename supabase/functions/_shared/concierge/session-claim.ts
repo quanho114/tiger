@@ -2,6 +2,7 @@ import type pg from 'pg'
 import { ConciergeV2SessionRecordSchema, type ConciergeV2SessionReference } from '../contracts/concierge-v2.ts'
 import { sha256 } from '../crypto.ts'
 import { ConciergeRuntimeError } from './runtime.ts'
+import { initializeMemoryContext } from './memory-state.ts'
 
 function opaque(prefix: string): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32))
@@ -58,8 +59,11 @@ export async function claimGuestSession(pool: pg.Pool, ticket: string, userId: s
       throw new ConciergeRuntimeError({ code: 'OWNERSHIP_MISMATCH', message: 'Phiên khách không còn hợp lệ.' })
     }
     const capability = opaque('csc_')
+    initializeMemoryContext(record)
     const next = ConciergeV2SessionRecordSchema.parse({ ...record, actor: { authenticated_user_id: userId },
       capability_hash: sha256(capability), state_version: record.state_version + 1, idempotency: [] })
+    initializeMemoryContext(next, userId)
+    if (next.conversation_context?.pending_question) next.conversation_context.pending_question.state_version = next.state_version
     await client.query('UPDATE public.concierge_v2_sessions SET user_id = $2, record = $3 WHERE session_id = $1',
       [record.session_id, userId, JSON.stringify(next)])
     await client.query('DELETE FROM public.concierge_v2_claim_tickets WHERE ticket_hash = $1', [sha256(ticket)])

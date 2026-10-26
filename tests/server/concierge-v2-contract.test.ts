@@ -172,7 +172,7 @@ describe('Concierge V2 canonical contract', () => {
     expect(
       ConciergeV2SessionRecordSchema.safeParse({
         ...record,
-        pending_suggestion_ids: Array.from({ length: 9 }, () => '55555555-5555-4555-8555-555555555555'),
+        pending_suggestion_ids: Array.from({ length: 61 }, () => '55555555-5555-4555-8555-555555555555'),
       }).success
     ).toBe(false)
   })

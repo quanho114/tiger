@@ -2,6 +2,8 @@
 
 This is a historical verification snapshot. The Redis session adapter and its
 tests were later removed; current Concierge V2 sessions use PostgreSQL only.
+The Jev integration was also removed; its results below are historical evidence,
+not current test requirements or available commands.
 
 ## Scope
 
@@ -108,12 +110,13 @@ business rule.
 
 ## Verification Limits
 
-The integration/policy suites, real browser suites, and offline Jev baseline
-passed during the architecture review. After the follow-up fixes, unit, server,
+The integration/policy suites and real browser suites passed during the
+architecture review. The offline Jev baseline above is historical evidence; that
+integration has since been removed. After the follow-up fixes, unit, server,
 Redis/PostgreSQL action integration, mock browser E2E, TypeScript, build, lint,
 and architecture checks were rerun. Counts above distinguish the full database
 baseline from the targeted Redis rerun; skipped Redis cases were executed with
 the isolated runner rather than treated as passing skips.
 
-Oxlint still reports existing warnings. Live model/Jev evaluations were not run;
+Oxlint still reports existing warnings. Live model evaluations were not run;
 offline tests do not establish live model answer quality.
